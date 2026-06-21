@@ -1,0 +1,63 @@
+SYSTEM_PERMISSIONS: list[tuple[str, str]] = [
+    ("users:read", "View users"),
+    ("users:create", "Create users"),
+    ("users:update", "Update users"),
+    ("users:delete", "Delete users"),
+    ("roles:read", "View roles"),
+    ("villages:read", "View villages"),
+    ("villages:create", "Create villages"),
+    ("villages:update", "Update villages"),
+    ("villages:delete", "Delete villages"),
+    ("crop_types:read", "View crop types"),
+    ("crop_types:create", "Create crop types"),
+    ("crop_types:update", "Update crop types"),
+    ("crop_types:delete", "Delete crop types"),
+    ("expense_categories:read", "View expense categories"),
+    ("expense_categories:create", "Create expense categories"),
+    ("expense_categories:update", "Update expense categories"),
+    ("expense_categories:delete", "Delete expense categories"),
+    ("documents:read", "View documents"),
+    ("documents:create", "Upload documents"),
+    ("documents:delete", "Delete documents"),
+    ("audit:read", "View audit logs"),
+    ("dashboard:read", "View dashboard"),
+]
+
+ROLE_PERMISSIONS: dict[str, list[str]] = {
+    "OWNER": [code for code, _ in SYSTEM_PERMISSIONS],
+    "MANAGER": [
+        "users:read",
+        "roles:read",
+        "villages:read",
+        "villages:create",
+        "villages:update",
+        "crop_types:read",
+        "crop_types:create",
+        "crop_types:update",
+        "expense_categories:read",
+        "expense_categories:create",
+        "expense_categories:update",
+        "documents:read",
+        "documents:create",
+        "audit:read",
+        "dashboard:read",
+    ],
+    "SUPERVISOR": [
+        "villages:read",
+        "crop_types:read",
+        "documents:read",
+        "documents:create",
+        "dashboard:read",
+    ],
+    "WORKER": [
+        "documents:read",
+        "documents:create",
+    ],
+}
+
+ROLE_DEFINITIONS: list[tuple[str, str]] = [
+    ("OWNER", "Owner"),
+    ("MANAGER", "Manager"),
+    ("SUPERVISOR", "Farm Supervisor"),
+    ("WORKER", "Worker"),
+]
