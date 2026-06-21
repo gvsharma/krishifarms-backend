@@ -1,0 +1,7 @@
+id,asset_code,name,name_te,asset_category,registration_number,status,is_rentable,hourly_rate,daily_rate,notes,data_source
+84535445-aae0-5c57-9a29-1259d4679436,SYN-AST-TRC-001,Mahindra 575 DI,మహీంద్రా 575,tractor,TS09SYN0001,active,true,900.00,5500.00,SYNTHETIC_DATA — safe to delete before loading real production data,synthetic
+6253b5aa-3b5a-5d36-a127-dde27d77bd13,SYN-AST-TRC-002,Swaraj 744 FE,స్వరాజ్ 744,tractor,TS09SYN0002,active,true,900.00,5500.00,SYNTHETIC_DATA — safe to delete before loading real production data,synthetic
+046e7255-a79e-557a-93a0-a798d33aeea5,SYN-AST-TRC-003,John Deere 5050D,జాన్ డియర్ 5050,tractor,TS09SYN0003,active,true,900.00,5500.00,SYNTHETIC_DATA — safe to delete before loading real production data,synthetic
+83a8aaab-e693-5302-b3f1-8de53c729ff6,SYN-AST-DCM-001,DCM Trailer,డీసీఎం ట్రైలర్,dcm,TS09SYN0004,active,true,600.00,3500.00,SYNTHETIC_DATA — safe to delete before loading real production data,synthetic
+6ea443c5-d83a-506c-b8ca-31cf2a41418c,SYN-AST-BAL-001,Balers Pack-Master,బేలర్,baler,TS09SYN0005,active,true,600.00,3500.00,SYNTHETIC_DATA — safe to delete before loading real production data,synthetic
+a52bf857-e2c1-54a7-a80f-3d901690a351,SYN-AST-BOL-001,Mahindra Bolero Pickup,మహీంద్రా బోలెరో,other,TS09SYN0006,active,false,600.00,3500.00,SYNTHETIC_DATA — safe to delete before loading real production data,synthetic

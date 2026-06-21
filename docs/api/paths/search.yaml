@@ -1,0 +1,48 @@
+search:
+  get:
+    tags: [Search]
+    summary: Global cross-entity search
+    operationId: globalSearch
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/SearchQuery'
+      - $ref: '../openapi.yaml#/components/parameters/Page'
+      - $ref: '../openapi.yaml#/components/parameters/PageSize'
+      - name: entity_types
+        in: query
+        description: Comma-separated entity types to search.
+        schema:
+          type: string
+          example: farmer,procurement,farmer_payment,worker,asset
+    responses:
+      '200':
+        description: Ranked search results
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [success, data]
+              properties:
+                success:
+                  type: boolean
+                  enum: [true]
+                data:
+                  type: object
+                  properties:
+                    items:
+                      type: array
+                      items:
+                        type: object
+                        required: [entity_type, entity_id, title, score]
+                        properties:
+                          entity_type: { type: string }
+                          entity_id: { type: string, format: uuid }
+                          title: { type: string }
+                          title_te: { type: string }
+                          subtitle: { type: string }
+                          score: { type: number }
+                          highlight: { type: string }
+                    total: { type: integer }
+                    page: { type: integer }
+                    page_size: { type: integer }
+                meta:
+                  $ref: '../schemas/common.yaml#/Meta'

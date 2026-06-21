@@ -1,0 +1,111 @@
+procurements:
+  get:
+    tags: [Procurement]
+    operationId: listProcurements
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/Page'
+      - $ref: '../openapi.yaml#/components/parameters/PageSize'
+      - $ref: '../openapi.yaml#/components/parameters/Sort'
+      - $ref: '../openapi.yaml#/components/parameters/DateFrom'
+      - $ref: '../openapi.yaml#/components/parameters/DateTo'
+      - name: farmer_id
+        in: query
+        schema: { type: string, format: uuid }
+      - name: village_id
+        in: query
+        schema: { type: string, format: uuid }
+      - name: crop_type_id
+        in: query
+        schema: { type: string, format: uuid }
+      - name: status
+        in: query
+        schema: { $ref: '../schemas/common.yaml#/StatusDraftConfirmedCancelled' }
+    responses:
+      '200':
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean }
+                data: { $ref: '../schemas/procurement.yaml#/ProcurementList' }
+  post:
+    tags: [Procurement]
+    operationId: createProcurement
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/IdempotencyKey'
+    requestBody:
+      content:
+        application/json:
+          schema: { $ref: '../schemas/procurement.yaml#/ProcurementCreate' }
+    responses:
+      '201': { description: Draft procurement created }
+
+procurementById:
+  get:
+    tags: [Procurement]
+    operationId: getProcurement
+    parameters:
+      - name: procurement_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: procurement_date
+        in: query
+        required: true
+        schema: { type: string, format: date }
+    responses:
+      '200': { description: OK }
+  patch:
+    tags: [Procurement]
+    operationId: updateProcurement
+    description: Update draft procurement only.
+    parameters:
+      - name: procurement_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: Updated }
+
+procurementConfirm:
+  post:
+    tags: [Procurement]
+    operationId: confirmProcurement
+    description: Confirm procurement and post farmer ledger entry.
+    parameters:
+      - name: procurement_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: Confirmed }
+      '409': { $ref: '../openapi.yaml#/components/responses/Conflict' }
+
+procurementCancel:
+  post:
+    tags: [Procurement]
+    operationId: cancelProcurement
+    parameters:
+      - name: procurement_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    requestBody:
+      content:
+        application/json:
+          schema: { $ref: '../schemas/procurement.yaml#/ProcurementCancel' }
+    responses:
+      '200': { description: Cancelled }
+
+procurementDeductions:
+  post:
+    tags: [Procurement]
+    operationId: addProcurementDeduction
+    parameters:
+      - name: procurement_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '201': { description: Deduction added }

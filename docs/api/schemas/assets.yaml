@@ -1,0 +1,48 @@
+Asset:
+  type: object
+  properties:
+    id: { $ref: 'common.yaml#/UUID' }
+    asset_code: { type: string }
+    name: { type: string }
+    name_te: { type: string }
+    asset_category: { type: string, enum: [tractor, dcm, baler, air_machine, other] }
+    registration_number: { type: string }
+    status: { type: string, enum: [active, maintenance, retired] }
+    is_rentable: { type: boolean }
+    hourly_rate: { $ref: 'common.yaml#/Money' }
+    daily_rate: { $ref: 'common.yaml#/Money' }
+    allOf:
+      - $ref: 'common.yaml#/Timestamps'
+      - $ref: 'common.yaml#/SoftDelete'
+
+MaintenanceRecord:
+  type: object
+  properties:
+    id: { $ref: 'common.yaml#/UUID' }
+    maintenance_date: { type: string, format: date }
+    description: { type: string }
+    vendor_name: { type: string }
+    cost: { $ref: 'common.yaml#/Money' }
+    machine_hours: { type: number }
+
+AssetUsageLog:
+  type: object
+  properties:
+    id: { $ref: 'common.yaml#/UUID' }
+    usage_date: { type: string, format: date }
+    machine_hours: { type: number }
+    revenue_generated: { $ref: 'common.yaml#/Money' }
+    maintenance_cost: { $ref: 'common.yaml#/Money' }
+    fuel_cost: { $ref: 'common.yaml#/Money' }
+
+AssetCreate:
+  type: object
+  required: [name, asset_category]
+  properties:
+    name: { type: string }
+    name_te: { type: string }
+    asset_category: { type: string }
+    registration_number: { type: string }
+    is_rentable: { type: boolean }
+    hourly_rate: { $ref: 'common.yaml#/Money' }
+    daily_rate: { $ref: 'common.yaml#/Money' }

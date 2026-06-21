@@ -1,0 +1,56 @@
+Farm:
+  type: object
+  properties:
+    id: { $ref: 'common.yaml#/UUID' }
+    org_id: { $ref: 'common.yaml#/UUID' }
+    farm_code: { type: string }
+    name: { type: string }
+    name_te: { type: string }
+    acres: { $ref: 'common.yaml#/Weight' }
+    location: { type: string }
+    village_id: { $ref: 'common.yaml#/UUID' }
+    owner_farmer_id: { $ref: 'common.yaml#/UUID' }
+    lease_start_date: { type: string, format: date }
+    lease_end_date: { type: string, format: date }
+    lease_amount: { $ref: 'common.yaml#/Money' }
+    status: { type: string, enum: [active, inactive] }
+    geo_lat: { type: number }
+    geo_lng: { type: number }
+    allOf:
+      - $ref: 'common.yaml#/Timestamps'
+      - $ref: 'common.yaml#/SoftDelete'
+
+FarmCreate:
+  type: object
+  required: [name, acres]
+  properties:
+    name: { type: string }
+    name_te: { type: string }
+    acres: { $ref: 'common.yaml#/Weight' }
+    location: { type: string }
+    village_id: { $ref: 'common.yaml#/UUID' }
+    owner_farmer_id: { $ref: 'common.yaml#/UUID' }
+    lease_start_date: { type: string, format: date }
+    lease_end_date: { type: string, format: date }
+    lease_amount: { $ref: 'common.yaml#/Money' }
+
+FarmActivity:
+  type: object
+  properties:
+    id: { $ref: 'common.yaml#/UUID' }
+    farm_id: { $ref: 'common.yaml#/UUID' }
+    activity_type_id: { $ref: 'common.yaml#/UUID' }
+    activity_date: { type: string, format: date }
+    description: { type: string }
+    description_te: { type: string }
+    performed_by_worker_id: { $ref: 'common.yaml#/UUID' }
+
+FarmList:
+  type: object
+  properties:
+    items:
+      type: array
+      items: { $ref: '#/Farm' }
+    total: { type: integer }
+    page: { type: integer }
+    page_size: { type: integer }

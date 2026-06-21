@@ -1,0 +1,455 @@
+name: Deploy Backend to EC2
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: deploy-backend-production
+  cancel-in-progress: false
+
+env:
+  PYTHON_VERSION: "3.12"
+  AWS_REGION: ap-south-1
+  APP_PATH: /opt/krishifarms
+  DEPLOY_OBJECT_KEY: incoming/deploy.tar.gz
+  DEPLOY_SCRIPT_KEY: incoming/remote-deploy.sh
+  DEPLOY_SYNC_SCRIPT_KEY: incoming/sync-env-from-ssm.sh
+  DEPLOY_KICKOFF_SCRIPT_KEY: incoming/ssm-kickoff-deploy.sh
+
+jobs:
+  validate:
+    uses: ./.github/workflows/validate.yml
+
+  build-and-deploy:
+    name: Deploy to EC2
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create deploy bundle
+        run: |
+          set -euo pipefail
+          tar -czf deploy.tar.gz \
+            --exclude='.git' \
+            --exclude='.venv' \
+            --exclude='__pycache__' \
+            --exclude='.ruff_cache' \
+            --exclude='.cursor' \
+            --exclude='deploy.tar.gz' \
+            .
+          echo "Bundle size: $(du -h deploy.tar.gz | cut -f1)"
+
+      - name: Resolve deploy configuration
+        id: deploy_cfg
+        env:
+          AWS_BACKEND_DEPLOY_ROLE_ARN: ${{ secrets.AWS_BACKEND_DEPLOY_ROLE_ARN }}
+          DEPLOY_BUCKET_VAR: ${{ vars.DEPLOY_BUCKET }}
+          DEPLOY_BUCKET_SECRET: ${{ secrets.DEPLOY_BUCKET }}
+          EC2_INSTANCE_ID_VAR: ${{ vars.EC2_INSTANCE_ID }}
+          EC2_INSTANCE_ID_SECRET: ${{ secrets.EC2_INSTANCE_ID }}
+          EC2_HOST_VAR: ${{ vars.EC2_HOST }}
+          EC2_HOST_SECRET: ${{ secrets.EC2_HOST }}
+          RDS_INSTANCE_ID_VAR: ${{ vars.RDS_INSTANCE_ID }}
+          RDS_INSTANCE_ID_SECRET: ${{ secrets.RDS_INSTANCE_ID }}
+        run: |
+          set -euo pipefail
+          pick_non_empty() {
+            local a="$1"
+            local b="$2"
+            if [[ -n "${a//[[:space:]]/}" ]]; then
+              echo "$a"
+            else
+              echo "$b"
+            fi
+          }
+
+          DEPLOY_BUCKET="$(pick_non_empty "$DEPLOY_BUCKET_VAR" "$DEPLOY_BUCKET_SECRET")"
+          EC2_INSTANCE_ID="$(pick_non_empty "$EC2_INSTANCE_ID_VAR" "$EC2_INSTANCE_ID_SECRET")"
+          EC2_HOST="$(pick_non_empty "$EC2_HOST_VAR" "$EC2_HOST_SECRET")"
+          RDS_INSTANCE_ID="$(pick_non_empty "$RDS_INSTANCE_ID_VAR" "$RDS_INSTANCE_ID_SECRET")"
+          RDS_INSTANCE_ID="${RDS_INSTANCE_ID//[[:space:]]/}"
+
+          missing=()
+          [[ -z "${AWS_BACKEND_DEPLOY_ROLE_ARN//[[:space:]]/}" ]] && missing+=(AWS_BACKEND_DEPLOY_ROLE_ARN)
+          [[ -z "${DEPLOY_BUCKET//[[:space:]]/}" ]] && missing+=(DEPLOY_BUCKET)
+          if [[ ${#missing[@]} -gt 0 ]]; then
+            echo "::error title=Missing deploy config::Set AWS_BACKEND_DEPLOY_ROLE_ARN and DEPLOY_BUCKET in GitHub Actions secrets/variables." >&2
+            exit 1
+          fi
+
+          if [[ -z "${EC2_INSTANCE_ID//[[:space:]]/}" ]]; then
+            echo "EC2_INSTANCE_ID not set — will resolve from AWS by instance Name tag during deploy."
+          fi
+          if [[ -z "${EC2_HOST//[[:space:]]/}" ]]; then
+            echo "EC2_HOST not set — will resolve current public IP from AWS during deploy."
+          fi
+
+          echo "deploy_bucket=${DEPLOY_BUCKET}" >> "$GITHUB_OUTPUT"
+          echo "ec2_instance_id=${EC2_INSTANCE_ID}" >> "$GITHUB_OUTPUT"
+          echo "ec2_host=${EC2_HOST}" >> "$GITHUB_OUTPUT"
+          echo "rds_instance_id=${RDS_INSTANCE_ID}" >> "$GITHUB_OUTPUT"
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_BACKEND_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Prepare RDS database
+        env:
+          DEPLOY_BUCKET: ${{ steps.deploy_cfg.outputs.deploy_bucket }}
+          CONFIGURED_RDS_INSTANCE_ID: ${{ steps.deploy_cfg.outputs.rds_instance_id }}
+        run: |
+          set -euo pipefail
+          CONFIGURED_RDS_INSTANCE_ID="${CONFIGURED_RDS_INSTANCE_ID//[[:space:]]/}"
+          if [[ -z "${CONFIGURED_RDS_INSTANCE_ID}" ]]; then
+            echo "RDS_INSTANCE_ID not set — KrishiFarms uses local PostgreSQL in Docker Compose; skipping RDS prepare."
+            exit 0
+          fi
+
+          NAME_PREFIX="${DEPLOY_BUCKET%-backend-deploy}"
+          if [[ "${NAME_PREFIX}" == "${DEPLOY_BUCKET}" ]]; then
+            NAME_PREFIX="${DEPLOY_BUCKET%-deploy}"
+          fi
+
+          RDS_INSTANCE_ID="${CONFIGURED_RDS_INSTANCE_ID}"
+          RDS_DESCRIBE_ERR=""
+          rds_state() {
+            local id="$1"
+            local err_file
+            err_file="$(mktemp)"
+            local status
+            status="$(aws rds describe-db-instances \
+              --region "${AWS_REGION}" \
+              --db-instance-identifier "${id}" \
+              --query 'DBInstances[0].DBInstanceStatus' \
+              --output text 2>"${err_file}" || true)"
+            if [[ -n "${status}" && "${status}" != "None" ]]; then
+              RDS_DESCRIBE_ERR=""
+              echo "${status}"
+              rm -f "${err_file}"
+              return 0
+            fi
+            RDS_DESCRIBE_ERR="$(tr '\n' ' ' < "${err_file}")"
+            rm -f "${err_file}"
+            echo "missing"
+          }
+
+          STATE="$(rds_state "${RDS_INSTANCE_ID}")"
+          if [[ "${STATE}" == "missing" || "${STATE}" == "None" ]]; then
+            echo "::warning title=RDS prepare skipped::RDS ${RDS_INSTANCE_ID} not found. KrishiFarms default is local PostgreSQL."
+            exit 0
+          fi
+
+          if [[ "${STATE}" == "stopped" ]]; then
+            echo "Starting stopped RDS instance ${RDS_INSTANCE_ID}..."
+            aws rds start-db-instance --region "${AWS_REGION}" --db-instance-identifier "${RDS_INSTANCE_ID}" >/dev/null
+            aws rds wait db-instance-available --region "${AWS_REGION}" --db-instance-identifier "${RDS_INSTANCE_ID}"
+          elif [[ "${STATE}" != "available" ]]; then
+            echo "RDS ${RDS_INSTANCE_ID} is ${STATE}; waiting for available..."
+            aws rds wait db-instance-available --region "${AWS_REGION}" --db-instance-identifier "${RDS_INSTANCE_ID}"
+          else
+            echo "RDS ${RDS_INSTANCE_ID} is available"
+          fi
+
+      - name: Prepare EC2 deploy target
+        id: ec2_target
+        env:
+          DEPLOY_BUCKET: ${{ steps.deploy_cfg.outputs.deploy_bucket }}
+          CONFIGURED_INSTANCE_ID: ${{ steps.deploy_cfg.outputs.ec2_instance_id }}
+        run: |
+          set -euo pipefail
+          EC2_INSTANCE_ID="${CONFIGURED_INSTANCE_ID//[[:space:]]/}"
+          NAME_PREFIX="${DEPLOY_BUCKET%-backend-deploy}"
+          if [[ "${NAME_PREFIX}" == "${DEPLOY_BUCKET}" ]]; then
+            NAME_PREFIX="${DEPLOY_BUCKET%-deploy}"
+          fi
+          EC2_NAME_TAG="${NAME_PREFIX}-api"
+
+          instance_state() {
+            aws ec2 describe-instances \
+              --region "${AWS_REGION}" \
+              --instance-ids "$1" \
+              --query 'Reservations[0].Instances[0].State.Name' \
+              --output text 2>/dev/null || echo "missing"
+          }
+
+          resolve_by_name_tag() {
+            aws ec2 describe-instances \
+              --region "${AWS_REGION}" \
+              --filters \
+                "Name=tag:Name,Values=${EC2_NAME_TAG}" \
+                "Name=instance-state-name,Values=pending,running,stopping,stopped" \
+              --query 'sort_by(Reservations[].Instances[], &LaunchTime)[-1].InstanceId' \
+              --output text
+          }
+
+          if [[ -z "${EC2_INSTANCE_ID}" ]]; then
+            echo "Resolving EC2 instance by tag Name=${EC2_NAME_TAG}"
+            EC2_INSTANCE_ID="$(resolve_by_name_tag)"
+            if [[ -z "${EC2_INSTANCE_ID}" || "${EC2_INSTANCE_ID}" == "None" ]]; then
+              echo "::error::No EC2 instance found with tag Name=${EC2_NAME_TAG}." >&2
+              exit 1
+            fi
+          fi
+
+          STATE="$(instance_state "${EC2_INSTANCE_ID}")"
+          if [[ "${STATE}" == "missing" || "${STATE}" == "None" || "${STATE}" == "terminated" ]]; then
+            echo "Configured EC2_INSTANCE_ID ${EC2_INSTANCE_ID} is ${STATE}; resolving latest instance with tag Name=${EC2_NAME_TAG}"
+            RESOLVED="$(resolve_by_name_tag)"
+            if [[ -z "${RESOLVED}" || "${RESOLVED}" == "None" ]]; then
+              echo "::error::No EC2 instance found with tag Name=${EC2_NAME_TAG}." >&2
+              exit 1
+            fi
+            EC2_INSTANCE_ID="${RESOLVED}"
+            STATE="$(instance_state "${EC2_INSTANCE_ID}")"
+          fi
+
+          COLD_STARTED=false
+          if [[ "${STATE}" == "stopped" ]]; then
+            echo "Starting stopped instance ${EC2_INSTANCE_ID}..."
+            aws ec2 start-instances --region "${AWS_REGION}" --instance-ids "${EC2_INSTANCE_ID}" >/dev/null
+            aws ec2 wait instance-running --region "${AWS_REGION}" --instance-ids "${EC2_INSTANCE_ID}"
+            aws ec2 wait instance-status-ok --region "${AWS_REGION}" --instance-ids "${EC2_INSTANCE_ID}"
+            COLD_STARTED=true
+          fi
+
+          SSM_PING_ATTEMPTS=36
+          if [[ "${COLD_STARTED}" == "true" ]]; then
+            SSM_PING_ATTEMPTS=48
+          fi
+
+          PING_STATUS="None"
+          for attempt in $(seq 1 "${SSM_PING_ATTEMPTS}"); do
+            PING_STATUS="$(aws ssm describe-instance-information \
+              --region "${AWS_REGION}" \
+              --filters "Key=InstanceIds,Values=${EC2_INSTANCE_ID}" \
+              --query 'InstanceInformationList[0].PingStatus' \
+              --output text 2>/dev/null || echo "Unknown")"
+            PING_STATUS="${PING_STATUS:-None}"
+            echo "SSM PingStatus for ${EC2_INSTANCE_ID}: ${PING_STATUS} (attempt ${attempt}/${SSM_PING_ATTEMPTS})"
+            if [[ "${PING_STATUS}" == "Online" ]]; then
+              break
+            fi
+            sleep 10
+          done
+
+          if [[ "${PING_STATUS}" != "Online" ]]; then
+            echo "::error title=SSM agent not Online::EC2 ${EC2_INSTANCE_ID} PingStatus=${PING_STATUS} after ${SSM_PING_ATTEMPTS} attempts." >&2
+            exit 1
+          fi
+
+          EC2_HOST="$(aws ec2 describe-instances \
+            --region "${AWS_REGION}" \
+            --instance-ids "${EC2_INSTANCE_ID}" \
+            --query 'Reservations[0].Instances[0].PublicIpAddress' \
+            --output text)"
+          echo "Using EC2 instance ${EC2_INSTANCE_ID} (${EC2_HOST})"
+          echo "ec2_instance_id=${EC2_INSTANCE_ID}" >> "$GITHUB_OUTPUT"
+          echo "ec2_host=${EC2_HOST}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload deploy artifacts to S3
+        run: |
+          set -euo pipefail
+          DEPLOY_BUCKET="${{ steps.deploy_cfg.outputs.deploy_bucket }}"
+          aws s3 cp deploy.tar.gz "s3://${DEPLOY_BUCKET}/${DEPLOY_OBJECT_KEY}"
+          aws s3 cp deploy/scripts/remote-deploy.sh "s3://${DEPLOY_BUCKET}/${DEPLOY_SCRIPT_KEY}"
+          aws s3 cp deploy/scripts/sync-env-from-ssm.sh "s3://${DEPLOY_BUCKET}/${DEPLOY_SYNC_SCRIPT_KEY}"
+          aws s3 cp deploy/scripts/ssm-kickoff-deploy.sh "s3://${DEPLOY_BUCKET}/${DEPLOY_KICKOFF_SCRIPT_KEY}"
+
+      - name: Deploy on EC2 via SSM
+        run: |
+          set -euo pipefail
+          DEPLOY_BUCKET="${{ steps.deploy_cfg.outputs.deploy_bucket }}"
+          EC2_INSTANCE_ID="${{ steps.ec2_target.outputs.ec2_instance_id }}"
+          APP_PATH="${APP_PATH}"
+          SSM_SHORT_TIMEOUT=120
+          SSM_POLL_INTERVAL=5
+          SSM_SHORT_POLL_ATTEMPTS=24
+          DEPLOY_STATUS_POLL_ATTEMPTS=36
+          DEPLOY_STATUS_POLL_INTERVAL=10
+
+          send_ssm_shell_command() {
+            local timeout_seconds="$1"
+            local comment="$2"
+            local params_file="$3"
+            aws ssm send-command \
+              --region "${AWS_REGION}" \
+              --instance-ids "${EC2_INSTANCE_ID}" \
+              --document-name "AWS-RunShellScript" \
+              --comment "${comment}" \
+              --timeout-seconds "${timeout_seconds}" \
+              --parameters "file://${params_file}" \
+              --query 'Command.CommandId' \
+              --output text
+          }
+
+          wait_for_ssm_command() {
+            local command_id="$1"
+            local label="$2"
+            local max_attempts="$3"
+            local attempt
+            for attempt in $(seq 1 "${max_attempts}"); do
+              INVOCATION="$(aws ssm get-command-invocation \
+                --region "${AWS_REGION}" \
+                --command-id "${command_id}" \
+                --instance-id "${EC2_INSTANCE_ID}" \
+                --output json 2>/dev/null || echo '{}')"
+              STATUS="$(echo "${INVOCATION}" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('Status','Pending'))")"
+              echo "${label}: ${STATUS} (attempt ${attempt}/${max_attempts})"
+              case "${STATUS}" in
+                Success)
+                  echo "${INVOCATION}" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('StandardOutputContent','') or '')"
+                  echo "${INVOCATION}" | python3 -c "import json,sys; d=json.load(sys.stdin); s=d.get('StandardErrorContent','') or ''; print(s, end='')" >&2
+                  return 0
+                  ;;
+                Failed|Cancelled|TimedOut)
+                  echo "${INVOCATION}" | python3 -c "import json,sys; d=json.load(sys.stdin); print(json.dumps(d, indent=2))" >&2
+                  return 1
+                  ;;
+              esac
+              sleep "${SSM_POLL_INTERVAL}"
+            done
+            return 1
+          }
+
+          write_ssm_params() {
+            python3 -c 'import json,sys; print(json.dumps({"commands": sys.argv[1:]}))' "$@" > /tmp/ssm-command-params.json
+          }
+
+          write_ssm_params \
+            "set -euxo pipefail" \
+            "export AWS_DEFAULT_REGION=${AWS_REGION}" \
+            "echo SSM_PROBE_OK"
+          PROBE_ID="$(send_ssm_shell_command "${SSM_SHORT_TIMEOUT}" "GitHub Actions SSM probe" /tmp/ssm-command-params.json)"
+          PROBE_OUT="$(wait_for_ssm_command "${PROBE_ID}" "SSM probe" "${SSM_SHORT_POLL_ATTEMPTS}")" || exit 1
+          grep -q "SSM_PROBE_OK" <<< "${PROBE_OUT}" || { echo "::error::SSM probe failed" >&2; exit 1; }
+
+          write_ssm_params \
+            "set -euxo pipefail" \
+            "export AWS_DEFAULT_REGION=${AWS_REGION}" \
+            "mkdir -p ${APP_PATH}/scripts ${APP_PATH}/logs ${APP_PATH}/incoming ${APP_PATH}/config" \
+            "aws s3 cp s3://${DEPLOY_BUCKET}/${DEPLOY_KICKOFF_SCRIPT_KEY} ${APP_PATH}/scripts/ssm-kickoff-deploy.sh" \
+            "chmod 755 ${APP_PATH}/scripts/ssm-kickoff-deploy.sh" \
+            "if [[ -f ${APP_PATH}/logs/deploy.pid ]]; then kill \"\$(cat ${APP_PATH}/logs/deploy.pid)\" 2>/dev/null || true; fi" \
+            "nohup env DEPLOY_BUCKET=${DEPLOY_BUCKET} AWS_REGION=${AWS_REGION} APP_PATH=${APP_PATH} DEPLOY_OBJECT_KEY=${DEPLOY_OBJECT_KEY} DEPLOY_SCRIPT_KEY=${DEPLOY_SCRIPT_KEY} DEPLOY_SYNC_SCRIPT_KEY=${DEPLOY_SYNC_SCRIPT_KEY} bash ${APP_PATH}/scripts/ssm-kickoff-deploy.sh >> ${APP_PATH}/logs/kickoff-wrapper.log 2>&1 &" \
+            "echo \$! > ${APP_PATH}/logs/deploy.pid" \
+            "echo DEPLOY_KICKED_OFF"
+          KICKOFF_ID="$(send_ssm_shell_command "${SSM_SHORT_TIMEOUT}" "GitHub Actions deploy kickoff" /tmp/ssm-command-params.json)"
+          KICKOFF_OUT="$(wait_for_ssm_command "${KICKOFF_ID}" "SSM kickoff" "${SSM_SHORT_POLL_ATTEMPTS}")" || exit 1
+          grep -q "DEPLOY_KICKED_OFF" <<< "${KICKOFF_OUT}" || { echo "::error::Deploy kickoff failed" >&2; exit 1; }
+
+          write_ssm_params \
+            "set -euo pipefail" \
+            "STATUS=\$(cat ${APP_PATH}/logs/deploy.status 2>/dev/null || echo pending)" \
+            "echo deploy_status=\${STATUS}" \
+            "echo '--- deploy log (tail) ---'" \
+            "tail -40 ${APP_PATH}/logs/deploy.latest.log 2>/dev/null || true"
+
+          for attempt in $(seq 1 "${DEPLOY_STATUS_POLL_ATTEMPTS}"); do
+            POLL_ID="$(send_ssm_shell_command "${SSM_SHORT_TIMEOUT}" "GitHub Actions deploy status poll" /tmp/ssm-command-params.json)"
+            POLL_OUT="$(wait_for_ssm_command "${POLL_ID}" "Deploy status poll" "${SSM_SHORT_POLL_ATTEMPTS}")" || exit 1
+            echo "${POLL_OUT}"
+            if grep -q 'deploy_status=success' <<< "${POLL_OUT}"; then
+              echo "Remote deploy completed successfully"
+              exit 0
+            fi
+            if grep -q 'deploy_status=failed' <<< "${POLL_OUT}"; then
+              echo "::error::Remote deploy failed on EC2" >&2
+              exit 1
+            fi
+            echo "Deploy still running (attempt ${attempt}/${DEPLOY_STATUS_POLL_ATTEMPTS})"
+            sleep "${DEPLOY_STATUS_POLL_INTERVAL}"
+          done
+
+          echo "::error::Deploy timed out — check ${APP_PATH}/logs/deploy.latest.log on EC2" >&2
+          exit 1
+        env:
+          DEPLOY_BUCKET: ${{ steps.deploy_cfg.outputs.deploy_bucket }}
+          APP_PATH: ${{ env.APP_PATH }}
+          DEPLOY_OBJECT_KEY: ${{ env.DEPLOY_OBJECT_KEY }}
+          DEPLOY_SCRIPT_KEY: ${{ env.DEPLOY_SCRIPT_KEY }}
+          DEPLOY_SYNC_SCRIPT_KEY: ${{ env.DEPLOY_SYNC_SCRIPT_KEY }}
+          DEPLOY_KICKOFF_SCRIPT_KEY: ${{ env.DEPLOY_KICKOFF_SCRIPT_KEY }}
+
+      - name: Verify public health via nginx
+        id: public_health
+        run: |
+          EC2_HOST="${{ steps.ec2_target.outputs.ec2_host }}"
+          HEALTH_URL="http://${EC2_HOST}/api/v1/health"
+          for attempt in $(seq 1 48); do
+            RESPONSE="$(curl -sS "$HEALTH_URL" || true)"
+            if echo "$RESPONSE" | grep -q '"status"[[:space:]]*:[[:space:]]*"ok"'; then
+              echo "Public health check passed"
+              exit 0
+            fi
+            echo "Attempt ${attempt}/48 — response: ${RESPONSE:-<empty>}"
+            sleep 5
+          done
+          echo "::error::Public health check failed — backend not healthy behind nginx." >&2
+          exit 1
+
+      - name: Dump EC2 deploy logs on health failure
+        if: failure() && steps.public_health.outcome == 'failure'
+        run: |
+          set -euo pipefail
+          EC2_INSTANCE_ID="${{ steps.ec2_target.outputs.ec2_instance_id }}"
+          APP_PATH="${APP_PATH}"
+          python3 -c 'import json,sys; print(json.dumps({"commands": sys.argv[1:]}))' \
+            "set -euo pipefail" \
+            "echo '--- deploy.latest.log ---'" \
+            "tail -80 ${APP_PATH}/logs/deploy.latest.log 2>/dev/null || true" \
+            "echo '--- docker compose ps ---'" \
+            "docker compose -f ${APP_PATH}/repo/infra/docker-compose.prod.yml ps 2>/dev/null || true" \
+            "echo '--- api logs ---'" \
+            "docker compose -f ${APP_PATH}/repo/infra/docker-compose.prod.yml logs --tail=40 api 2>/dev/null || true" \
+            > /tmp/ssm-log-dump.json
+          COMMAND_ID="$(aws ssm send-command \
+            --region "${AWS_REGION}" \
+            --instance-ids "${EC2_INSTANCE_ID}" \
+            --document-name "AWS-RunShellScript" \
+            --comment "GitHub Actions deploy failure log dump" \
+            --timeout-seconds 120 \
+            --parameters file:///tmp/ssm-log-dump.json \
+            --query 'Command.CommandId' \
+            --output text)"
+          for attempt in $(seq 1 24); do
+            STATUS="$(aws ssm get-command-invocation \
+              --region "${AWS_REGION}" \
+              --command-id "${COMMAND_ID}" \
+              --instance-id "${EC2_INSTANCE_ID}" \
+              --query 'Status' \
+              --output text 2>/dev/null || echo Pending)"
+            if [[ "${STATUS}" == "Success" ]]; then
+              aws ssm get-command-invocation \
+                --region "${AWS_REGION}" \
+                --command-id "${COMMAND_ID}" \
+                --instance-id "${EC2_INSTANCE_ID}" \
+                --query '[StandardOutputContent,StandardErrorContent]' \
+                --output text
+              exit 0
+            fi
+            [[ "${STATUS}" == "Failed" || "${STATUS}" == "Cancelled" || "${STATUS}" == "TimedOut" ]] && break
+            sleep 5
+          done
+          echo "Could not fetch EC2 logs via SSM"
+        env:
+          APP_PATH: ${{ env.APP_PATH }}
+
+      - name: Run API smoke tests
+        env:
+          SMOKE_EMAIL: ${{ secrets.SMOKE_TEST_EMAIL }}
+          SMOKE_PASSWORD: ${{ secrets.SMOKE_TEST_PASSWORD }}
+        run: |
+          chmod +x scripts/smoke-test-api.sh
+          ./scripts/smoke-test-api.sh "http://${{ steps.ec2_target.outputs.ec2_host }}"

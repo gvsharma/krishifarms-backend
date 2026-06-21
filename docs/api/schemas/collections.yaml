@@ -1,0 +1,40 @@
+Collection:
+  type: object
+  properties:
+    id: { $ref: 'common.yaml#/UUID' }
+    collection_number: { type: string }
+    source_type: { type: string, enum: [rental, other] }
+    source_id: { $ref: 'common.yaml#/UUID' }
+    customer_id: { $ref: 'common.yaml#/UUID' }
+    collection_date: { type: string, format: date }
+    amount: { $ref: 'common.yaml#/Money' }
+    payment_mode_id: { $ref: 'common.yaml#/UUID' }
+    reference_no: { type: string }
+    status: { type: string, enum: [draft, posted, reversed] }
+    notes: { type: string }
+
+CollectionCreate:
+  type: object
+  required: [source_type, source_id, collection_date, amount, payment_mode_id]
+  properties:
+    source_type: { type: string }
+    source_id: { $ref: 'common.yaml#/UUID' }
+    customer_id: { $ref: 'common.yaml#/UUID' }
+    collection_date: { type: string, format: date }
+    amount: { $ref: 'common.yaml#/Money' }
+    payment_mode_id: { $ref: 'common.yaml#/UUID' }
+    reference_no: { type: string }
+    notes: { type: string }
+    document_ids:
+      type: array
+      items: { $ref: 'common.yaml#/UUID' }
+
+CollectionList:
+  type: object
+  properties:
+    items:
+      type: array
+      items: { $ref: '#/Collection' }
+    total: { type: integer }
+    page: { type: integer }
+    page_size: { type: integer }

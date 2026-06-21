@@ -1,0 +1,39 @@
+RentalCustomer:
+  type: object
+  properties:
+    id: { $ref: 'common.yaml#/UUID' }
+    customer_code: { type: string }
+    name: { type: string }
+    name_te: { type: string }
+    phone: { type: string }
+    address: { type: string }
+    village_id: { $ref: 'common.yaml#/UUID' }
+
+RentalAgreement:
+  type: object
+  properties:
+    id: { $ref: 'common.yaml#/UUID' }
+    agreement_number: { type: string }
+    customer_id: { $ref: 'common.yaml#/UUID' }
+    asset_id: { $ref: 'common.yaml#/UUID' }
+    start_datetime: { type: string, format: date-time }
+    end_datetime: { type: string, format: date-time }
+    rate_type: { type: string, enum: [hourly, daily] }
+    hourly_rate: { $ref: 'common.yaml#/Money' }
+    total_hours: { type: number }
+    revenue: { $ref: 'common.yaml#/Money' }
+    collected_amount: { $ref: 'common.yaml#/Money' }
+    pending_collection: { $ref: 'common.yaml#/Money' }
+    status: { type: string, enum: [active, completed, cancelled] }
+
+RentalAgreementCreate:
+  type: object
+  required: [customer_id, asset_id, start_datetime, rate_type, hourly_rate]
+  properties:
+    customer_id: { $ref: 'common.yaml#/UUID' }
+    asset_id: { $ref: 'common.yaml#/UUID' }
+    start_datetime: { type: string, format: date-time }
+    end_datetime: { type: string, format: date-time }
+    rate_type: { type: string }
+    hourly_rate: { $ref: 'common.yaml#/Money' }
+    notes: { type: string }

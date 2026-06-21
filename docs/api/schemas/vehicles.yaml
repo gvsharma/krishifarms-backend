@@ -1,0 +1,41 @@
+VehicleTrip:
+  type: object
+  properties:
+    id: { $ref: 'common.yaml#/UUID' }
+    trip_number: { type: string }
+    asset_id: { $ref: 'common.yaml#/UUID' }
+    driver_worker_id: { $ref: 'common.yaml#/UUID' }
+    source: { type: string }
+    source_te: { type: string }
+    destination: { type: string }
+    destination_te: { type: string }
+    trip_date: { type: string, format: date }
+    distance_km: { type: number }
+    fuel_liters: { type: number }
+    fuel_cost: { $ref: 'common.yaml#/Money' }
+    loading_charges: { $ref: 'common.yaml#/Money' }
+    unloading_charges: { $ref: 'common.yaml#/Money' }
+    waiting_charges: { $ref: 'common.yaml#/Money' }
+    other_charges: { $ref: 'common.yaml#/Money' }
+    total_cost: { $ref: 'common.yaml#/Money' }
+    status: { type: string }
+
+VehicleTripCreate:
+  type: object
+  required: [asset_id, source, destination, trip_date]
+  properties:
+    asset_id: { $ref: 'common.yaml#/UUID' }
+    driver_worker_id: { $ref: 'common.yaml#/UUID' }
+    source: { type: string }
+    source_te: { type: string }
+    destination: { type: string }
+    destination_te: { type: string }
+    trip_date: { type: string, format: date }
+    distance_km: { type: number }
+    fuel_liters: { type: number }
+    fuel_cost: { $ref: 'common.yaml#/Money' }
+    loading_charges: { $ref: 'common.yaml#/Money' }
+    unloading_charges: { $ref: 'common.yaml#/Money' }
+    waiting_charges: { $ref: 'common.yaml#/Money' }
+    other_charges: { $ref: 'common.yaml#/Money' }
+    notes: { type: string }

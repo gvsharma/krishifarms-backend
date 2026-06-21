@@ -1,0 +1,23 @@
+{
+  "data_source": "synthetic",
+  "village": "Bhairkhanpally",
+  "village_id": "97bc8297-5f82-5ad6-8e5c-de4c04c0e7d6",
+  "crop_paddy_id": "545639a0-04e6-569d-b274-0e961b102b71",
+  "crop_corn_id": "9f8db97a-41f6-5609-9d0d-82930861f14c",
+  "notes": "SYNTHETIC_DATA \u2014 safe to delete before loading real production data",
+  "counts": {
+    "farmers": 50,
+    "workers": 10,
+    "farms": 5,
+    "assets": 6,
+    "rental_customers": 10,
+    "rental_agreements": 15,
+    "procurements": 200,
+    "farmer_ledger_entries": 207,
+    "farmer_payments": 30,
+    "payments": 20,
+    "payments_total": 50,
+    "expenses": 100,
+    "collections": 50
+  }
+}

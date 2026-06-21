@@ -1,0 +1,293 @@
+openapi: 3.0.3
+info:
+  title: KrishiFarms CRM API
+  version: 1.0.0
+  description: |
+    REST API for KrishiFarms CRM — farm operations, procurement, workforce, assets, rentals, and finance.
+
+    ## Conventions
+    - Base path: `/api/v1`
+    - Auth: Bearer JWT (`Authorization: Bearer <access_token>`)
+    - Success envelope: `{ "success": true, "data": ..., "meta": { "request_id": "..." } }`
+    - Pagination: `page` (default 1), `page_size` (default 20, max 100)
+    - Sorting: `sort=field` or `sort=-field` (prefix `-` for descending)
+    - Date filters: `date_from`, `date_to` (ISO 8601 date)
+    - Search: `q` for full-text; module-specific filters as query params
+    - Idempotency: `Idempotency-Key` header on POST for financial mutations
+    - Locale: `Accept-Language: en` or `te`
+  contact:
+    name: KrishiFarms API Support
+
+servers:
+  - url: https://api.krishifarms.local/api/v1
+    description: Production
+  - url: http://localhost:8000/api/v1
+    description: Local development
+
+tags:
+  - name: Authentication
+  - name: Farmers
+  - name: Farms
+  - name: Procurement
+  - name: Payments
+  - name: Workers
+  - name: Work Orders
+  - name: Assets
+  - name: Vehicles
+  - name: Rentals
+  - name: Expenses
+  - name: Collections
+  - name: Documents
+  - name: Search
+
+security:
+  - BearerAuth: []
+
+paths:
+  /auth/login:
+    $ref: paths/auth.yaml#/login
+  /auth/refresh:
+    $ref: paths/auth.yaml#/refresh
+  /auth/logout:
+    $ref: paths/auth.yaml#/logout
+
+  /farmers:
+    $ref: paths/farmers.yaml#/farmers
+  /farmers/{farmer_id}:
+    $ref: paths/farmers.yaml#/farmerById
+  /farmers/{farmer_id}/bank-accounts:
+    $ref: paths/farmers.yaml#/farmerBankAccounts
+  /farmers/{farmer_id}/bank-accounts/{account_id}:
+    $ref: paths/farmers.yaml#/farmerBankAccountById
+  /farmers/{farmer_id}/land-parcels:
+    $ref: paths/farmers.yaml#/farmerLandParcels
+  /farmers/{farmer_id}/land-parcels/{parcel_id}:
+    $ref: paths/farmers.yaml#/farmerLandParcelById
+  /farmers/{farmer_id}/crop-history:
+    $ref: paths/farmers.yaml#/farmerCropHistory
+  /farmers/{farmer_id}/ledger:
+    $ref: paths/farmers.yaml#/farmerLedger
+  /farmers/{farmer_id}/outstanding:
+    $ref: paths/farmers.yaml#/farmerOutstanding
+
+  /farms:
+    $ref: paths/farms.yaml#/farms
+  /farms/{farm_id}:
+    $ref: paths/farms.yaml#/farmById
+  /farms/{farm_id}/activities:
+    $ref: paths/farms.yaml#/farmActivities
+  /farms/{farm_id}/activities/{activity_id}:
+    $ref: paths/farms.yaml#/farmActivityById
+
+  /procurements:
+    $ref: paths/procurement.yaml#/procurements
+  /procurements/{procurement_id}:
+    $ref: paths/procurement.yaml#/procurementById
+  /procurements/{procurement_id}/confirm:
+    $ref: paths/procurement.yaml#/procurementConfirm
+  /procurements/{procurement_id}/cancel:
+    $ref: paths/procurement.yaml#/procurementCancel
+  /procurements/{procurement_id}/deductions:
+    $ref: paths/procurement.yaml#/procurementDeductions
+
+  /farmer-payments:
+    $ref: paths/payments.yaml#/farmerPayments
+  /farmer-payments/{payment_id}:
+    $ref: paths/payments.yaml#/farmerPaymentById
+  /farmer-payments/{payment_id}/allocate:
+    $ref: paths/payments.yaml#/farmerPaymentAllocate
+  /farmer-payments/{payment_id}/reverse:
+    $ref: paths/payments.yaml#/farmerPaymentReverse
+  /payments:
+    $ref: paths/payments.yaml#/operationalPayments
+  /payments/{payment_id}:
+    $ref: paths/payments.yaml#/operationalPaymentById
+
+  /workers:
+    $ref: paths/workers.yaml#/workers
+  /workers/{worker_id}:
+    $ref: paths/workers.yaml#/workerById
+  /workers/{worker_id}/skills:
+    $ref: paths/workers.yaml#/workerSkills
+  /workers/{worker_id}/skills/{skill_id}:
+    $ref: paths/workers.yaml#/workerSkillById
+
+  /work-orders:
+    $ref: paths/work-orders.yaml#/workOrders
+  /work-orders/{work_order_id}:
+    $ref: paths/work-orders.yaml#/workOrderById
+  /work-orders/{work_order_id}/complete:
+    $ref: paths/work-orders.yaml#/workOrderComplete
+  /work-orders/{work_order_id}/photos:
+    $ref: paths/work-orders.yaml#/workOrderPhotos
+  /attendance:
+    $ref: paths/work-orders.yaml#/attendance
+
+  /assets:
+    $ref: paths/assets.yaml#/assets
+  /assets/{asset_id}:
+    $ref: paths/assets.yaml#/assetById
+  /assets/{asset_id}/maintenance-records:
+    $ref: paths/assets.yaml#/maintenanceRecords
+  /assets/{asset_id}/usage-logs:
+    $ref: paths/assets.yaml#/usageLogs
+
+  /vehicle-trips:
+    $ref: paths/vehicles.yaml#/vehicleTrips
+  /vehicle-trips/{trip_id}:
+    $ref: paths/vehicles.yaml#/vehicleTripById
+
+  /rental-customers:
+    $ref: paths/rentals.yaml#/rentalCustomers
+  /rental-customers/{customer_id}:
+    $ref: paths/rentals.yaml#/rentalCustomerById
+  /rental-agreements:
+    $ref: paths/rentals.yaml#/rentalAgreements
+  /rental-agreements/{agreement_id}:
+    $ref: paths/rentals.yaml#/rentalAgreementById
+  /rental-agreements/pending-collections:
+    $ref: paths/rentals.yaml#/pendingCollections
+
+  /expenses:
+    $ref: paths/expenses.yaml#/expenses
+  /expenses/{expense_id}:
+    $ref: paths/expenses.yaml#/expenseById
+
+  /collections:
+    $ref: paths/collections.yaml#/collections
+  /collections/{collection_id}:
+    $ref: paths/collections.yaml#/collectionById
+
+  /documents/types:
+    $ref: paths/documents.yaml#/documentTypes
+  /documents/presign-upload:
+    $ref: paths/documents.yaml#/presignUpload
+  /documents/presign-upload/batch:
+    $ref: paths/documents.yaml#/presignUploadBatch
+  /documents:
+    $ref: paths/documents.yaml#/documents
+  /documents/batch:
+    $ref: paths/documents.yaml#/documentsBatch
+  /documents/tags:
+    $ref: paths/documents.yaml#/documentTags
+  /documents/tags/{tag_id}:
+    $ref: paths/documents.yaml#/documentTagById
+  /documents/{document_id}:
+    $ref: paths/documents.yaml#/documentById
+  /documents/{document_id}/download-url:
+    $ref: paths/documents.yaml#/documentDownload
+  /documents/{document_id}/link:
+    $ref: paths/documents.yaml#/documentLink
+  /documents/{document_id}/links:
+    $ref: paths/documents.yaml#/documentLinks
+  /documents/{document_id}/links/{link_id}:
+    $ref: paths/documents.yaml#/documentUnlink
+  /documents/{document_id}/ocr:
+    $ref: paths/documents.yaml#/documentOcrTrigger
+  /documents/{document_id}/ocr/result:
+    $ref: paths/documents.yaml#/documentOcr
+  /documents/{document_id}/ocr/verify:
+    $ref: paths/documents.yaml#/documentOcrVerify
+
+  /search:
+    $ref: paths/search.yaml#/search
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    Page:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 1, default: 1 }
+    PageSize:
+      name: page_size
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+    Sort:
+      name: sort
+      in: query
+      description: Sort field. Prefix with `-` for descending (e.g. `-created_at`).
+      schema: { type: string, example: "-created_at" }
+    DateFrom:
+      name: date_from
+      in: query
+      schema: { type: string, format: date }
+    DateTo:
+      name: date_to
+      in: query
+      schema: { type: string, format: date }
+    SearchQuery:
+      name: q
+      in: query
+      description: Full-text search query (Telugu and English supported).
+      schema: { type: string, minLength: 1 }
+    FarmerId:
+      name: farmer_id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    FarmId:
+      name: farm_id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      description: Unique key for idempotent financial POST requests.
+      schema: { type: string, maxLength: 100 }
+
+  responses:
+    BadRequest:
+      description: Validation or business rule error
+      content:
+        application/json:
+          schema: { $ref: schemas/common.yaml#/ErrorResponse }
+          example:
+            success: false
+            error: { message: "Invalid request payload", details: { field: "amount" } }
+    Unauthorized:
+      description: Missing or invalid authentication
+      content:
+        application/json:
+          schema: { $ref: schemas/common.yaml#/ErrorResponse }
+          example:
+            success: false
+            error: { message: "Authentication required" }
+    Forbidden:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema: { $ref: schemas/common.yaml#/ErrorResponse }
+          example:
+            success: false
+            error: { message: "Missing permission: procurements:create" }
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema: { $ref: schemas/common.yaml#/ErrorResponse }
+          example:
+            success: false
+            error: { message: "Resource not found" }
+    Conflict:
+      description: Duplicate or conflicting state
+      content:
+        application/json:
+          schema: { $ref: schemas/common.yaml#/ErrorResponse }
+          example:
+            success: false
+            error: { message: "Farmer with this code already exists" }
+    InternalError:
+      description: Unexpected server error
+      content:
+        application/json:
+          schema: { $ref: schemas/common.yaml#/ErrorResponse }
+          example:
+            success: false
+            error: { message: "Internal server error" }

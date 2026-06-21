@@ -2,6 +2,8 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session, joinedload
 
+from app.core.cache import get_cache_provider
+from app.core.cache.keys import user_permissions_key
 from app.core.exceptions import ConflictError, NotFoundError
 from app.core.security import hash_password
 from app.modules.users.models import Role, User
@@ -129,6 +131,7 @@ def update_user(
         after_state={"full_name": user.full_name, "role_id": str(user.role_id), "is_active": user.is_active},
     )
     db.commit()
+    get_cache_provider().delete(user_permissions_key(user.id))
     return get_user(db, org_id, user.id)
 
 

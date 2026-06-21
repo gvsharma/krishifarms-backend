@@ -1,0 +1,312 @@
+Document:
+  type: object
+  properties:
+    id: { $ref: 'common.yaml#/UUID' }
+    org_id: { $ref: 'common.yaml#/UUID' }
+    document_type: { $ref: 'common.yaml#/DocumentType' }
+    file_name: { type: string }
+    mime_type: { type: string }
+    file_size_bytes: { type: integer, minimum: 1 }
+    s3_bucket: { type: string }
+    s3_key: { type: string }
+    checksum_sha256: { type: string, nullable: true }
+    locale: { type: string, enum: [en, te], nullable: true }
+    ocr_status: { $ref: '#/OcrStatus' }
+    title: { type: string, nullable: true }
+    title_te: { type: string, nullable: true, description: Telugu display title }
+    description: { type: string, nullable: true }
+    description_te: { type: string, nullable: true }
+    captured_at:
+      type: string
+      format: date-time
+      nullable: true
+      description: Bill date or photo capture time (user or OCR).
+    metadata: { type: object, additionalProperties: true }
+    is_archived: { type: boolean, default: false }
+    archived_at: { type: string, format: date-time, nullable: true }
+    uploaded_by: { $ref: 'common.yaml#/UUID' }
+    tags:
+      type: array
+      items: { $ref: '#/DocumentTag' }
+    links:
+      type: array
+      items: { $ref: '#/DocumentLinkRecord' }
+    latest_ocr:
+      nullable: true
+      allOf:
+        - $ref: '#/OcrExtractionSummary'
+    download_url:
+      type: string
+      format: uri
+      nullable: true
+      description: Present when requested via include_download_url=true on GET by id.
+    created_at: { type: string, format: date-time }
+    updated_at: { type: string, format: date-time }
+
+OcrStatus:
+  type: string
+  nullable: true
+  enum: [pending, processing, completed, failed, skipped]
+
+DocumentTypeInfo:
+  type: object
+  required: [code, label, label_te, ocr_eligible]
+  properties:
+    code: { $ref: 'common.yaml#/DocumentType' }
+    label: { type: string }
+    label_te: { type: string }
+    ocr_eligible: { type: boolean }
+    allowed_mime_types:
+      type: array
+      items: { type: string }
+    max_size_bytes: { type: integer, default: 26214400 }
+
+DocumentTypeList:
+  type: object
+  required: [items]
+  properties:
+    items:
+      type: array
+      items: { $ref: '#/DocumentTypeInfo' }
+
+PresignUploadRequest:
+  type: object
+  required: [document_type, file_name, mime_type, file_size_bytes]
+  properties:
+    document_type: { $ref: 'common.yaml#/DocumentType' }
+    file_name: { type: string, minLength: 1, maxLength: 255 }
+    mime_type: { type: string, minLength: 3, maxLength: 100 }
+    file_size_bytes: { type: integer, minimum: 1, maximum: 26214400 }
+
+PresignUploadBatchRequest:
+  type: object
+  required: [files]
+  properties:
+    files:
+      type: array
+      minItems: 1
+      maxItems: 20
+      items: { $ref: '#/PresignUploadRequest' }
+
+PresignUploadResponse:
+  type: object
+  required: [upload_url, object_key, bucket]
+  properties:
+    upload_url: { type: string, format: uri }
+    object_key: { type: string }
+    bucket: { type: string }
+    expires_in_seconds: { type: integer, example: 900 }
+
+PresignUploadBatchResponse:
+  type: object
+  required: [items]
+  properties:
+    items:
+      type: array
+      items: { $ref: '#/PresignUploadResponse' }
+
+DocumentRegister:
+  type: object
+  required: [document_type, file_name, mime_type, file_size_bytes, object_key]
+  properties:
+    document_type: { $ref: 'common.yaml#/DocumentType' }
+    file_name: { type: string }
+    mime_type: { type: string }
+    file_size_bytes: { type: integer, minimum: 1 }
+    object_key: { type: string }
+    checksum_sha256: { type: string, pattern: '^[a-f0-9]{64}$' }
+    locale: { type: string, enum: [en, te] }
+    title: { type: string, maxLength: 255 }
+    title_te: { type: string, maxLength: 255 }
+    description: { type: string }
+    description_te: { type: string }
+    captured_at: { type: string, format: date-time }
+    metadata: { type: object, additionalProperties: true }
+    auto_ocr:
+      type: boolean
+      default: false
+      description: Queue OCR when document type is OCR-eligible.
+    tag_names:
+      type: array
+      items: { type: string, maxLength: 100 }
+      description: Free tags to assign on register (created if missing).
+    links:
+      type: array
+      items: { $ref: '#/DocumentLink' }
+
+DocumentRegisterBatch:
+  type: object
+  required: [documents]
+  properties:
+    documents:
+      type: array
+      minItems: 1
+      maxItems: 20
+      items: { $ref: '#/DocumentRegister' }
+
+DocumentUpdate:
+  type: object
+  properties:
+    title: { type: string, maxLength: 255 }
+    title_te: { type: string, maxLength: 255 }
+    description: { type: string }
+    description_te: { type: string }
+    captured_at: { type: string, format: date-time }
+    locale: { type: string, enum: [en, te] }
+    metadata: { type: object, additionalProperties: true }
+    add_tag_names:
+      type: array
+      items: { type: string }
+    remove_tag_names:
+      type: array
+      items: { type: string }
+
+DocumentLink:
+  type: object
+  required: [entity_type, entity_id]
+  properties:
+    entity_type: { $ref: '#/LinkEntityType' }
+    entity_id: { $ref: 'common.yaml#/UUID' }
+    entity_partition_date:
+      type: string
+      format: date
+      description: Required for procurement, farmer_payment, vehicle_trip, payment.
+    link_role:
+      type: string
+      default: primary_attachment
+      maxLength: 50
+    notes: { type: string }
+
+LinkEntityType:
+  type: string
+  enum:
+    - procurement
+    - farmer_payment
+    - expense
+    - payment
+    - collection
+    - rental_agreement
+    - vehicle_trip
+    - work_order
+    - asset
+    - farmer
+
+DocumentLinkRecord:
+  allOf:
+    - $ref: '#/DocumentLink'
+    - type: object
+      required: [id, document_id, created_at]
+      properties:
+        id: { $ref: 'common.yaml#/UUID' }
+        document_id: { $ref: 'common.yaml#/UUID' }
+        created_by: { $ref: 'common.yaml#/UUID' }
+        created_at: { type: string, format: date-time }
+
+DocumentLinkList:
+  type: object
+  required: [items]
+  properties:
+    items:
+      type: array
+      items: { $ref: '#/DocumentLinkRecord' }
+
+DocumentDownload:
+  type: object
+  required: [download_url, expires_in_seconds]
+  properties:
+    download_url: { type: string, format: uri }
+    expires_in_seconds: { type: integer, example: 900 }
+
+DocumentList:
+  type: object
+  required: [items, total, page, page_size]
+  properties:
+    items:
+      type: array
+      items: { $ref: '#/Document' }
+    total: { type: integer, minimum: 0 }
+    page: { type: integer, minimum: 1 }
+    page_size: { type: integer, minimum: 1, maximum: 100 }
+
+DocumentTag:
+  type: object
+  required: [id, name]
+  properties:
+    id: { $ref: 'common.yaml#/UUID' }
+    name: { type: string, description: Slug identifier }
+    display_name: { type: string }
+    display_name_te: { type: string }
+    is_system: { type: boolean }
+    color: { type: string, pattern: '^#[0-9A-Fa-f]{6}$' }
+
+DocumentTagCreate:
+  type: object
+  required: [name]
+  properties:
+    name: { type: string, minLength: 1, maxLength: 100 }
+    display_name: { type: string, maxLength: 100 }
+    display_name_te: { type: string, maxLength: 100 }
+    color: { type: string, pattern: '^#[0-9A-Fa-f]{6}$' }
+
+DocumentTagList:
+  type: object
+  required: [items, total, page, page_size]
+  properties:
+    items:
+      type: array
+      items: { $ref: '#/DocumentTag' }
+    total: { type: integer }
+    page: { type: integer }
+    page_size: { type: integer }
+
+OcrTriggerRequest:
+  type: object
+  properties:
+    force:
+      type: boolean
+      default: false
+      description: Re-run OCR even if a completed extraction exists.
+
+OcrJobResponse:
+  type: object
+  required: [document_id, ocr_status, ai_job_id]
+  properties:
+    document_id: { $ref: 'common.yaml#/UUID' }
+    ocr_status: { $ref: '#/OcrStatus' }
+    ai_job_id: { $ref: 'common.yaml#/UUID' }
+
+OcrExtractionSummary:
+  type: object
+  properties:
+    id: { $ref: 'common.yaml#/UUID' }
+    document_type_detected: { type: string, nullable: true }
+    locale_detected: { type: string, nullable: true }
+    status: { type: string, enum: [completed, failed] }
+    is_verified: { type: boolean }
+    confidence: { type: number, format: double, minimum: 0, maximum: 1 }
+    created_at: { type: string, format: date-time }
+
+OcrExtraction:
+  allOf:
+    - $ref: '#/OcrExtractionSummary'
+    - type: object
+      properties:
+        raw_text: { type: string, nullable: true }
+        raw_text_te: { type: string, nullable: true, description: Telugu OCR text }
+        extracted_fields: { type: object, additionalProperties: true }
+        field_confidence: { type: object, additionalProperties: { type: number } }
+        reviewed_by: { $ref: 'common.yaml#/UUID' }
+        reviewed_at: { type: string, format: date-time, nullable: true }
+
+OcrVerifyRequest:
+  type: object
+  properties:
+    accepted_fields:
+      type: object
+      additionalProperties: true
+      description: Subset of extracted_fields to merge into document.metadata.
+    reject:
+      type: boolean
+      default: false
+      description: Mark extraction rejected without merging.
+    rejection_reason: { type: string }

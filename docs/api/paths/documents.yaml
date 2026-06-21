@@ -1,0 +1,562 @@
+presignUpload:
+  post:
+    tags: [Documents]
+    summary: Get S3 presigned upload URL (single file)
+    description: Step 1 of upload flow. Requires `documents:create`.
+    operationId: presignDocumentUpload
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: '../schemas/documents.yaml#/PresignUploadRequest' }
+    responses:
+      '200':
+        description: Presigned upload URL
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [success, data]
+              properties:
+                success: { type: boolean, enum: [true] }
+                data: { $ref: '../schemas/documents.yaml#/PresignUploadResponse' }
+                meta: { $ref: '../schemas/common.yaml#/Meta' }
+      '400': { $ref: '../openapi.yaml#/components/responses/BadRequest' }
+      '401': { $ref: '../openapi.yaml#/components/responses/Unauthorized' }
+      '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+
+presignUploadBatch:
+  post:
+    tags: [Documents]
+    summary: Get S3 presigned upload URLs (batch)
+    description: Up to 20 files. Requires `documents:create`.
+    operationId: presignDocumentUploadBatch
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: '../schemas/documents.yaml#/PresignUploadBatchRequest' }
+    responses:
+      '200':
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [success, data]
+              properties:
+                success: { type: boolean, enum: [true] }
+                data: { $ref: '../schemas/documents.yaml#/PresignUploadBatchResponse' }
+                meta: { $ref: '../schemas/common.yaml#/Meta' }
+      '400': { $ref: '../openapi.yaml#/components/responses/BadRequest' }
+      '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+
+documentTypes:
+  get:
+    tags: [Documents]
+    summary: List supported document types
+    description: Returns taxonomy with OCR eligibility and MIME constraints. Requires `documents:read`.
+    operationId: listDocumentTypes
+    security:
+      - BearerAuth: []
+    responses:
+      '200':
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [success, data]
+              properties:
+                success: { type: boolean, enum: [true] }
+                data: { $ref: '../schemas/documents.yaml#/DocumentTypeList' }
+                meta: { $ref: '../schemas/common.yaml#/Meta' }
+
+documents:
+  get:
+    tags: [Documents]
+    summary: List and search documents
+    description: |
+      Full-text search via `q` (English + Telugu). Default excludes archived documents.
+      Requires `documents:read`.
+    operationId: listDocuments
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/Page'
+      - $ref: '../openapi.yaml#/components/parameters/PageSize'
+      - $ref: '../openapi.yaml#/components/parameters/Sort'
+      - $ref: '../openapi.yaml#/components/parameters/SearchQuery'
+      - $ref: '../openapi.yaml#/components/parameters/DateFrom'
+      - $ref: '../openapi.yaml#/components/parameters/DateTo'
+      - name: document_type
+        in: query
+        schema: { $ref: '../schemas/common.yaml#/DocumentType' }
+      - name: ocr_status
+        in: query
+        schema: { $ref: '../schemas/documents.yaml#/OcrStatus' }
+      - name: is_archived
+        in: query
+        schema: { type: boolean, default: false }
+      - name: tag
+        in: query
+        description: Filter by tag name. Repeat parameter for AND semantics.
+        schema: { type: string }
+        style: form
+        explode: true
+      - name: entity_type
+        in: query
+        schema: { $ref: '../schemas/documents.yaml#/LinkEntityType' }
+      - name: entity_id
+        in: query
+        schema: { type: string, format: uuid }
+      - name: entity_partition_date
+        in: query
+        description: Required with entity_id for partitioned entities.
+        schema: { type: string, format: date }
+      - name: uploaded_by
+        in: query
+        schema: { type: string, format: uuid }
+      - name: include_tags
+        in: query
+        schema: { type: boolean, default: false }
+      - name: include_links
+        in: query
+        schema: { type: boolean, default: false }
+    responses:
+      '200':
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [success, data]
+              properties:
+                success: { type: boolean, enum: [true] }
+                data: { $ref: '../schemas/documents.yaml#/DocumentList' }
+                meta: { $ref: '../schemas/common.yaml#/Meta' }
+      '400': { $ref: '../openapi.yaml#/components/responses/BadRequest' }
+      '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+  post:
+    tags: [Documents]
+    summary: Register uploaded document in database
+    description: Step 2 of upload flow after S3 PUT. Requires `documents:create`.
+    operationId: registerDocument
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: '../schemas/documents.yaml#/DocumentRegister' }
+    responses:
+      '201':
+        description: Document registered
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [success, data]
+              properties:
+                success: { type: boolean, enum: [true] }
+                data: { $ref: '../schemas/documents.yaml#/Document' }
+                meta: { $ref: '../schemas/common.yaml#/Meta' }
+      '400': { $ref: '../openapi.yaml#/components/responses/BadRequest' }
+      '409':
+        description: object_key already registered for org
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+
+documentsBatch:
+  post:
+    tags: [Documents]
+    summary: Register multiple uploaded documents
+    operationId: registerDocumentsBatch
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: '../schemas/documents.yaml#/DocumentRegisterBatch' }
+    responses:
+      '201':
+        description: Documents registered
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [success, data]
+              properties:
+                success: { type: boolean, enum: [true] }
+                data:
+                  type: object
+                  properties:
+                    items:
+                      type: array
+                      items: { $ref: '../schemas/documents.yaml#/Document' }
+      '400': { $ref: '../openapi.yaml#/components/responses/BadRequest' }
+
+documentById:
+  get:
+    tags: [Documents]
+    summary: Get document by ID
+    operationId: getDocument
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: document_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: include_download_url
+        in: query
+        schema: { type: boolean, default: false }
+      - name: include_tags
+        in: query
+        schema: { type: boolean, default: true }
+      - name: include_links
+        in: query
+        schema: { type: boolean, default: true }
+      - name: include_ocr
+        in: query
+        schema: { type: boolean, default: false }
+    responses:
+      '200':
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [success, data]
+              properties:
+                success: { type: boolean, enum: [true] }
+                data: { $ref: '../schemas/documents.yaml#/Document' }
+                meta: { $ref: '../schemas/common.yaml#/Meta' }
+      '404': { $ref: '../openapi.yaml#/components/responses/NotFound' }
+  patch:
+    tags: [Documents]
+    summary: Update document metadata and tags
+    operationId: updateDocument
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: document_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: '../schemas/documents.yaml#/DocumentUpdate' }
+    responses:
+      '200':
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [success, data]
+              properties:
+                success: { type: boolean, enum: [true] }
+                data: { $ref: '../schemas/documents.yaml#/Document' }
+      '404': { $ref: '../openapi.yaml#/components/responses/NotFound' }
+  delete:
+    tags: [Documents]
+    summary: Archive document (soft delete)
+    description: Sets `is_archived=true`. Requires `documents:delete`.
+    operationId: archiveDocument
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: document_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200':
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [success, data]
+              properties:
+                success: { type: boolean, enum: [true] }
+                data: { $ref: '../schemas/common.yaml#/MessageData' }
+      '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+      '404': { $ref: '../openapi.yaml#/components/responses/NotFound' }
+
+documentDownload:
+  get:
+    tags: [Documents]
+    summary: Get presigned download URL
+    operationId: getDocumentDownloadUrl
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: document_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200':
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [success, data]
+              properties:
+                success: { type: boolean, enum: [true] }
+                data: { $ref: '../schemas/documents.yaml#/DocumentDownload' }
+      '404': { $ref: '../openapi.yaml#/components/responses/NotFound' }
+
+documentLink:
+  post:
+    tags: [Documents]
+    summary: Link document to a transaction or entity
+    description: |
+      Polymorphic link. For partitioned entities (`procurement`, `farmer_payment`,
+      `vehicle_trip`, `payment`), `entity_partition_date` is required.
+      Requires `documents:create`.
+    operationId: linkDocument
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: document_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: '../schemas/documents.yaml#/DocumentLink' }
+    responses:
+      '200':
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [success, data]
+              properties:
+                success: { type: boolean, enum: [true] }
+                data: { $ref: '../schemas/documents.yaml#/DocumentLinkRecord' }
+      '400': { $ref: '../openapi.yaml#/components/responses/BadRequest' }
+      '404': { $ref: '../openapi.yaml#/components/responses/NotFound' }
+      '409': { $ref: '../openapi.yaml#/components/responses/Conflict' }
+
+documentLinks:
+  get:
+    tags: [Documents]
+    summary: List links for a document
+    operationId: listDocumentLinks
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: document_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200':
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [success, data]
+              properties:
+                success: { type: boolean, enum: [true] }
+                data: { $ref: '../schemas/documents.yaml#/DocumentLinkList' }
+
+documentUnlink:
+  delete:
+    tags: [Documents]
+    summary: Remove a document link
+    operationId: unlinkDocument
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: document_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: link_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200':
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [success, data]
+              properties:
+                success: { type: boolean, enum: [true] }
+                data: { $ref: '../schemas/common.yaml#/MessageData' }
+      '404': { $ref: '../openapi.yaml#/components/responses/NotFound' }
+
+documentTags:
+  get:
+    tags: [Documents]
+    summary: List document tags for org
+    operationId: listDocumentTags
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/Page'
+      - $ref: '../openapi.yaml#/components/parameters/PageSize'
+      - $ref: '../openapi.yaml#/components/parameters/SearchQuery'
+      - name: is_system
+        in: query
+        schema: { type: boolean }
+    responses:
+      '200':
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [success, data]
+              properties:
+                success: { type: boolean, enum: [true] }
+                data: { $ref: '../schemas/documents.yaml#/DocumentTagList' }
+  post:
+    tags: [Documents]
+    summary: Create a document tag
+    operationId: createDocumentTag
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: '../schemas/documents.yaml#/DocumentTagCreate' }
+    responses:
+      '201':
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [success, data]
+              properties:
+                success: { type: boolean, enum: [true] }
+                data: { $ref: '../schemas/documents.yaml#/DocumentTag' }
+      '409': { $ref: '../openapi.yaml#/components/responses/Conflict' }
+
+documentTagById:
+  delete:
+    tags: [Documents]
+    summary: Delete a user-created tag
+    description: System tags (`is_system=true`) cannot be deleted. Requires `documents:delete`.
+    operationId: deleteDocumentTag
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: tag_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200':
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [success, data]
+              properties:
+                success: { type: boolean, enum: [true] }
+                data: { $ref: '../schemas/common.yaml#/MessageData' }
+      '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+      '404': { $ref: '../openapi.yaml#/components/responses/NotFound' }
+
+documentOcrTrigger:
+  post:
+    tags: [Documents]
+    summary: Trigger OCR for a document
+    description: Enqueues `ai_jobs` row. Requires `documents:create`.
+    operationId: triggerDocumentOcr
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: document_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    requestBody:
+      content:
+        application/json:
+          schema: { $ref: '../schemas/documents.yaml#/OcrTriggerRequest' }
+    responses:
+      '202':
+        description: OCR job accepted
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [success, data]
+              properties:
+                success: { type: boolean, enum: [true] }
+                data: { $ref: '../schemas/documents.yaml#/OcrJobResponse' }
+      '400': { $ref: '../openapi.yaml#/components/responses/BadRequest' }
+      '404': { $ref: '../openapi.yaml#/components/responses/NotFound' }
+      '409':
+        description: OCR already in progress
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+
+documentOcr:
+  get:
+    tags: [Documents]
+    summary: Get latest OCR extraction for a document
+    description: Requires `documents:read`. Full text visible to roles with `ai:read`.
+    operationId: getDocumentOcr
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: document_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200':
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [success, data]
+              properties:
+                success: { type: boolean, enum: [true] }
+                data: { $ref: '../schemas/documents.yaml#/OcrExtraction' }
+      '404': { $ref: '../openapi.yaml#/components/responses/NotFound' }
+
+documentOcrVerify:
+  post:
+    tags: [Documents]
+    summary: Verify or reject OCR extraction
+    description: Merges accepted fields into document metadata. Requires `ai:review`.
+    operationId: verifyDocumentOcr
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: document_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    requestBody:
+      content:
+        application/json:
+          schema: { $ref: '../schemas/documents.yaml#/OcrVerifyRequest' }
+    responses:
+      '200':
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [success, data]
+              properties:
+                success: { type: boolean, enum: [true] }
+                data: { $ref: '../schemas/documents.yaml#/Document' }
+      '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+      '404': { $ref: '../openapi.yaml#/components/responses/NotFound' }

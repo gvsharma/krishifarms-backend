@@ -1,0 +1,3180 @@
+openapi: 3.0.3
+info:
+  title: KrishiFarms CRM API
+  version: 1.0.0
+  description: |
+    REST API for KrishiFarms CRM — farm operations, procurement, workforce, assets, rentals, and finance.
+
+    ## Conventions
+    - Base path: `/api/v1`
+    - Auth: Bearer JWT (`Authorization: Bearer <access_token>`)
+    - Success envelope: `{ "success": true, "data": ..., "meta": { "request_id": "..." } }`
+    - Pagination: `page` (default 1), `page_size` (default 20, max 100)
+    - Sorting: `sort=field` or `sort=-field` (prefix `-` for descending)
+    - Date filters: `date_from`, `date_to` (ISO 8601 date)
+    - Search: `q` for full-text; module-specific filters as query params
+    - Idempotency: `Idempotency-Key` header on POST for financial mutations
+    - Locale: `Accept-Language: en` or `te`
+  contact:
+    name: KrishiFarms API Support
+servers:
+  - url: https://api.krishifarms.local/api/v1
+    description: Production
+  - url: http://localhost:8000/api/v1
+    description: Local development
+security:
+  - BearerAuth: []
+tags:
+  - name: Authentication
+  - name: Farmers
+  - name: Farms
+  - name: Procurement
+  - name: Payments
+  - name: Workers
+  - name: Work Orders
+  - name: Assets
+  - name: Vehicles
+  - name: Rentals
+  - name: Expenses
+  - name: Collections
+  - name: Documents
+  - name: Search
+paths:
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Login with email and password
+      security: []
+      operationId: authLogin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Tokens issued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenAPIResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /auth/refresh:
+    post:
+      tags:
+        - Authentication
+      summary: Refresh access token
+      security: []
+      operationId: authRefresh
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: New tokens issued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenAPIResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: Revoke refresh token
+      security: []
+      operationId: authLogout
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageAPIResponse'
+  /farmers:
+    get:
+      tags:
+        - Farmers
+      summary: List farmers
+      operationId: listFarmers
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/Sort'
+        - $ref: '#/components/parameters/SearchQuery'
+        - name: village_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - active
+              - inactive
+              - blocked
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FarmerListAPIResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags:
+        - Farmers
+      summary: Create farmer
+      operationId: createFarmer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FarmerCreate'
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FarmerAPIResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /farmers/{farmer_id}:
+    get:
+      tags:
+        - Farmers
+      summary: Get farmer by ID
+      operationId: getFarmer
+      parameters:
+        - $ref: '#/components/parameters/FarmerId'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FarmerAPIResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags:
+        - Farmers
+      summary: Update farmer
+      operationId: updateFarmer
+      parameters:
+        - $ref: '#/components/parameters/FarmerId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FarmerUpdate'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FarmerAPIResponse'
+    delete:
+      tags:
+        - Farmers
+      summary: Soft-delete farmer
+      operationId: deleteFarmer
+      parameters:
+        - $ref: '#/components/parameters/FarmerId'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageAPIResponse'
+  /farmers/{farmer_id}/bank-accounts:
+    get:
+      tags:
+        - Farmers
+      summary: List farmer bank accounts
+      operationId: listFarmerBankAccounts
+      parameters:
+        - $ref: '#/components/parameters/FarmerId'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BankAccount'
+    post:
+      tags:
+        - Farmers
+      summary: Add bank account
+      operationId: createFarmerBankAccount
+      parameters:
+        - $ref: '#/components/parameters/FarmerId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - account_holder_name
+                - bank_name
+                - ifsc
+                - account_number
+              properties:
+                account_holder_name:
+                  type: string
+                bank_name:
+                  type: string
+                branch:
+                  type: string
+                ifsc:
+                  type: string
+                account_number:
+                  type: string
+                is_primary:
+                  type: boolean
+      responses:
+        '201':
+          description: Created
+  /farmers/{farmer_id}/bank-accounts/{account_id}:
+    patch:
+      tags:
+        - Farmers
+      summary: Update bank account
+      operationId: updateFarmerBankAccount
+      parameters:
+        - $ref: '#/components/parameters/FarmerId'
+        - name: account_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Updated
+    delete:
+      tags:
+        - Farmers
+      summary: Soft-delete bank account
+      operationId: deleteFarmerBankAccount
+      parameters:
+        - $ref: '#/components/parameters/FarmerId'
+        - name: account_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Deleted
+  /farmers/{farmer_id}/land-parcels:
+    get:
+      tags:
+        - Farmers
+      summary: List land parcels
+      operationId: listFarmerLandParcels
+      parameters:
+        - $ref: '#/components/parameters/FarmerId'
+      responses:
+        '200':
+          description: OK
+    post:
+      tags:
+        - Farmers
+      summary: Add land parcel
+      operationId: createFarmerLandParcel
+      parameters:
+        - $ref: '#/components/parameters/FarmerId'
+      responses:
+        '201':
+          description: Created
+  /farmers/{farmer_id}/land-parcels/{parcel_id}:
+    patch:
+      tags:
+        - Farmers
+      operationId: updateFarmerLandParcel
+      parameters:
+        - $ref: '#/components/parameters/FarmerId'
+        - name: parcel_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Updated
+    delete:
+      tags:
+        - Farmers
+      operationId: deleteFarmerLandParcel
+      parameters:
+        - $ref: '#/components/parameters/FarmerId'
+        - name: parcel_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Deleted
+  /farmers/{farmer_id}/crop-history:
+    get:
+      tags:
+        - Farmers
+      operationId: listFarmerCropHistory
+      parameters:
+        - $ref: '#/components/parameters/FarmerId'
+      responses:
+        '200':
+          description: OK
+    post:
+      tags:
+        - Farmers
+      operationId: createFarmerCropHistory
+      parameters:
+        - $ref: '#/components/parameters/FarmerId'
+      responses:
+        '201':
+          description: Created
+  /farmers/{farmer_id}/ledger:
+    get:
+      tags:
+        - Farmers
+      summary: Farmer ledger entries
+      operationId: getFarmerLedger
+      parameters:
+        - $ref: '#/components/parameters/FarmerId'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/DateFrom'
+        - $ref: '#/components/parameters/DateTo'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/LedgerEntry'
+                      total:
+                        type: integer
+                      page:
+                        type: integer
+                      page_size:
+                        type: integer
+  /farmers/{farmer_id}/outstanding:
+    get:
+      tags:
+        - Farmers
+      summary: Current outstanding balance
+      operationId: getFarmerOutstanding
+      parameters:
+        - $ref: '#/components/parameters/FarmerId'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Outstanding'
+  /farms:
+    get:
+      tags:
+        - Farms
+      operationId: listFarms
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/Sort'
+        - $ref: '#/components/parameters/SearchQuery'
+        - name: village_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - active
+              - inactive
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/FarmList'
+    post:
+      tags:
+        - Farms
+      operationId: createFarm
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FarmCreate'
+      responses:
+        '201':
+          description: Created
+  /farms/{farm_id}:
+    get:
+      tags:
+        - Farms
+      operationId: getFarm
+      parameters:
+        - $ref: '#/components/parameters/FarmId'
+      responses:
+        '200':
+          description: OK
+    patch:
+      tags:
+        - Farms
+      operationId: updateFarm
+      parameters:
+        - $ref: '#/components/parameters/FarmId'
+      responses:
+        '200':
+          description: Updated
+    delete:
+      tags:
+        - Farms
+      operationId: deleteFarm
+      parameters:
+        - $ref: '#/components/parameters/FarmId'
+      responses:
+        '200':
+          description: Soft-deleted
+  /farms/{farm_id}/activities:
+    get:
+      tags:
+        - Farms
+      operationId: listFarmActivities
+      parameters:
+        - $ref: '#/components/parameters/FarmId'
+        - $ref: '#/components/parameters/DateFrom'
+        - $ref: '#/components/parameters/DateTo'
+      responses:
+        '200':
+          description: OK
+    post:
+      tags:
+        - Farms
+      operationId: createFarmActivity
+      parameters:
+        - $ref: '#/components/parameters/FarmId'
+      responses:
+        '201':
+          description: Created
+  /farms/{farm_id}/activities/{activity_id}:
+    patch:
+      tags:
+        - Farms
+      operationId: updateFarmActivity
+      parameters:
+        - $ref: '#/components/parameters/FarmId'
+        - name: activity_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Updated
+    delete:
+      tags:
+        - Farms
+      operationId: deleteFarmActivity
+      parameters:
+        - $ref: '#/components/parameters/FarmId'
+        - name: activity_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Deleted
+  /procurements:
+    get:
+      tags:
+        - Procurement
+      operationId: listProcurements
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/Sort'
+        - $ref: '#/components/parameters/DateFrom'
+        - $ref: '#/components/parameters/DateTo'
+        - name: farmer_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: village_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: crop_type_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/StatusDraftConfirmedCancelled'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/ProcurementList'
+    post:
+      tags:
+        - Procurement
+      operationId: createProcurement
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProcurementCreate'
+      responses:
+        '201':
+          description: Draft procurement created
+  /procurements/{procurement_id}:
+    get:
+      tags:
+        - Procurement
+      operationId: getProcurement
+      parameters:
+        - name: procurement_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: procurement_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: OK
+    patch:
+      tags:
+        - Procurement
+      operationId: updateProcurement
+      description: Update draft procurement only.
+      parameters:
+        - name: procurement_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Updated
+  /procurements/{procurement_id}/confirm:
+    post:
+      tags:
+        - Procurement
+      operationId: confirmProcurement
+      description: Confirm procurement and post farmer ledger entry.
+      parameters:
+        - name: procurement_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Confirmed
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /procurements/{procurement_id}/cancel:
+    post:
+      tags:
+        - Procurement
+      operationId: cancelProcurement
+      parameters:
+        - name: procurement_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProcurementCancel'
+      responses:
+        '200':
+          description: Cancelled
+  /procurements/{procurement_id}/deductions:
+    post:
+      tags:
+        - Procurement
+      operationId: addProcurementDeduction
+      parameters:
+        - name: procurement_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '201':
+          description: Deduction added
+  /farmer-payments:
+    get:
+      tags:
+        - Payments
+      operationId: listFarmerPayments
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/DateFrom'
+        - $ref: '#/components/parameters/DateTo'
+        - name: farmer_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: payment_type
+          in: query
+          schema:
+            type: string
+            enum:
+              - advance
+              - final
+              - adjustment
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/PaginatedFarmerPayments'
+    post:
+      tags:
+        - Payments
+      operationId: createFarmerPayment
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FarmerPaymentCreate'
+      responses:
+        '201':
+          description: Payment recorded
+  /farmer-payments/{payment_id}:
+    get:
+      tags:
+        - Payments
+      operationId: getFarmerPayment
+      parameters:
+        - name: payment_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: payment_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: OK
+  /farmer-payments/{payment_id}/allocate:
+    post:
+      tags:
+        - Payments
+      operationId: allocateFarmerPayment
+      parameters:
+        - name: payment_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentAllocation'
+      responses:
+        '200':
+          description: Allocated
+  /farmer-payments/{payment_id}/reverse:
+    post:
+      tags:
+        - Payments
+      operationId: reverseFarmerPayment
+      parameters:
+        - name: payment_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: Reversed
+  /payments:
+    get:
+      tags:
+        - Payments
+      operationId: listOperationalPayments
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/DateFrom'
+        - $ref: '#/components/parameters/DateTo'
+      responses:
+        '200':
+          description: OK
+    post:
+      tags:
+        - Payments
+      operationId: createOperationalPayment
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OperationalPaymentCreate'
+      responses:
+        '201':
+          description: Created
+  /payments/{payment_id}:
+    get:
+      tags:
+        - Payments
+      operationId: getOperationalPayment
+      parameters:
+        - name: payment_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+  /workers:
+    get:
+      tags:
+        - Workers
+      operationId: listWorkers
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/SearchQuery'
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - active
+              - inactive
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/WorkerList'
+    post:
+      tags:
+        - Workers
+      operationId: createWorker
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkerCreate'
+      responses:
+        '201':
+          description: Created
+  /workers/{worker_id}:
+    get:
+      tags:
+        - Workers
+      operationId: getWorker
+      parameters:
+        - name: worker_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+    patch:
+      tags:
+        - Workers
+      operationId: updateWorker
+      parameters:
+        - name: worker_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Updated
+    delete:
+      tags:
+        - Workers
+      operationId: deleteWorker
+      parameters:
+        - name: worker_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Soft-deleted
+  /workers/{worker_id}/skills:
+    get:
+      tags:
+        - Workers
+      operationId: listWorkerSkills
+      parameters:
+        - name: worker_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+    post:
+      tags:
+        - Workers
+      operationId: createWorkerSkill
+      parameters:
+        - name: worker_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '201':
+          description: Created
+  /workers/{worker_id}/skills/{skill_id}:
+    patch:
+      tags:
+        - Workers
+      operationId: updateWorkerSkill
+      parameters:
+        - name: worker_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: skill_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Updated
+    delete:
+      tags:
+        - Workers
+      operationId: deleteWorkerSkill
+      parameters:
+        - name: worker_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: skill_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Deleted
+  /work-orders:
+    get:
+      tags:
+        - Work Orders
+      operationId: listWorkOrders
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/DateFrom'
+        - $ref: '#/components/parameters/DateTo'
+        - name: worker_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: farm_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/WorkOrderStatus'
+      responses:
+        '200':
+          description: OK
+    post:
+      tags:
+        - Work Orders
+      operationId: createWorkOrder
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkOrderCreate'
+      responses:
+        '201':
+          description: Created
+  /work-orders/{work_order_id}:
+    get:
+      tags:
+        - Work Orders
+      operationId: getWorkOrder
+      parameters:
+        - name: work_order_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+    patch:
+      tags:
+        - Work Orders
+      operationId: updateWorkOrder
+      parameters:
+        - name: work_order_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Updated
+  /work-orders/{work_order_id}/complete:
+    post:
+      tags:
+        - Work Orders
+      operationId: completeWorkOrder
+      parameters:
+        - name: work_order_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkOrderComplete'
+      responses:
+        '200':
+          description: Completed
+  /work-orders/{work_order_id}/photos:
+    get:
+      tags:
+        - Work Orders
+      operationId: listWorkOrderPhotos
+      parameters:
+        - name: work_order_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+    post:
+      tags:
+        - Work Orders
+      operationId: addWorkOrderPhoto
+      parameters:
+        - name: work_order_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - document_id
+              properties:
+                document_id:
+                  type: string
+                  format: uuid
+                caption:
+                  type: string
+      responses:
+        '201':
+          description: Photo linked
+  /attendance:
+    get:
+      tags:
+        - Work Orders
+      operationId: listAttendance
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/DateFrom'
+        - $ref: '#/components/parameters/DateTo'
+        - name: worker_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: farm_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+    post:
+      tags:
+        - Work Orders
+      operationId: createAttendance
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AttendanceCreate'
+      responses:
+        '201':
+          description: Recorded
+  /assets:
+    get:
+      tags:
+        - Assets
+      operationId: listAssets
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: asset_category
+          in: query
+          schema:
+            type: string
+            enum:
+              - tractor
+              - dcm
+              - baler
+              - air_machine
+              - other
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - active
+              - maintenance
+              - retired
+        - name: is_rentable
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: OK
+    post:
+      tags:
+        - Assets
+      operationId: createAsset
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssetCreate'
+      responses:
+        '201':
+          description: Created
+  /assets/{asset_id}:
+    get:
+      tags:
+        - Assets
+      operationId: getAsset
+      parameters:
+        - name: asset_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+    patch:
+      tags:
+        - Assets
+      operationId: updateAsset
+      parameters:
+        - name: asset_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Updated
+    delete:
+      tags:
+        - Assets
+      operationId: deleteAsset
+      parameters:
+        - name: asset_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Soft-deleted
+  /assets/{asset_id}/maintenance-records:
+    get:
+      tags:
+        - Assets
+      operationId: listMaintenanceRecords
+      parameters:
+        - name: asset_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+    post:
+      tags:
+        - Assets
+      operationId: createMaintenanceRecord
+      parameters:
+        - name: asset_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '201':
+          description: Created
+  /assets/{asset_id}/usage-logs:
+    get:
+      tags:
+        - Assets
+      operationId: listAssetUsageLogs
+      parameters:
+        - name: asset_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/DateFrom'
+        - $ref: '#/components/parameters/DateTo'
+      responses:
+        '200':
+          description: OK
+    post:
+      tags:
+        - Assets
+      operationId: createAssetUsageLog
+      parameters:
+        - name: asset_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '201':
+          description: Created
+  /vehicle-trips:
+    get:
+      tags:
+        - Vehicles
+      operationId: listVehicleTrips
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/DateFrom'
+        - $ref: '#/components/parameters/DateTo'
+        - name: asset_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: driver_worker_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+    post:
+      tags:
+        - Vehicles
+      operationId: createVehicleTrip
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VehicleTripCreate'
+      responses:
+        '201':
+          description: Created
+  /vehicle-trips/{trip_id}:
+    get:
+      tags:
+        - Vehicles
+      operationId: getVehicleTrip
+      parameters:
+        - name: trip_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: trip_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: OK
+    patch:
+      tags:
+        - Vehicles
+      operationId: updateVehicleTrip
+      parameters:
+        - name: trip_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Updated
+  /rental-customers:
+    get:
+      tags:
+        - Rentals
+      operationId: listRentalCustomers
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/SearchQuery'
+      responses:
+        '200':
+          description: OK
+    post:
+      tags:
+        - Rentals
+      operationId: createRentalCustomer
+      responses:
+        '201':
+          description: Created
+  /rental-customers/{customer_id}:
+    get:
+      tags:
+        - Rentals
+      operationId: getRentalCustomer
+      parameters:
+        - name: customer_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+    patch:
+      tags:
+        - Rentals
+      operationId: updateRentalCustomer
+      parameters:
+        - name: customer_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Updated
+  /rental-agreements:
+    get:
+      tags:
+        - Rentals
+      operationId: listRentalAgreements
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - active
+              - completed
+              - cancelled
+        - name: customer_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+    post:
+      tags:
+        - Rentals
+      operationId: createRentalAgreement
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RentalAgreementCreate'
+      responses:
+        '201':
+          description: Created
+  /rental-agreements/{agreement_id}:
+    get:
+      tags:
+        - Rentals
+      operationId: getRentalAgreement
+      parameters:
+        - name: agreement_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+    patch:
+      tags:
+        - Rentals
+      operationId: updateRentalAgreement
+      parameters:
+        - name: agreement_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Updated
+  /rental-agreements/pending-collections:
+    get:
+      tags:
+        - Rentals
+      summary: List agreements with pending collections
+      operationId: listPendingCollections
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: OK
+  /expenses:
+    get:
+      tags:
+        - Expenses
+      operationId: listExpenses
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/Sort'
+        - $ref: '#/components/parameters/DateFrom'
+        - $ref: '#/components/parameters/DateTo'
+        - name: category_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: farm_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: asset_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - draft
+              - posted
+              - reversed
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/ExpenseList'
+    post:
+      tags:
+        - Expenses
+      operationId: createExpense
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExpenseCreate'
+      responses:
+        '201':
+          description: Created
+  /expenses/{expense_id}:
+    get:
+      tags:
+        - Expenses
+      operationId: getExpense
+      parameters:
+        - name: expense_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+    patch:
+      tags:
+        - Expenses
+      operationId: updateExpense
+      description: Update draft expense only.
+      parameters:
+        - name: expense_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Updated
+    delete:
+      tags:
+        - Expenses
+      operationId: deleteExpense
+      parameters:
+        - name: expense_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Soft-deleted
+  /collections:
+    get:
+      tags:
+        - Collections
+      operationId: listCollections
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/DateFrom'
+        - $ref: '#/components/parameters/DateTo'
+        - name: source_type
+          in: query
+          schema:
+            type: string
+            enum:
+              - rental
+              - other
+        - name: customer_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/CollectionList'
+    post:
+      tags:
+        - Collections
+      operationId: createCollection
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CollectionCreate'
+      responses:
+        '201':
+          description: Created
+  /collections/{collection_id}:
+    get:
+      tags:
+        - Collections
+      operationId: getCollection
+      parameters:
+        - name: collection_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+  /documents/presign-upload:
+    post:
+      tags:
+        - Documents
+      summary: Get S3 presigned upload URL
+      operationId: presignDocumentUpload
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PresignUploadRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/PresignUploadResponse'
+  /documents:
+    get:
+      tags:
+        - Documents
+      operationId: listDocuments
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: document_type
+          in: query
+          schema:
+            $ref: '#/components/schemas/DocumentType'
+        - name: ocr_status
+          in: query
+          schema:
+            type: string
+            enum:
+              - pending
+              - completed
+              - failed
+        - name: is_archived
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/DocumentList'
+    post:
+      tags:
+        - Documents
+      summary: Register uploaded document in database
+      operationId: registerDocument
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DocumentRegister'
+      responses:
+        '201':
+          description: Registered
+  /documents/{document_id}:
+    get:
+      tags:
+        - Documents
+      operationId: getDocument
+      parameters:
+        - name: document_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Document'
+    delete:
+      tags:
+        - Documents
+      summary: Archive document
+      operationId: archiveDocument
+      parameters:
+        - name: document_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Archived
+  /documents/{document_id}/download-url:
+    get:
+      tags:
+        - Documents
+      operationId: getDocumentDownloadUrl
+      parameters:
+        - name: document_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/DocumentDownload'
+  /documents/{document_id}/link:
+    post:
+      tags:
+        - Documents
+      operationId: linkDocument
+      parameters:
+        - name: document_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DocumentLink'
+      responses:
+        '200':
+          description: Linked
+  /search:
+    get:
+      tags:
+        - Search
+      summary: Global cross-entity search
+      operationId: globalSearch
+      parameters:
+        - $ref: '#/components/parameters/SearchQuery'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: entity_types
+          in: query
+          description: Comma-separated entity types to search.
+          schema:
+            type: string
+            example: farmer,procurement,farmer_payment,worker,asset
+      responses:
+        '200':
+          description: Ranked search results
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - data
+                properties:
+                  success:
+                    type: boolean
+                    enum:
+                      - true
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          type: object
+                          required:
+                            - entity_type
+                            - entity_id
+                            - title
+                            - score
+                          properties:
+                            entity_type:
+                              type: string
+                            entity_id:
+                              type: string
+                              format: uuid
+                            title:
+                              type: string
+                            title_te:
+                              type: string
+                            subtitle:
+                              type: string
+                            score:
+                              type: number
+                            highlight:
+                              type: string
+                      total:
+                        type: integer
+                      page:
+                        type: integer
+                      page_size:
+                        type: integer
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    Page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    PageSize:
+      name: page_size
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    Sort:
+      name: sort
+      in: query
+      description: Sort field. Prefix with `-` for descending (e.g. `-created_at`).
+      schema:
+        type: string
+        example: '-created_at'
+    DateFrom:
+      name: date_from
+      in: query
+      schema:
+        type: string
+        format: date
+    DateTo:
+      name: date_to
+      in: query
+      schema:
+        type: string
+        format: date
+    SearchQuery:
+      name: q
+      in: query
+      description: Full-text search query (Telugu and English supported).
+      schema:
+        type: string
+        minLength: 1
+    FarmerId:
+      name: farmer_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    FarmId:
+      name: farm_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      description: Unique key for idempotent financial POST requests.
+      schema:
+        type: string
+        maxLength: 100
+  responses:
+    BadRequest:
+      description: Validation or business rule error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              message: Invalid request payload
+              details:
+                field: amount
+    Unauthorized:
+      description: Missing or invalid authentication
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              message: Authentication required
+    Forbidden:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              message: 'Missing permission: procurements:create'
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              message: Resource not found
+    Conflict:
+      description: Duplicate or conflicting state
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              message: Farmer with this code already exists
+    InternalError:
+      description: Unexpected server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              message: Internal server error
+  schemas:
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+          format: password
+    TokenResponse:
+      type: object
+      required:
+        - access_token
+        - refresh_token
+        - token_type
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+        token_type:
+          type: string
+          enum:
+            - bearer
+    Meta:
+      type: object
+      properties:
+        request_id:
+          type: string
+          format: uuid
+    TokenAPIResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/TokenResponse'
+        meta:
+          $ref: '#/components/schemas/Meta'
+    ErrorResponse:
+      type: object
+      required:
+        - success
+        - error
+      properties:
+        success:
+          type: boolean
+          enum:
+            - false
+        error:
+          type: object
+          required:
+            - message
+          properties:
+            message:
+              type: string
+            details:
+              type: object
+              additionalProperties: true
+    RefreshRequest:
+      type: object
+      required:
+        - refresh_token
+      properties:
+        refresh_token:
+          type: string
+    MessageData:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+    MessageAPIResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/MessageData'
+    UUID:
+      type: string
+      format: uuid
+    Money:
+      type: number
+      format: double
+      multipleOf: 0.01
+      example: 12500.5
+    Farmer:
+      type: object
+      required:
+        - id
+        - org_id
+        - farmer_code
+        - full_name
+        - phone_primary
+        - village_id
+        - status
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        org_id:
+          $ref: '#/components/schemas/UUID'
+        farmer_code:
+          type: string
+          maxLength: 50
+        full_name:
+          type: string
+          maxLength: 200
+        full_name_te:
+          type: string
+        father_name:
+          type: string
+        father_name_te:
+          type: string
+        phone_primary:
+          type: string
+          maxLength: 20
+        phone_secondary:
+          type: string
+          maxLength: 20
+        village_id:
+          $ref: '#/components/schemas/UUID'
+        village_name:
+          type: string
+        address:
+          type: string
+        address_te:
+          type: string
+        aadhaar_last4:
+          type: string
+          maxLength: 4
+        status:
+          type: string
+          enum:
+            - active
+            - inactive
+            - blocked
+        notes:
+          type: string
+        outstanding_amount:
+          $ref: '#/components/schemas/Money'
+        allOf:
+          - $ref: common.yaml#/Timestamps
+          - $ref: common.yaml#/SoftDelete
+    FarmerList:
+      type: object
+      required:
+        - items
+        - total
+        - page
+        - page_size
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Farmer'
+        total:
+          type: integer
+        page:
+          type: integer
+        page_size:
+          type: integer
+    FarmerListAPIResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/FarmerList'
+    FarmerCreate:
+      type: object
+      required:
+        - full_name
+        - phone_primary
+        - village_id
+      properties:
+        full_name:
+          type: string
+          minLength: 2
+          maxLength: 200
+        full_name_te:
+          type: string
+        father_name:
+          type: string
+        father_name_te:
+          type: string
+        phone_primary:
+          type: string
+        phone_secondary:
+          type: string
+        village_id:
+          $ref: '#/components/schemas/UUID'
+        address:
+          type: string
+        address_te:
+          type: string
+        aadhaar_last4:
+          type: string
+          maxLength: 4
+        notes:
+          type: string
+    FarmerAPIResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/Farmer'
+        meta:
+          $ref: '#/components/schemas/Meta'
+    FarmerUpdate:
+      type: object
+      properties:
+        full_name:
+          type: string
+        full_name_te:
+          type: string
+        phone_primary:
+          type: string
+        phone_secondary:
+          type: string
+        village_id:
+          $ref: '#/components/schemas/UUID'
+        address:
+          type: string
+        status:
+          type: string
+          enum:
+            - active
+            - inactive
+            - blocked
+        notes:
+          type: string
+    BankAccount:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        account_holder_name:
+          type: string
+        bank_name:
+          type: string
+        branch:
+          type: string
+        ifsc:
+          type: string
+          maxLength: 11
+        account_number_masked:
+          type: string
+          example: XXXX1234
+        is_primary:
+          type: boolean
+    LedgerEntry:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        entry_date:
+          type: string
+          format: date
+        entry_type:
+          type: string
+        reference_type:
+          type: string
+        reference_id:
+          $ref: '#/components/schemas/UUID'
+        debit:
+          $ref: '#/components/schemas/Money'
+        credit:
+          $ref: '#/components/schemas/Money'
+        balance_after:
+          $ref: '#/components/schemas/Money'
+        description:
+          type: string
+    Outstanding:
+      type: object
+      properties:
+        farmer_id:
+          $ref: '#/components/schemas/UUID'
+        outstanding_amount:
+          $ref: '#/components/schemas/Money'
+        as_of_date:
+          type: string
+          format: date
+    Weight:
+      type: number
+      format: double
+      multipleOf: 0.001
+      example: 452.5
+    Farm:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        org_id:
+          $ref: '#/components/schemas/UUID'
+        farm_code:
+          type: string
+        name:
+          type: string
+        name_te:
+          type: string
+        acres:
+          $ref: '#/components/schemas/Weight'
+        location:
+          type: string
+        village_id:
+          $ref: '#/components/schemas/UUID'
+        owner_farmer_id:
+          $ref: '#/components/schemas/UUID'
+        lease_start_date:
+          type: string
+          format: date
+        lease_end_date:
+          type: string
+          format: date
+        lease_amount:
+          $ref: '#/components/schemas/Money'
+        status:
+          type: string
+          enum:
+            - active
+            - inactive
+        geo_lat:
+          type: number
+        geo_lng:
+          type: number
+        allOf:
+          - $ref: common.yaml#/Timestamps
+          - $ref: common.yaml#/SoftDelete
+    FarmList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Farm'
+        total:
+          type: integer
+        page:
+          type: integer
+        page_size:
+          type: integer
+    FarmCreate:
+      type: object
+      required:
+        - name
+        - acres
+      properties:
+        name:
+          type: string
+        name_te:
+          type: string
+        acres:
+          $ref: '#/components/schemas/Weight'
+        location:
+          type: string
+        village_id:
+          $ref: '#/components/schemas/UUID'
+        owner_farmer_id:
+          $ref: '#/components/schemas/UUID'
+        lease_start_date:
+          type: string
+          format: date
+        lease_end_date:
+          type: string
+          format: date
+        lease_amount:
+          $ref: '#/components/schemas/Money'
+    StatusDraftConfirmedCancelled:
+      type: string
+      enum:
+        - draft
+        - confirmed
+        - cancelled
+    ProcurementDeduction:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        deduction_type:
+          type: string
+        deduction_type_te:
+          type: string
+        amount:
+          $ref: '#/components/schemas/Money'
+        notes:
+          type: string
+    Procurement:
+      type: object
+      required:
+        - id
+        - procurement_number
+        - farmer_id
+        - crop_type_id
+        - procurement_date
+        - status
+        - net_amount
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        procurement_number:
+          type: string
+        farmer_id:
+          $ref: '#/components/schemas/UUID'
+        farmer_name:
+          type: string
+        crop_type_id:
+          $ref: '#/components/schemas/UUID'
+        crop_type_name:
+          type: string
+        village_id:
+          $ref: '#/components/schemas/UUID'
+        procurement_date:
+          type: string
+          format: date
+        bag_count:
+          type: integer
+          minimum: 0
+        gross_weight_kg:
+          $ref: '#/components/schemas/Weight'
+        moisture_pct:
+          type: number
+        net_weight_kg:
+          $ref: '#/components/schemas/Weight'
+        rate_per_quintal:
+          $ref: '#/components/schemas/Money'
+        gross_amount:
+          $ref: '#/components/schemas/Money'
+        deduction_amount:
+          $ref: '#/components/schemas/Money'
+        net_amount:
+          $ref: '#/components/schemas/Money'
+        status:
+          $ref: '#/components/schemas/StatusDraftConfirmedCancelled'
+        notes:
+          type: string
+        deductions:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProcurementDeduction'
+        allOf:
+          - $ref: common.yaml#/Timestamps
+    ProcurementList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Procurement'
+        total:
+          type: integer
+        page:
+          type: integer
+        page_size:
+          type: integer
+    ProcurementCreate:
+      type: object
+      required:
+        - farmer_id
+        - crop_type_id
+        - village_id
+        - procurement_date
+        - bag_count
+        - gross_weight_kg
+        - rate_per_quintal
+      properties:
+        farmer_id:
+          $ref: '#/components/schemas/UUID'
+        crop_type_id:
+          $ref: '#/components/schemas/UUID'
+        village_id:
+          $ref: '#/components/schemas/UUID'
+        procurement_date:
+          type: string
+          format: date
+        bag_count:
+          type: integer
+        gross_weight_kg:
+          $ref: '#/components/schemas/Weight'
+        moisture_pct:
+          type: number
+        net_weight_kg:
+          $ref: '#/components/schemas/Weight'
+        rate_per_quintal:
+          $ref: '#/components/schemas/Money'
+        deductions:
+          type: array
+          items:
+            type: object
+            properties:
+              deduction_type:
+                type: string
+              amount:
+                $ref: '#/components/schemas/Money'
+        notes:
+          type: string
+    ProcurementCancel:
+      type: object
+      required:
+        - reason
+      properties:
+        reason:
+          type: string
+          minLength: 3
+    PaymentStatus:
+      type: string
+      enum:
+        - pending
+        - completed
+        - failed
+        - reversed
+    FarmerPayment:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        payment_number:
+          type: string
+        farmer_id:
+          $ref: '#/components/schemas/UUID'
+        payment_type:
+          type: string
+          enum:
+            - advance
+            - final
+            - adjustment
+        payment_date:
+          type: string
+          format: date
+        amount:
+          $ref: '#/components/schemas/Money'
+        payment_mode_id:
+          $ref: '#/components/schemas/UUID'
+        reference_no:
+          type: string
+        status:
+          $ref: '#/components/schemas/PaymentStatus'
+        notes:
+          type: string
+    PaginatedFarmerPayments:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/FarmerPayment'
+        total:
+          type: integer
+        page:
+          type: integer
+        page_size:
+          type: integer
+    FarmerPaymentCreate:
+      type: object
+      required:
+        - farmer_id
+        - payment_type
+        - payment_date
+        - amount
+        - payment_mode_id
+      properties:
+        farmer_id:
+          $ref: '#/components/schemas/UUID'
+        payment_type:
+          type: string
+          enum:
+            - advance
+            - final
+            - adjustment
+        payment_date:
+          type: string
+          format: date
+        amount:
+          $ref: '#/components/schemas/Money'
+        payment_mode_id:
+          $ref: '#/components/schemas/UUID'
+        bank_account_id:
+          $ref: '#/components/schemas/UUID'
+        reference_no:
+          type: string
+        notes:
+          type: string
+    PaymentAllocation:
+      type: object
+      required:
+        - allocations
+      properties:
+        allocations:
+          type: array
+          items:
+            type: object
+            required:
+              - procurement_id
+              - procurement_date
+              - allocated_amount
+            properties:
+              procurement_id:
+                $ref: '#/components/schemas/UUID'
+              procurement_date:
+                type: string
+                format: date
+              allocated_amount:
+                $ref: '#/components/schemas/Money'
+    OperationalPaymentCreate:
+      type: object
+      required:
+        - payee_type
+        - payee_name
+        - payment_date
+        - amount
+        - payment_mode_id
+      properties:
+        payee_type:
+          type: string
+        payee_name:
+          type: string
+        payee_id:
+          $ref: '#/components/schemas/UUID'
+        payment_date:
+          type: string
+          format: date
+        amount:
+          $ref: '#/components/schemas/Money'
+        payment_mode_id:
+          $ref: '#/components/schemas/UUID'
+        category_id:
+          $ref: '#/components/schemas/UUID'
+        reference_no:
+          type: string
+        notes:
+          type: string
+    WorkerSkill:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        skill_name:
+          type: string
+        skill_name_te:
+          type: string
+        proficiency:
+          type: string
+    Worker:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        worker_code:
+          type: string
+        full_name:
+          type: string
+        full_name_te:
+          type: string
+        phone:
+          type: string
+        village_id:
+          $ref: '#/components/schemas/UUID'
+        hourly_rate:
+          $ref: '#/components/schemas/Money'
+        daily_rate:
+          $ref: '#/components/schemas/Money'
+        status:
+          type: string
+          enum:
+            - active
+            - inactive
+        skills:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkerSkill'
+        allOf:
+          - $ref: common.yaml#/Timestamps
+          - $ref: common.yaml#/SoftDelete
+    WorkerList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Worker'
+        total:
+          type: integer
+        page:
+          type: integer
+        page_size:
+          type: integer
+    WorkerCreate:
+      type: object
+      required:
+        - full_name
+      properties:
+        full_name:
+          type: string
+        full_name_te:
+          type: string
+        phone:
+          type: string
+        village_id:
+          $ref: '#/components/schemas/UUID'
+        hourly_rate:
+          $ref: '#/components/schemas/Money'
+        daily_rate:
+          $ref: '#/components/schemas/Money'
+    WorkOrderStatus:
+      type: string
+      enum:
+        - open
+        - in_progress
+        - completed
+        - cancelled
+    WorkOrderCreate:
+      type: object
+      required:
+        - worker_id
+        - farm_id
+        - start_time
+        - rate_type
+        - rate
+      properties:
+        worker_id:
+          $ref: '#/components/schemas/UUID'
+        farm_id:
+          $ref: '#/components/schemas/UUID'
+        activity_type_id:
+          $ref: '#/components/schemas/UUID'
+        start_time:
+          type: string
+          format: date-time
+        rate_type:
+          type: string
+        rate:
+          $ref: '#/components/schemas/Money'
+        notes:
+          type: string
+        notes_te:
+          type: string
+    WorkOrderComplete:
+      type: object
+      properties:
+        end_time:
+          type: string
+          format: date-time
+        notes:
+          type: string
+        photo_document_ids:
+          type: array
+          items:
+            $ref: '#/components/schemas/UUID'
+    AttendanceCreate:
+      type: object
+      required:
+        - worker_id
+        - attendance_date
+        - status
+      properties:
+        worker_id:
+          $ref: '#/components/schemas/UUID'
+        attendance_date:
+          type: string
+          format: date
+        check_in:
+          type: string
+          format: date-time
+        check_out:
+          type: string
+          format: date-time
+        status:
+          type: string
+        farm_id:
+          $ref: '#/components/schemas/UUID'
+        notes:
+          type: string
+    AssetCreate:
+      type: object
+      required:
+        - name
+        - asset_category
+      properties:
+        name:
+          type: string
+        name_te:
+          type: string
+        asset_category:
+          type: string
+        registration_number:
+          type: string
+        is_rentable:
+          type: boolean
+        hourly_rate:
+          $ref: '#/components/schemas/Money'
+        daily_rate:
+          $ref: '#/components/schemas/Money'
+    VehicleTripCreate:
+      type: object
+      required:
+        - asset_id
+        - source
+        - destination
+        - trip_date
+      properties:
+        asset_id:
+          $ref: '#/components/schemas/UUID'
+        driver_worker_id:
+          $ref: '#/components/schemas/UUID'
+        source:
+          type: string
+        source_te:
+          type: string
+        destination:
+          type: string
+        destination_te:
+          type: string
+        trip_date:
+          type: string
+          format: date
+        distance_km:
+          type: number
+        fuel_liters:
+          type: number
+        fuel_cost:
+          $ref: '#/components/schemas/Money'
+        loading_charges:
+          $ref: '#/components/schemas/Money'
+        unloading_charges:
+          $ref: '#/components/schemas/Money'
+        waiting_charges:
+          $ref: '#/components/schemas/Money'
+        other_charges:
+          $ref: '#/components/schemas/Money'
+        notes:
+          type: string
+    RentalAgreementCreate:
+      type: object
+      required:
+        - customer_id
+        - asset_id
+        - start_datetime
+        - rate_type
+        - hourly_rate
+      properties:
+        customer_id:
+          $ref: '#/components/schemas/UUID'
+        asset_id:
+          $ref: '#/components/schemas/UUID'
+        start_datetime:
+          type: string
+          format: date-time
+        end_datetime:
+          type: string
+          format: date-time
+        rate_type:
+          type: string
+        hourly_rate:
+          $ref: '#/components/schemas/Money'
+        notes:
+          type: string
+    Expense:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        expense_number:
+          type: string
+        category_id:
+          $ref: '#/components/schemas/UUID'
+        category_name:
+          type: string
+        expense_date:
+          type: string
+          format: date
+        amount:
+          $ref: '#/components/schemas/Money'
+        vendor_name:
+          type: string
+        payment_mode_id:
+          $ref: '#/components/schemas/UUID'
+        farm_id:
+          $ref: '#/components/schemas/UUID'
+        asset_id:
+          $ref: '#/components/schemas/UUID'
+        description:
+          type: string
+        description_te:
+          type: string
+        status:
+          type: string
+          enum:
+            - draft
+            - posted
+            - reversed
+    ExpenseList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Expense'
+        total:
+          type: integer
+        page:
+          type: integer
+        page_size:
+          type: integer
+    ExpenseCreate:
+      type: object
+      required:
+        - category_id
+        - expense_date
+        - amount
+        - payment_mode_id
+      properties:
+        category_id:
+          $ref: '#/components/schemas/UUID'
+        expense_date:
+          type: string
+          format: date
+        amount:
+          $ref: '#/components/schemas/Money'
+        vendor_name:
+          type: string
+        payment_mode_id:
+          $ref: '#/components/schemas/UUID'
+        farm_id:
+          $ref: '#/components/schemas/UUID'
+        asset_id:
+          $ref: '#/components/schemas/UUID'
+        description:
+          type: string
+        description_te:
+          type: string
+        document_ids:
+          type: array
+          items:
+            $ref: '#/components/schemas/UUID'
+    Collection:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        collection_number:
+          type: string
+        source_type:
+          type: string
+          enum:
+            - rental
+            - other
+        source_id:
+          $ref: '#/components/schemas/UUID'
+        customer_id:
+          $ref: '#/components/schemas/UUID'
+        collection_date:
+          type: string
+          format: date
+        amount:
+          $ref: '#/components/schemas/Money'
+        payment_mode_id:
+          $ref: '#/components/schemas/UUID'
+        reference_no:
+          type: string
+        status:
+          type: string
+          enum:
+            - draft
+            - posted
+            - reversed
+        notes:
+          type: string
+    CollectionList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Collection'
+        total:
+          type: integer
+        page:
+          type: integer
+        page_size:
+          type: integer
+    CollectionCreate:
+      type: object
+      required:
+        - source_type
+        - source_id
+        - collection_date
+        - amount
+        - payment_mode_id
+      properties:
+        source_type:
+          type: string
+        source_id:
+          $ref: '#/components/schemas/UUID'
+        customer_id:
+          $ref: '#/components/schemas/UUID'
+        collection_date:
+          type: string
+          format: date
+        amount:
+          $ref: '#/components/schemas/Money'
+        payment_mode_id:
+          $ref: '#/components/schemas/UUID'
+        reference_no:
+          type: string
+        notes:
+          type: string
+        document_ids:
+          type: array
+          items:
+            $ref: '#/components/schemas/UUID'
+    DocumentType:
+      type: string
+      enum:
+        - fuel_bill
+        - crop_bill
+        - weighment_slip
+        - vendor_bill
+        - upi_screenshot
+        - payment_receipt
+        - voice_note
+        - whatsapp_export
+        - photo
+        - pdf
+    PresignUploadRequest:
+      type: object
+      required:
+        - document_type
+        - file_name
+        - mime_type
+        - file_size_bytes
+      properties:
+        document_type:
+          $ref: '#/components/schemas/DocumentType'
+        file_name:
+          type: string
+        mime_type:
+          type: string
+        file_size_bytes:
+          type: integer
+          maximum: 26214400
+    PresignUploadResponse:
+      type: object
+      properties:
+        upload_url:
+          type: string
+          format: uri
+        object_key:
+          type: string
+        bucket:
+          type: string
+    Document:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        document_type:
+          $ref: '#/components/schemas/DocumentType'
+        file_name:
+          type: string
+        mime_type:
+          type: string
+        file_size_bytes:
+          type: integer
+        locale:
+          type: string
+          enum:
+            - en
+            - te
+        ocr_status:
+          type: string
+          enum:
+            - pending
+            - completed
+            - failed
+        metadata:
+          type: object
+          additionalProperties: true
+        is_archived:
+          type: boolean
+        uploaded_by:
+          $ref: '#/components/schemas/UUID'
+        allOf:
+          - $ref: common.yaml#/Timestamps
+    DocumentList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Document'
+        total:
+          type: integer
+        page:
+          type: integer
+        page_size:
+          type: integer
+    DocumentRegister:
+      type: object
+      required:
+        - document_type
+        - file_name
+        - mime_type
+        - file_size_bytes
+        - object_key
+      properties:
+        document_type:
+          $ref: '#/components/schemas/DocumentType'
+        file_name:
+          type: string
+        mime_type:
+          type: string
+        file_size_bytes:
+          type: integer
+        object_key:
+          type: string
+        checksum_sha256:
+          type: string
+        locale:
+          type: string
+        metadata:
+          type: object
+    DocumentDownload:
+      type: object
+      properties:
+        download_url:
+          type: string
+          format: uri
+    DocumentLink:
+      type: object
+      required:
+        - entity_type
+        - entity_id
+      properties:
+        entity_type:
+          type: string
+        entity_id:
+          $ref: '#/components/schemas/UUID'
+        link_role:
+          type: string
+          default: primary_attachment

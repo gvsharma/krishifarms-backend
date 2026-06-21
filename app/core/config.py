@@ -13,6 +13,10 @@ class Settings(BaseSettings):
 
     database_url: str
 
+    cache_provider: str = "memory"
+    cache_ttl_seconds: int = 300
+    redis_url: str | None = None
+
     aws_region: str = "ap-south-1"
     aws_access_key_id: str | None = None
     aws_secret_access_key: str | None = None

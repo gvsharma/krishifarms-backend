@@ -1,0 +1,98 @@
+farms:
+  get:
+    tags: [Farms]
+    operationId: listFarms
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/Page'
+      - $ref: '../openapi.yaml#/components/parameters/PageSize'
+      - $ref: '../openapi.yaml#/components/parameters/Sort'
+      - $ref: '../openapi.yaml#/components/parameters/SearchQuery'
+      - name: village_id
+        in: query
+        schema: { type: string, format: uuid }
+      - name: status
+        in: query
+        schema: { type: string, enum: [active, inactive] }
+    responses:
+      '200':
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean }
+                data: { $ref: '../schemas/farms.yaml#/FarmList' }
+  post:
+    tags: [Farms]
+    operationId: createFarm
+    requestBody:
+      content:
+        application/json:
+          schema: { $ref: '../schemas/farms.yaml#/FarmCreate' }
+    responses:
+      '201': { description: Created }
+
+farmById:
+  get:
+    tags: [Farms]
+    operationId: getFarm
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/FarmId'
+    responses:
+      '200': { description: OK }
+  patch:
+    tags: [Farms]
+    operationId: updateFarm
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/FarmId'
+    responses:
+      '200': { description: Updated }
+  delete:
+    tags: [Farms]
+    operationId: deleteFarm
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/FarmId'
+    responses:
+      '200': { description: Soft-deleted }
+
+farmActivities:
+  get:
+    tags: [Farms]
+    operationId: listFarmActivities
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/FarmId'
+      - $ref: '../openapi.yaml#/components/parameters/DateFrom'
+      - $ref: '../openapi.yaml#/components/parameters/DateTo'
+    responses:
+      '200': { description: OK }
+  post:
+    tags: [Farms]
+    operationId: createFarmActivity
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/FarmId'
+    responses:
+      '201': { description: Created }
+
+farmActivityById:
+  patch:
+    tags: [Farms]
+    operationId: updateFarmActivity
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/FarmId'
+      - name: activity_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: Updated }
+  delete:
+    tags: [Farms]
+    operationId: deleteFarmActivity
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/FarmId'
+      - name: activity_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: Deleted }

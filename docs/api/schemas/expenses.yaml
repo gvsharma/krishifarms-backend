@@ -1,0 +1,43 @@
+Expense:
+  type: object
+  properties:
+    id: { $ref: 'common.yaml#/UUID' }
+    expense_number: { type: string }
+    category_id: { $ref: 'common.yaml#/UUID' }
+    category_name: { type: string }
+    expense_date: { type: string, format: date }
+    amount: { $ref: 'common.yaml#/Money' }
+    vendor_name: { type: string }
+    payment_mode_id: { $ref: 'common.yaml#/UUID' }
+    farm_id: { $ref: 'common.yaml#/UUID' }
+    asset_id: { $ref: 'common.yaml#/UUID' }
+    description: { type: string }
+    description_te: { type: string }
+    status: { type: string, enum: [draft, posted, reversed] }
+
+ExpenseCreate:
+  type: object
+  required: [category_id, expense_date, amount, payment_mode_id]
+  properties:
+    category_id: { $ref: 'common.yaml#/UUID' }
+    expense_date: { type: string, format: date }
+    amount: { $ref: 'common.yaml#/Money' }
+    vendor_name: { type: string }
+    payment_mode_id: { $ref: 'common.yaml#/UUID' }
+    farm_id: { $ref: 'common.yaml#/UUID' }
+    asset_id: { $ref: 'common.yaml#/UUID' }
+    description: { type: string }
+    description_te: { type: string }
+    document_ids:
+      type: array
+      items: { $ref: 'common.yaml#/UUID' }
+
+ExpenseList:
+  type: object
+  properties:
+    items:
+      type: array
+      items: { $ref: '#/Expense' }
+    total: { type: integer }
+    page: { type: integer }
+    page_size: { type: integer }

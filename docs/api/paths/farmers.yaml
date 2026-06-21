@@ -1,0 +1,249 @@
+farmers:
+  get:
+    tags: [Farmers]
+    summary: List farmers
+    operationId: listFarmers
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/Page'
+      - $ref: '../openapi.yaml#/components/parameters/PageSize'
+      - $ref: '../openapi.yaml#/components/parameters/Sort'
+      - $ref: '../openapi.yaml#/components/parameters/SearchQuery'
+      - name: village_id
+        in: query
+        schema: { type: string, format: uuid }
+      - name: status
+        in: query
+        schema: { type: string, enum: [active, inactive, blocked] }
+    responses:
+      '200':
+        content:
+          application/json:
+            schema: { $ref: '../schemas/farmers.yaml#/FarmerListAPIResponse' }
+      '401': { $ref: '../openapi.yaml#/components/responses/Unauthorized' }
+  post:
+    tags: [Farmers]
+    summary: Create farmer
+    operationId: createFarmer
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: '../schemas/farmers.yaml#/FarmerCreate' }
+    responses:
+      '201':
+        content:
+          application/json:
+            schema: { $ref: '../schemas/farmers.yaml#/FarmerAPIResponse' }
+      '400': { $ref: '../openapi.yaml#/components/responses/BadRequest' }
+      '409': { $ref: '../openapi.yaml#/components/responses/Conflict' }
+
+farmerById:
+  get:
+    tags: [Farmers]
+    summary: Get farmer by ID
+    operationId: getFarmer
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/FarmerId'
+    responses:
+      '200':
+        content:
+          application/json:
+            schema: { $ref: '../schemas/farmers.yaml#/FarmerAPIResponse' }
+      '404': { $ref: '../openapi.yaml#/components/responses/NotFound' }
+  patch:
+    tags: [Farmers]
+    summary: Update farmer
+    operationId: updateFarmer
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/FarmerId'
+    requestBody:
+      content:
+        application/json:
+          schema: { $ref: '../schemas/farmers.yaml#/FarmerUpdate' }
+    responses:
+      '200':
+        content:
+          application/json:
+            schema: { $ref: '../schemas/farmers.yaml#/FarmerAPIResponse' }
+  delete:
+    tags: [Farmers]
+    summary: Soft-delete farmer
+    operationId: deleteFarmer
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/FarmerId'
+    responses:
+      '200':
+        content:
+          application/json:
+            schema: { $ref: '../schemas/auth.yaml#/MessageAPIResponse' }
+
+farmerBankAccounts:
+  get:
+    tags: [Farmers]
+    summary: List farmer bank accounts
+    operationId: listFarmerBankAccounts
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/FarmerId'
+    responses:
+      '200':
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean }
+                data:
+                  type: array
+                  items: { $ref: '../schemas/farmers.yaml#/BankAccount' }
+  post:
+    tags: [Farmers]
+    summary: Add bank account
+    operationId: createFarmerBankAccount
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/FarmerId'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [account_holder_name, bank_name, ifsc, account_number]
+            properties:
+              account_holder_name: { type: string }
+              bank_name: { type: string }
+              branch: { type: string }
+              ifsc: { type: string }
+              account_number: { type: string }
+              is_primary: { type: boolean }
+    responses:
+      '201': { description: Created }
+
+farmerBankAccountById:
+  patch:
+    tags: [Farmers]
+    summary: Update bank account
+    operationId: updateFarmerBankAccount
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/FarmerId'
+      - name: account_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: Updated }
+  delete:
+    tags: [Farmers]
+    summary: Soft-delete bank account
+    operationId: deleteFarmerBankAccount
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/FarmerId'
+      - name: account_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: Deleted }
+
+farmerLandParcels:
+  get:
+    tags: [Farmers]
+    summary: List land parcels
+    operationId: listFarmerLandParcels
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/FarmerId'
+    responses:
+      '200': { description: OK }
+  post:
+    tags: [Farmers]
+    summary: Add land parcel
+    operationId: createFarmerLandParcel
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/FarmerId'
+    responses:
+      '201': { description: Created }
+
+farmerLandParcelById:
+  patch:
+    tags: [Farmers]
+    operationId: updateFarmerLandParcel
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/FarmerId'
+      - name: parcel_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: Updated }
+  delete:
+    tags: [Farmers]
+    operationId: deleteFarmerLandParcel
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/FarmerId'
+      - name: parcel_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: Deleted }
+
+farmerCropHistory:
+  get:
+    tags: [Farmers]
+    operationId: listFarmerCropHistory
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/FarmerId'
+    responses:
+      '200': { description: OK }
+  post:
+    tags: [Farmers]
+    operationId: createFarmerCropHistory
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/FarmerId'
+    responses:
+      '201': { description: Created }
+
+farmerLedger:
+  get:
+    tags: [Farmers]
+    summary: Farmer ledger entries
+    operationId: getFarmerLedger
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/FarmerId'
+      - $ref: '../openapi.yaml#/components/parameters/Page'
+      - $ref: '../openapi.yaml#/components/parameters/PageSize'
+      - $ref: '../openapi.yaml#/components/parameters/DateFrom'
+      - $ref: '../openapi.yaml#/components/parameters/DateTo'
+    responses:
+      '200':
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean }
+                data:
+                  type: object
+                  properties:
+                    items:
+                      type: array
+                      items: { $ref: '../schemas/farmers.yaml#/LedgerEntry' }
+                    total: { type: integer }
+                    page: { type: integer }
+                    page_size: { type: integer }
+
+farmerOutstanding:
+  get:
+    tags: [Farmers]
+    summary: Current outstanding balance
+    operationId: getFarmerOutstanding
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/FarmerId'
+    responses:
+      '200':
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean }
+                data: { $ref: '../schemas/farmers.yaml#/Outstanding' }

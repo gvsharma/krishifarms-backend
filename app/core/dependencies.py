@@ -1,14 +1,19 @@
+import json
 from collections.abc import Generator
 from uuid import UUID
 
 from fastapi import Depends, Header, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
+from app.core.cache import get_cache_provider
+from app.core.cache.base import CacheProvider
+from app.core.cache.keys import user_permissions_key
+from app.core.config import settings
 from app.core.database import SessionLocal
 from app.core.exceptions import ForbiddenError, UnauthorizedError
 from app.core.security import TokenValidationError, get_token_subject
-from app.modules.users.models import User
+from app.modules.users.models import Role, User
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
@@ -19,6 +24,10 @@ def get_db() -> Generator[Session, None, None]:
         yield db
     finally:
         db.close()
+
+
+def get_cache() -> CacheProvider:
+    return get_cache_provider()
 
 
 def get_request_id(
@@ -37,9 +46,28 @@ class CurrentUserContext:
             raise ForbiddenError(f"Missing permission: {permission}")
 
 
+def _load_user_permissions(
+    user: User,
+    cache: CacheProvider,
+) -> set[str]:
+    cache_key = user_permissions_key(user.id)
+    cached_permissions = cache.get(cache_key)
+    if cached_permissions is not None:
+        return set(json.loads(cached_permissions))
+
+    permissions = {perm.code for perm in user.role.permissions}
+    cache.set(
+        cache_key,
+        json.dumps(sorted(permissions)),
+        ttl_seconds=settings.cache_ttl_seconds,
+    )
+    return permissions
+
+
 def get_current_user_context(
     db: Session = Depends(get_db),
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    cache: CacheProvider = Depends(get_cache),
 ) -> CurrentUserContext:
     if credentials is None:
         raise UnauthorizedError("Authentication required")
@@ -49,11 +77,16 @@ def get_current_user_context(
     except TokenValidationError as exc:
         raise UnauthorizedError(str(exc)) from exc
 
-    user = db.query(User).filter(User.id == user_id, User.is_active.is_(True)).first()
+    user = (
+        db.query(User)
+        .options(joinedload(User.role).joinedload(Role.permissions))
+        .filter(User.id == user_id, User.is_active.is_(True))
+        .first()
+    )
     if user is None:
         raise UnauthorizedError("User not found or inactive")
 
-    permissions = {perm.code for perm in user.role.permissions}
+    permissions = _load_user_permissions(user, cache)
     return CurrentUserContext(user=user, permissions=permissions)
 
 

@@ -1,0 +1,125 @@
+workOrders:
+  get:
+    tags: [Work Orders]
+    operationId: listWorkOrders
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/Page'
+      - $ref: '../openapi.yaml#/components/parameters/PageSize'
+      - $ref: '../openapi.yaml#/components/parameters/DateFrom'
+      - $ref: '../openapi.yaml#/components/parameters/DateTo'
+      - name: worker_id
+        in: query
+        schema: { type: string, format: uuid }
+      - name: farm_id
+        in: query
+        schema: { type: string, format: uuid }
+      - name: status
+        in: query
+        schema: { $ref: '../schemas/common.yaml#/WorkOrderStatus' }
+    responses:
+      '200': { description: OK }
+  post:
+    tags: [Work Orders]
+    operationId: createWorkOrder
+    requestBody:
+      content:
+        application/json:
+          schema: { $ref: '../schemas/work-orders.yaml#/WorkOrderCreate' }
+    responses:
+      '201': { description: Created }
+
+workOrderById:
+  get:
+    tags: [Work Orders]
+    operationId: getWorkOrder
+    parameters:
+      - name: work_order_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: OK }
+  patch:
+    tags: [Work Orders]
+    operationId: updateWorkOrder
+    parameters:
+      - name: work_order_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: Updated }
+
+workOrderComplete:
+  post:
+    tags: [Work Orders]
+    operationId: completeWorkOrder
+    parameters:
+      - name: work_order_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    requestBody:
+      content:
+        application/json:
+          schema: { $ref: '../schemas/work-orders.yaml#/WorkOrderComplete' }
+    responses:
+      '200': { description: Completed }
+
+workOrderPhotos:
+  get:
+    tags: [Work Orders]
+    operationId: listWorkOrderPhotos
+    parameters:
+      - name: work_order_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: OK }
+  post:
+    tags: [Work Orders]
+    operationId: addWorkOrderPhoto
+    parameters:
+      - name: work_order_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    requestBody:
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [document_id]
+            properties:
+              document_id: { type: string, format: uuid }
+              caption: { type: string }
+    responses:
+      '201': { description: Photo linked }
+
+attendance:
+  get:
+    tags: [Work Orders]
+    operationId: listAttendance
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/Page'
+      - $ref: '../openapi.yaml#/components/parameters/PageSize'
+      - $ref: '../openapi.yaml#/components/parameters/DateFrom'
+      - $ref: '../openapi.yaml#/components/parameters/DateTo'
+      - name: worker_id
+        in: query
+        schema: { type: string, format: uuid }
+      - name: farm_id
+        in: query
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: OK }
+  post:
+    tags: [Work Orders]
+    operationId: createAttendance
+    requestBody:
+      content:
+        application/json:
+          schema: { $ref: '../schemas/work-orders.yaml#/AttendanceCreate' }
+    responses:
+      '201': { description: Recorded }

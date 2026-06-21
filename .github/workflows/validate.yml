@@ -1,0 +1,90 @@
+name: Validate
+
+on:
+  workflow_call:
+
+env:
+  PYTHON_VERSION: "3.12"
+  NODE_VERSION: "22"
+
+jobs:
+  backend:
+    name: Backend lint & build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install ".[dev]"
+
+      - name: Ruff lint
+        run: ruff check app
+
+      - name: Import sanity check
+        run: python -c "from app.main import app; assert app.title"
+
+      - name: Docker build check
+        run: docker build -t krishifarms-backend:ci .
+
+  frontend:
+    name: Frontend lint & build
+    if: hashFiles('frontend/package-lock.json') != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Production build
+        env:
+          NEXT_PUBLIC_API_BASE_URL: /api/v1
+          API_PROXY_TARGET: http://127.0.0.1
+          NEXT_PUBLIC_SITE_URL: https://example.vercel.app
+        run: npm run build
+
+  security:
+    name: Security scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Trivy filesystem scan (backend)
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin v0.69.3
+          trivy fs --severity CRITICAL,HIGH --ignore-unfixed --exit-code 1 --scanners vuln .
+
+      - name: npm audit (frontend)
+        if: hashFiles('frontend/package-lock.json') != ''
+        working-directory: frontend
+        run: |
+          npm ci --ignore-scripts
+          npm audit --audit-level=high

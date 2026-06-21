@@ -1,0 +1,122 @@
+farmerPayments:
+  get:
+    tags: [Payments]
+    operationId: listFarmerPayments
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/Page'
+      - $ref: '../openapi.yaml#/components/parameters/PageSize'
+      - $ref: '../openapi.yaml#/components/parameters/DateFrom'
+      - $ref: '../openapi.yaml#/components/parameters/DateTo'
+      - name: farmer_id
+        in: query
+        schema: { type: string, format: uuid }
+      - name: payment_type
+        in: query
+        schema: { type: string, enum: [advance, final, adjustment] }
+    responses:
+      '200':
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean }
+                data: { $ref: '../schemas/payments.yaml#/PaginatedFarmerPayments' }
+  post:
+    tags: [Payments]
+    operationId: createFarmerPayment
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/IdempotencyKey'
+    requestBody:
+      content:
+        application/json:
+          schema: { $ref: '../schemas/payments.yaml#/FarmerPaymentCreate' }
+    responses:
+      '201': { description: Payment recorded }
+
+farmerPaymentById:
+  get:
+    tags: [Payments]
+    operationId: getFarmerPayment
+    parameters:
+      - name: payment_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: payment_date
+        in: query
+        required: true
+        schema: { type: string, format: date }
+    responses:
+      '200': { description: OK }
+
+farmerPaymentAllocate:
+  post:
+    tags: [Payments]
+    operationId: allocateFarmerPayment
+    parameters:
+      - name: payment_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    requestBody:
+      content:
+        application/json:
+          schema: { $ref: '../schemas/payments.yaml#/PaymentAllocation' }
+    responses:
+      '200': { description: Allocated }
+
+farmerPaymentReverse:
+  post:
+    tags: [Payments]
+    operationId: reverseFarmerPayment
+    parameters:
+      - name: payment_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    requestBody:
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [reason]
+            properties:
+              reason: { type: string }
+    responses:
+      '200': { description: Reversed }
+
+operationalPayments:
+  get:
+    tags: [Payments]
+    operationId: listOperationalPayments
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/Page'
+      - $ref: '../openapi.yaml#/components/parameters/PageSize'
+      - $ref: '../openapi.yaml#/components/parameters/DateFrom'
+      - $ref: '../openapi.yaml#/components/parameters/DateTo'
+    responses:
+      '200': { description: OK }
+  post:
+    tags: [Payments]
+    operationId: createOperationalPayment
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/IdempotencyKey'
+    requestBody:
+      content:
+        application/json:
+          schema: { $ref: '../schemas/payments.yaml#/OperationalPaymentCreate' }
+    responses:
+      '201': { description: Created }
+
+operationalPaymentById:
+  get:
+    tags: [Payments]
+    operationId: getOperationalPayment
+    parameters:
+      - name: payment_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: OK }

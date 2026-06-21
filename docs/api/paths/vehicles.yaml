@@ -1,0 +1,52 @@
+vehicleTrips:
+  get:
+    tags: [Vehicles]
+    operationId: listVehicleTrips
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/Page'
+      - $ref: '../openapi.yaml#/components/parameters/PageSize'
+      - $ref: '../openapi.yaml#/components/parameters/DateFrom'
+      - $ref: '../openapi.yaml#/components/parameters/DateTo'
+      - name: asset_id
+        in: query
+        schema: { type: string, format: uuid }
+      - name: driver_worker_id
+        in: query
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: OK }
+  post:
+    tags: [Vehicles]
+    operationId: createVehicleTrip
+    requestBody:
+      content:
+        application/json:
+          schema: { $ref: '../schemas/vehicles.yaml#/VehicleTripCreate' }
+    responses:
+      '201': { description: Created }
+
+vehicleTripById:
+  get:
+    tags: [Vehicles]
+    operationId: getVehicleTrip
+    parameters:
+      - name: trip_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: trip_date
+        in: query
+        required: true
+        schema: { type: string, format: date }
+    responses:
+      '200': { description: OK }
+  patch:
+    tags: [Vehicles]
+    operationId: updateVehicleTrip
+    parameters:
+      - name: trip_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: Updated }

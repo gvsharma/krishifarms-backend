@@ -1,0 +1,129 @@
+Farmer:
+  type: object
+  required: [id, org_id, farmer_code, full_name, phone_primary, village_id, status]
+  properties:
+    id: { $ref: 'common.yaml#/UUID' }
+    org_id: { $ref: 'common.yaml#/UUID' }
+    farmer_code: { type: string, maxLength: 50 }
+    full_name: { type: string, maxLength: 200 }
+    full_name_te: { type: string }
+    father_name: { type: string }
+    father_name_te: { type: string }
+    phone_primary: { type: string, maxLength: 20 }
+    phone_secondary: { type: string, maxLength: 20 }
+    village_id: { $ref: 'common.yaml#/UUID' }
+    village_name: { type: string }
+    address: { type: string }
+    address_te: { type: string }
+    aadhaar_last4: { type: string, maxLength: 4 }
+    status: { type: string, enum: [active, inactive, blocked] }
+    notes: { type: string }
+    outstanding_amount: { $ref: 'common.yaml#/Money' }
+    allOf:
+      - $ref: 'common.yaml#/Timestamps'
+      - $ref: 'common.yaml#/SoftDelete'
+
+FarmerCreate:
+  type: object
+  required: [full_name, phone_primary, village_id]
+  properties:
+    full_name: { type: string, minLength: 2, maxLength: 200 }
+    full_name_te: { type: string }
+    father_name: { type: string }
+    father_name_te: { type: string }
+    phone_primary: { type: string }
+    phone_secondary: { type: string }
+    village_id: { $ref: 'common.yaml#/UUID' }
+    address: { type: string }
+    address_te: { type: string }
+    aadhaar_last4: { type: string, maxLength: 4 }
+    notes: { type: string }
+
+FarmerUpdate:
+  type: object
+  properties:
+    full_name: { type: string }
+    full_name_te: { type: string }
+    phone_primary: { type: string }
+    phone_secondary: { type: string }
+    village_id: { $ref: 'common.yaml#/UUID' }
+    address: { type: string }
+    status: { type: string, enum: [active, inactive, blocked] }
+    notes: { type: string }
+
+FarmerList:
+  type: object
+  required: [items, total, page, page_size]
+  properties:
+    items:
+      type: array
+      items: { $ref: '#/Farmer' }
+    total: { type: integer }
+    page: { type: integer }
+    page_size: { type: integer }
+
+FarmerAPIResponse:
+  type: object
+  properties:
+    success: { type: boolean, enum: [true] }
+    data: { $ref: '#/Farmer' }
+    meta: { $ref: 'common.yaml#/Meta' }
+
+FarmerListAPIResponse:
+  type: object
+  properties:
+    success: { type: boolean, enum: [true] }
+    data: { $ref: '#/FarmerList' }
+
+BankAccount:
+  type: object
+  properties:
+    id: { $ref: 'common.yaml#/UUID' }
+    account_holder_name: { type: string }
+    bank_name: { type: string }
+    branch: { type: string }
+    ifsc: { type: string, maxLength: 11 }
+    account_number_masked: { type: string, example: 'XXXX1234' }
+    is_primary: { type: boolean }
+
+LandParcel:
+  type: object
+  properties:
+    id: { $ref: 'common.yaml#/UUID' }
+    survey_number: { type: string }
+    acres: { $ref: 'common.yaml#/Weight' }
+    land_type: { type: string }
+    location_notes: { type: string }
+    geo_lat: { type: number }
+    geo_lng: { type: number }
+
+CropHistory:
+  type: object
+  properties:
+    id: { $ref: 'common.yaml#/UUID' }
+    crop_type_id: { $ref: 'common.yaml#/UUID' }
+    crop_type_name: { type: string }
+    season: { type: string }
+    year: { type: integer }
+    acres: { $ref: 'common.yaml#/Weight' }
+    notes: { type: string }
+
+LedgerEntry:
+  type: object
+  properties:
+    id: { $ref: 'common.yaml#/UUID' }
+    entry_date: { type: string, format: date }
+    entry_type: { type: string }
+    reference_type: { type: string }
+    reference_id: { $ref: 'common.yaml#/UUID' }
+    debit: { $ref: 'common.yaml#/Money' }
+    credit: { $ref: 'common.yaml#/Money' }
+    balance_after: { $ref: 'common.yaml#/Money' }
+    description: { type: string }
+
+Outstanding:
+  type: object
+  properties:
+    farmer_id: { $ref: 'common.yaml#/UUID' }
+    outstanding_amount: { $ref: 'common.yaml#/Money' }
+    as_of_date: { type: string, format: date }
