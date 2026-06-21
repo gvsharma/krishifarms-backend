@@ -12,23 +12,37 @@ from app.core.security import (
 )
 from app.core.security import TokenValidationError, get_token_subject
 from app.core.exceptions import NotFoundError, UnauthorizedError
-from app.modules.users.models import RefreshToken, User
+from app.modules.auth.rbac import build_auth_user, build_rbac_payload
+from app.modules.users.models import RefreshToken, Role, User
 from app.shared.services.audit import write_audit_log
 
 
-def authenticate_user(db: Session, email: str, password: str) -> User:
-    user = (
+def authenticate_user(
+    db: Session,
+    *,
+    email: str | None = None,
+    mobile: str | None = None,
+    password: str,
+) -> User:
+    query = (
         db.query(User)
-        .options(joinedload(User.role))
-        .filter(User.email == email, User.deleted_at.is_(None), User.is_active.is_(True))
-        .first()
+        .options(joinedload(User.role).joinedload(Role.permissions))
+        .filter(User.deleted_at.is_(None), User.is_active.is_(True))
     )
+    if email:
+        query = query.filter(User.email == email)
+    elif mobile:
+        query = query.filter(User.phone == mobile)
+    else:
+        raise UnauthorizedError("Email or mobile is required")
+
+    user = query.first()
     if user is None or not verify_password(password, user.password_hash):
-        raise UnauthorizedError("Invalid email or password")
+        raise UnauthorizedError("Invalid credentials")
     return user
 
 
-def issue_tokens(db: Session, user: User) -> dict[str, str]:
+def issue_tokens(db: Session, user: User) -> dict:
     access_token = create_access_token(
         str(user.id),
         extra_claims={"org_id": str(user.org_id), "role": user.role.code},
@@ -42,10 +56,18 @@ def issue_tokens(db: Session, user: User) -> dict[str, str]:
     db.add(refresh_entry)
     user.last_login_at = datetime.now(UTC)
     db.commit()
-    return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
+
+    rbac = build_rbac_payload(user)
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer",
+        "user": build_auth_user(user),
+        **rbac,
+    }
 
 
-def refresh_access_token(db: Session, refresh_token: str) -> dict[str, str]:
+def refresh_access_token(db: Session, refresh_token: str) -> dict:
     try:
         user_id = get_token_subject(refresh_token, expected_type="refresh")
     except TokenValidationError as exc:
@@ -69,7 +91,7 @@ def refresh_access_token(db: Session, refresh_token: str) -> dict[str, str]:
 
     user = (
         db.query(User)
-        .options(joinedload(User.role))
+        .options(joinedload(User.role).joinedload(Role.permissions))
         .filter(User.id == user_id, User.is_active.is_(True))
         .first()
     )
