@@ -1,14 +1,20 @@
 LoginRequest:
   type: object
-  required: [email, password]
+  required: [password]
   properties:
     email:
       type: string
       format: email
+    mobile:
+      type: string
+      minLength: 10
+      maxLength: 15
+      description: Mobile login field used by KrishiFarms Android app (maps to user.phone)
     password:
       type: string
       minLength: 8
       format: password
+  description: Provide email or mobile (at least one required)
 
 RefreshRequest:
   type: object
@@ -16,6 +22,22 @@ RefreshRequest:
   properties:
     refresh_token:
       type: string
+
+AuthUserResponse:
+  type: object
+  required: [id, name, mobile]
+  properties:
+    id:
+      type: string
+      format: uuid
+    name:
+      type: string
+    mobile:
+      type: string
+    email:
+      type: string
+      format: email
+      nullable: true
 
 TokenResponse:
   type: object
@@ -28,6 +50,23 @@ TokenResponse:
     token_type:
       type: string
       enum: [bearer]
+    user:
+      $ref: '#/AuthUserResponse'
+    roles:
+      type: array
+      items:
+        type: string
+      description: Informational role labels (OWNER, MANAGER, WORKER, ACCOUNTANT, …)
+    permissions:
+      type: array
+      items:
+        type: string
+      description: Authoritative mobile permission strings (FARMER_VIEW, …)
+    accessibleModules:
+      type: array
+      items:
+        type: string
+      description: Navigation module keys derived from permissions
 
 TokenAPIResponse:
   type: object

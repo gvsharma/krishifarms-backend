@@ -5,7 +5,7 @@
   "installCommand": "npm ci",
   "env": {
     "NEXT_PUBLIC_API_BASE_URL": "/api/v1",
-    "API_PROXY_TARGET": "http://13.232.200.243",
-    "NEXT_PUBLIC_SITE_URL": "https://krishifarms.vercel.app"
+    "API_PROXY_TARGET": "http://13.232.200.243:8082",
+    "NEXT_PUBLIC_SITE_URL": "https://krishifarms-backend.vercel.app"
   }
 }
