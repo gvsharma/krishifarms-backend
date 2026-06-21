@@ -1,0 +1,11 @@
+id,worker_code,full_name,full_name_te,phone,village_id,hourly_rate,daily_rate,status,notes,data_source
+3428fa0e-df40-59f5-b2b9-04e0e42cf6d7,SYN-WKR-001,Raju,రాజు,9866510001,97bc8297-5f82-5ad6-8e5c-de4c04c0e7d6,125.00,820.00,active,SYNTHETIC_DATA — safe to delete before loading real production data,synthetic
+07be8232-adc8-5c36-a12c-b4f1f7cbe140,SYN-WKR-002,Swamy,స్వామి,9866510002,97bc8297-5f82-5ad6-8e5c-de4c04c0e7d6,130.00,840.00,active,SYNTHETIC_DATA — safe to delete before loading real production data,synthetic
+504093d5-5f07-546a-b899-b6296a12f775,SYN-WKR-003,Naveen,నవీన్,9866510003,97bc8297-5f82-5ad6-8e5c-de4c04c0e7d6,135.00,860.00,active,SYNTHETIC_DATA — safe to delete before loading real production data,synthetic
+6e0452f5-a6d0-54d5-9836-e888ac14b62a,SYN-WKR-004,Mallesh,మల్లేష్,9866510004,97bc8297-5f82-5ad6-8e5c-de4c04c0e7d6,140.00,880.00,active,SYNTHETIC_DATA — safe to delete before loading real production data,synthetic
+7ebe5816-96ef-5532-bc54-66a1e724a8e8,SYN-WKR-005,Srinu,శ్రీను,9866510005,97bc8297-5f82-5ad6-8e5c-de4c04c0e7d6,145.00,900.00,active,SYNTHETIC_DATA — safe to delete before loading real production data,synthetic
+966fcfc3-4c99-5eeb-a829-c59b380206ac,SYN-WKR-006,Vijay,విజయ్,9866510006,97bc8297-5f82-5ad6-8e5c-de4c04c0e7d6,150.00,920.00,active,SYNTHETIC_DATA — safe to delete before loading real production data,synthetic
+0f67667e-84ba-5d44-9363-4185ccaac687,SYN-WKR-007,Prakash,ప్రకాష్,9866510007,97bc8297-5f82-5ad6-8e5c-de4c04c0e7d6,155.00,940.00,active,SYNTHETIC_DATA — safe to delete before loading real production data,synthetic
+df1e04ff-1545-5482-b707-6c4580e253ea,SYN-WKR-008,Ravi,రవి,9866510008,97bc8297-5f82-5ad6-8e5c-de4c04c0e7d6,160.00,960.00,active,SYNTHETIC_DATA — safe to delete before loading real production data,synthetic
+0236ae10-2de2-5762-8fdc-4517752735f3,SYN-WKR-009,Kumar,కుమార్,9866510009,97bc8297-5f82-5ad6-8e5c-de4c04c0e7d6,165.00,980.00,active,SYNTHETIC_DATA — safe to delete before loading real production data,synthetic
+9b5d306a-d6b1-5d8c-af9b-4fa54d0a486e,SYN-WKR-010,Shekar,శేఖర్,9866510010,97bc8297-5f82-5ad6-8e5c-de4c04c0e7d6,170.00,1000.00,active,SYNTHETIC_DATA — safe to delete before loading real production data,synthetic

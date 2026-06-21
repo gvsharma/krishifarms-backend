@@ -7,6 +7,7 @@ class HealthResponse(BaseModel):
     status: str
     app_name: str
     environment: str
+    cache_provider: str
 
 
 class DashboardSummaryResponse(BaseModel):
@@ -21,4 +22,5 @@ def get_health() -> HealthResponse:
         status="ok",
         app_name=settings.app_name,
         environment=settings.app_env,
+        cache_provider=settings.cache_provider,
     )

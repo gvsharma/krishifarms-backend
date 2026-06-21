@@ -1,0 +1,47 @@
+collections:
+  get:
+    tags: [Collections]
+    operationId: listCollections
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/Page'
+      - $ref: '../openapi.yaml#/components/parameters/PageSize'
+      - $ref: '../openapi.yaml#/components/parameters/DateFrom'
+      - $ref: '../openapi.yaml#/components/parameters/DateTo'
+      - name: source_type
+        in: query
+        schema: { type: string, enum: [rental, other] }
+      - name: customer_id
+        in: query
+        schema: { type: string, format: uuid }
+    responses:
+      '200':
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean }
+                data: { $ref: '../schemas/collections.yaml#/CollectionList' }
+  post:
+    tags: [Collections]
+    operationId: createCollection
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/IdempotencyKey'
+    requestBody:
+      content:
+        application/json:
+          schema: { $ref: '../schemas/collections.yaml#/CollectionCreate' }
+    responses:
+      '201': { description: Created }
+
+collectionById:
+  get:
+    tags: [Collections]
+    operationId: getCollection
+    parameters:
+      - name: collection_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: OK }

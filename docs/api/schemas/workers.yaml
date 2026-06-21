@@ -1,0 +1,47 @@
+Worker:
+  type: object
+  properties:
+    id: { $ref: 'common.yaml#/UUID' }
+    worker_code: { type: string }
+    full_name: { type: string }
+    full_name_te: { type: string }
+    phone: { type: string }
+    village_id: { $ref: 'common.yaml#/UUID' }
+    hourly_rate: { $ref: 'common.yaml#/Money' }
+    daily_rate: { $ref: 'common.yaml#/Money' }
+    status: { type: string, enum: [active, inactive] }
+    skills:
+      type: array
+      items: { $ref: '#/WorkerSkill' }
+    allOf:
+      - $ref: 'common.yaml#/Timestamps'
+      - $ref: 'common.yaml#/SoftDelete'
+
+WorkerSkill:
+  type: object
+  properties:
+    id: { $ref: 'common.yaml#/UUID' }
+    skill_name: { type: string }
+    skill_name_te: { type: string }
+    proficiency: { type: string }
+
+WorkerCreate:
+  type: object
+  required: [full_name]
+  properties:
+    full_name: { type: string }
+    full_name_te: { type: string }
+    phone: { type: string }
+    village_id: { $ref: 'common.yaml#/UUID' }
+    hourly_rate: { $ref: 'common.yaml#/Money' }
+    daily_rate: { $ref: 'common.yaml#/Money' }
+
+WorkerList:
+  type: object
+  properties:
+    items:
+      type: array
+      items: { $ref: '#/Worker' }
+    total: { type: integer }
+    page: { type: integer }
+    page_size: { type: integer }

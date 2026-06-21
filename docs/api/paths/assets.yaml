@@ -1,0 +1,105 @@
+assets:
+  get:
+    tags: [Assets]
+    operationId: listAssets
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/Page'
+      - $ref: '../openapi.yaml#/components/parameters/PageSize'
+      - name: asset_category
+        in: query
+        schema: { type: string, enum: [tractor, dcm, baler, air_machine, other] }
+      - name: status
+        in: query
+        schema: { type: string, enum: [active, maintenance, retired] }
+      - name: is_rentable
+        in: query
+        schema: { type: boolean }
+    responses:
+      '200': { description: OK }
+  post:
+    tags: [Assets]
+    operationId: createAsset
+    requestBody:
+      content:
+        application/json:
+          schema: { $ref: '../schemas/assets.yaml#/AssetCreate' }
+    responses:
+      '201': { description: Created }
+
+assetById:
+  get:
+    tags: [Assets]
+    operationId: getAsset
+    parameters:
+      - name: asset_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: OK }
+  patch:
+    tags: [Assets]
+    operationId: updateAsset
+    parameters:
+      - name: asset_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: Updated }
+  delete:
+    tags: [Assets]
+    operationId: deleteAsset
+    parameters:
+      - name: asset_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: Soft-deleted }
+
+maintenanceRecords:
+  get:
+    tags: [Assets]
+    operationId: listMaintenanceRecords
+    parameters:
+      - name: asset_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: OK }
+  post:
+    tags: [Assets]
+    operationId: createMaintenanceRecord
+    parameters:
+      - name: asset_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '201': { description: Created }
+
+usageLogs:
+  get:
+    tags: [Assets]
+    operationId: listAssetUsageLogs
+    parameters:
+      - name: asset_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - $ref: '../openapi.yaml#/components/parameters/DateFrom'
+      - $ref: '../openapi.yaml#/components/parameters/DateTo'
+    responses:
+      '200': { description: OK }
+  post:
+    tags: [Assets]
+    operationId: createAssetUsageLog
+    parameters:
+      - name: asset_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '201': { description: Created }

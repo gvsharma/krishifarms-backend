@@ -1,0 +1,77 @@
+FarmerPayment:
+  type: object
+  properties:
+    id: { $ref: 'common.yaml#/UUID' }
+    payment_number: { type: string }
+    farmer_id: { $ref: 'common.yaml#/UUID' }
+    payment_type: { type: string, enum: [advance, final, adjustment] }
+    payment_date: { type: string, format: date }
+    amount: { $ref: 'common.yaml#/Money' }
+    payment_mode_id: { $ref: 'common.yaml#/UUID' }
+    reference_no: { type: string }
+    status: { $ref: 'common.yaml#/PaymentStatus' }
+    notes: { type: string }
+
+FarmerPaymentCreate:
+  type: object
+  required: [farmer_id, payment_type, payment_date, amount, payment_mode_id]
+  properties:
+    farmer_id: { $ref: 'common.yaml#/UUID' }
+    payment_type: { type: string, enum: [advance, final, adjustment] }
+    payment_date: { type: string, format: date }
+    amount: { $ref: 'common.yaml#/Money' }
+    payment_mode_id: { $ref: 'common.yaml#/UUID' }
+    bank_account_id: { $ref: 'common.yaml#/UUID' }
+    reference_no: { type: string }
+    notes: { type: string }
+
+PaymentAllocation:
+  type: object
+  required: [allocations]
+  properties:
+    allocations:
+      type: array
+      items:
+        type: object
+        required: [procurement_id, procurement_date, allocated_amount]
+        properties:
+          procurement_id: { $ref: 'common.yaml#/UUID' }
+          procurement_date: { type: string, format: date }
+          allocated_amount: { $ref: 'common.yaml#/Money' }
+
+OperationalPayment:
+  type: object
+  properties:
+    id: { $ref: 'common.yaml#/UUID' }
+    payment_number: { type: string }
+    payee_type: { type: string, enum: [vendor, worker, other] }
+    payee_name: { type: string }
+    payment_date: { type: string, format: date }
+    amount: { $ref: 'common.yaml#/Money' }
+    payment_mode_id: { $ref: 'common.yaml#/UUID' }
+    reference_no: { type: string }
+    status: { $ref: 'common.yaml#/PaymentStatus' }
+
+OperationalPaymentCreate:
+  type: object
+  required: [payee_type, payee_name, payment_date, amount, payment_mode_id]
+  properties:
+    payee_type: { type: string }
+    payee_name: { type: string }
+    payee_id: { $ref: 'common.yaml#/UUID' }
+    payment_date: { type: string, format: date }
+    amount: { $ref: 'common.yaml#/Money' }
+    payment_mode_id: { $ref: 'common.yaml#/UUID' }
+    category_id: { $ref: 'common.yaml#/UUID' }
+    reference_no: { type: string }
+    notes: { type: string }
+
+PaginatedFarmerPayments:
+  type: object
+  properties:
+    items:
+      type: array
+      items: { $ref: '#/FarmerPayment' }
+    total: { type: integer }
+    page: { type: integer }
+    page_size: { type: integer }

@@ -1,0 +1,95 @@
+rentalCustomers:
+  get:
+    tags: [Rentals]
+    operationId: listRentalCustomers
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/Page'
+      - $ref: '../openapi.yaml#/components/parameters/PageSize'
+      - $ref: '../openapi.yaml#/components/parameters/SearchQuery'
+    responses:
+      '200': { description: OK }
+  post:
+    tags: [Rentals]
+    operationId: createRentalCustomer
+    responses:
+      '201': { description: Created }
+
+rentalCustomerById:
+  get:
+    tags: [Rentals]
+    operationId: getRentalCustomer
+    parameters:
+      - name: customer_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: OK }
+  patch:
+    tags: [Rentals]
+    operationId: updateRentalCustomer
+    parameters:
+      - name: customer_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: Updated }
+
+rentalAgreements:
+  get:
+    tags: [Rentals]
+    operationId: listRentalAgreements
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/Page'
+      - $ref: '../openapi.yaml#/components/parameters/PageSize'
+      - name: status
+        in: query
+        schema: { type: string, enum: [active, completed, cancelled] }
+      - name: customer_id
+        in: query
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: OK }
+  post:
+    tags: [Rentals]
+    operationId: createRentalAgreement
+    requestBody:
+      content:
+        application/json:
+          schema: { $ref: '../schemas/rentals.yaml#/RentalAgreementCreate' }
+    responses:
+      '201': { description: Created }
+
+rentalAgreementById:
+  get:
+    tags: [Rentals]
+    operationId: getRentalAgreement
+    parameters:
+      - name: agreement_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: OK }
+  patch:
+    tags: [Rentals]
+    operationId: updateRentalAgreement
+    parameters:
+      - name: agreement_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: Updated }
+
+pendingCollections:
+  get:
+    tags: [Rentals]
+    summary: List agreements with pending collections
+    operationId: listPendingCollections
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/Page'
+      - $ref: '../openapi.yaml#/components/parameters/PageSize'
+    responses:
+      '200': { description: OK }

@@ -1,0 +1,113 @@
+workers:
+  get:
+    tags: [Workers]
+    operationId: listWorkers
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/Page'
+      - $ref: '../openapi.yaml#/components/parameters/PageSize'
+      - $ref: '../openapi.yaml#/components/parameters/SearchQuery'
+      - name: status
+        in: query
+        schema: { type: string, enum: [active, inactive] }
+    responses:
+      '200':
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean }
+                data: { $ref: '../schemas/workers.yaml#/WorkerList' }
+  post:
+    tags: [Workers]
+    operationId: createWorker
+    requestBody:
+      content:
+        application/json:
+          schema: { $ref: '../schemas/workers.yaml#/WorkerCreate' }
+    responses:
+      '201': { description: Created }
+
+workerById:
+  get:
+    tags: [Workers]
+    operationId: getWorker
+    parameters:
+      - name: worker_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: OK }
+  patch:
+    tags: [Workers]
+    operationId: updateWorker
+    parameters:
+      - name: worker_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: Updated }
+  delete:
+    tags: [Workers]
+    operationId: deleteWorker
+    parameters:
+      - name: worker_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: Soft-deleted }
+
+workerSkills:
+  get:
+    tags: [Workers]
+    operationId: listWorkerSkills
+    parameters:
+      - name: worker_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: OK }
+  post:
+    tags: [Workers]
+    operationId: createWorkerSkill
+    parameters:
+      - name: worker_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '201': { description: Created }
+
+workerSkillById:
+  patch:
+    tags: [Workers]
+    operationId: updateWorkerSkill
+    parameters:
+      - name: worker_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: skill_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: Updated }
+  delete:
+    tags: [Workers]
+    operationId: deleteWorkerSkill
+    parameters:
+      - name: worker_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: skill_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: Deleted }

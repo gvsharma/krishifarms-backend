@@ -1,0 +1,63 @@
+login:
+  post:
+    tags: [Authentication]
+    summary: Login with email and password
+    security: []
+    operationId: authLogin
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/auth.yaml#/LoginRequest'
+    responses:
+      '200':
+        description: Tokens issued
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/auth.yaml#/TokenAPIResponse'
+      '401':
+        $ref: '../openapi.yaml#/components/responses/Unauthorized'
+
+refresh:
+  post:
+    tags: [Authentication]
+    summary: Refresh access token
+    security: []
+    operationId: authRefresh
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/auth.yaml#/RefreshRequest'
+    responses:
+      '200':
+        description: New tokens issued
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/auth.yaml#/TokenAPIResponse'
+      '401':
+        $ref: '../openapi.yaml#/components/responses/Unauthorized'
+
+logout:
+  post:
+    tags: [Authentication]
+    summary: Revoke refresh token
+    security: []
+    operationId: authLogout
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/auth.yaml#/RefreshRequest'
+    responses:
+      '200':
+        description: Logged out
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/auth.yaml#/MessageAPIResponse'

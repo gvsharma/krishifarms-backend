@@ -1,0 +1,73 @@
+WorkOrder:
+  type: object
+  properties:
+    id: { $ref: 'common.yaml#/UUID' }
+    work_order_number: { type: string }
+    worker_id: { $ref: 'common.yaml#/UUID' }
+    farm_id: { $ref: 'common.yaml#/UUID' }
+    activity_type_id: { $ref: 'common.yaml#/UUID' }
+    start_time: { type: string, format: date-time }
+    end_time: { type: string, format: date-time }
+    duration_minutes: { type: integer }
+    rate_type: { type: string, enum: [hourly, daily, fixed] }
+    rate: { $ref: 'common.yaml#/Money' }
+    cost: { $ref: 'common.yaml#/Money' }
+    status: { $ref: 'common.yaml#/WorkOrderStatus' }
+    notes: { type: string }
+    notes_te: { type: string }
+    photos:
+      type: array
+      items: { $ref: '#/WorkOrderPhoto' }
+
+WorkOrderPhoto:
+  type: object
+  properties:
+    id: { $ref: 'common.yaml#/UUID' }
+    document_id: { $ref: 'common.yaml#/UUID' }
+    caption: { type: string }
+
+WorkOrderCreate:
+  type: object
+  required: [worker_id, farm_id, start_time, rate_type, rate]
+  properties:
+    worker_id: { $ref: 'common.yaml#/UUID' }
+    farm_id: { $ref: 'common.yaml#/UUID' }
+    activity_type_id: { $ref: 'common.yaml#/UUID' }
+    start_time: { type: string, format: date-time }
+    rate_type: { type: string }
+    rate: { $ref: 'common.yaml#/Money' }
+    notes: { type: string }
+    notes_te: { type: string }
+
+WorkOrderComplete:
+  type: object
+  properties:
+    end_time: { type: string, format: date-time }
+    notes: { type: string }
+    photo_document_ids:
+      type: array
+      items: { $ref: 'common.yaml#/UUID' }
+
+AttendanceRecord:
+  type: object
+  properties:
+    id: { $ref: 'common.yaml#/UUID' }
+    worker_id: { $ref: 'common.yaml#/UUID' }
+    attendance_date: { type: string, format: date }
+    check_in: { type: string, format: date-time }
+    check_out: { type: string, format: date-time }
+    status: { type: string, enum: [present, absent, half_day, leave] }
+    farm_id: { $ref: 'common.yaml#/UUID' }
+    notes: { type: string }
+
+AttendanceCreate:
+  type: object
+  required: [worker_id, attendance_date, status]
+  properties:
+    worker_id: { $ref: 'common.yaml#/UUID' }
+    attendance_date: { type: string, format: date }
+    check_in: { type: string, format: date-time }
+    check_out: { type: string, format: date-time }
+    status: { type: string }
+    farm_id: { $ref: 'common.yaml#/UUID' }
+    notes: { type: string }

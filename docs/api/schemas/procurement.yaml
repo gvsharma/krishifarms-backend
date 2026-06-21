@@ -1,0 +1,74 @@
+Procurement:
+  type: object
+  required: [id, procurement_number, farmer_id, crop_type_id, procurement_date, status, net_amount]
+  properties:
+    id: { $ref: 'common.yaml#/UUID' }
+    procurement_number: { type: string }
+    farmer_id: { $ref: 'common.yaml#/UUID' }
+    farmer_name: { type: string }
+    crop_type_id: { $ref: 'common.yaml#/UUID' }
+    crop_type_name: { type: string }
+    village_id: { $ref: 'common.yaml#/UUID' }
+    procurement_date: { type: string, format: date }
+    bag_count: { type: integer, minimum: 0 }
+    gross_weight_kg: { $ref: 'common.yaml#/Weight' }
+    moisture_pct: { type: number }
+    net_weight_kg: { $ref: 'common.yaml#/Weight' }
+    rate_per_quintal: { $ref: 'common.yaml#/Money' }
+    gross_amount: { $ref: 'common.yaml#/Money' }
+    deduction_amount: { $ref: 'common.yaml#/Money' }
+    net_amount: { $ref: 'common.yaml#/Money' }
+    status: { $ref: 'common.yaml#/StatusDraftConfirmedCancelled' }
+    notes: { type: string }
+    deductions:
+      type: array
+      items: { $ref: '#/ProcurementDeduction' }
+    allOf:
+      - $ref: 'common.yaml#/Timestamps'
+
+ProcurementDeduction:
+  type: object
+  properties:
+    id: { $ref: 'common.yaml#/UUID' }
+    deduction_type: { type: string }
+    deduction_type_te: { type: string }
+    amount: { $ref: 'common.yaml#/Money' }
+    notes: { type: string }
+
+ProcurementCreate:
+  type: object
+  required: [farmer_id, crop_type_id, village_id, procurement_date, bag_count, gross_weight_kg, rate_per_quintal]
+  properties:
+    farmer_id: { $ref: 'common.yaml#/UUID' }
+    crop_type_id: { $ref: 'common.yaml#/UUID' }
+    village_id: { $ref: 'common.yaml#/UUID' }
+    procurement_date: { type: string, format: date }
+    bag_count: { type: integer }
+    gross_weight_kg: { $ref: 'common.yaml#/Weight' }
+    moisture_pct: { type: number }
+    net_weight_kg: { $ref: 'common.yaml#/Weight' }
+    rate_per_quintal: { $ref: 'common.yaml#/Money' }
+    deductions:
+      type: array
+      items:
+        type: object
+        properties:
+          deduction_type: { type: string }
+          amount: { $ref: 'common.yaml#/Money' }
+    notes: { type: string }
+
+ProcurementCancel:
+  type: object
+  required: [reason]
+  properties:
+    reason: { type: string, minLength: 3 }
+
+ProcurementList:
+  type: object
+  properties:
+    items:
+      type: array
+      items: { $ref: '#/Procurement' }
+    total: { type: integer }
+    page: { type: integer }
+    page_size: { type: integer }
