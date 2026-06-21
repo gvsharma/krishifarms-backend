@@ -28,6 +28,10 @@ jobs:
     name: Backend lint & build
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      # Required by Settings() at import time; not used for real DB access in this job.
+      SECRET_KEY: ci-import-check-only-not-for-deploy
+      DATABASE_URL: postgresql+psycopg2://ci:ci@localhost:5432/ci
 
     steps:
       - uses: actions/checkout@v4

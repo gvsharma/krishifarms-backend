@@ -1,8 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": null,
-  "buildCommand": "echo 'Frontend not implemented yet — see frontend/README.md'",
-  "installCommand": "echo 'No npm install required for placeholder'",
+  "framework": "nextjs",
+  "buildCommand": "npm run build",
+  "installCommand": "npm ci",
   "env": {
     "NEXT_PUBLIC_API_BASE_URL": "/api/v1",
     "API_PROXY_TARGET": "http://13.232.200.243",

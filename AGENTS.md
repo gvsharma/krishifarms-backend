@@ -27,6 +27,7 @@ Backend API for Indian farm operations: procurement, farmer ledger, workforce, f
 | [docs/modules/DOCUMENT_MANAGEMENT.md](./docs/modules/DOCUMENT_MANAGEMENT.md) | Documents design |
 | [docs/reporting/REPORTING_ARCHITECTURE.md](./docs/reporting/REPORTING_ARCHITECTURE.md) | Dashboard SQL |
 | [docs/deploy/CI_CD.md](./docs/deploy/CI_CD.md) | CI/CD pipeline |
+| [docs/ui/README.md](./docs/ui/README.md) | Next.js UI/UX design system (IA, tokens, components, wireframes) |
 
 ---
 
@@ -61,6 +62,16 @@ Mount routers           → app/main.py
 | dashboard | `/dashboard/summary`, `/health` |
 
 Phase 2+ (farmers, procurement, workforce, assets, rentals, expenses): schema + OpenAPI ready; implement per [AGENT_GUIDE §11](./docs/AGENT_GUIDE.md#11-common-agent-workflows).
+
+---
+
+## Frontend (Phase 1 shell)
+
+**Next.js 15** on Vercel — `frontend/` has app shell, CEO dashboard, and nav placeholders (Dribbble-inspired). UI/UX specs: [docs/ui/](./docs/ui/) · architecture: [FRONTEND_ARCHITECTURE.md](./docs/ui/FRONTEND_ARCHITECTURE.md). Stack: App Router, TypeScript, Tailwind, shadcn-style components, TanStack Query, Zustand, next-themes.
+
+```bash
+cd frontend && npm install && npm run dev
+```
 
 ---
 

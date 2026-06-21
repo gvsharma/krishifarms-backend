@@ -107,7 +107,7 @@ docs/deploy/           → CI/CD details
 | CI/CD pipeline | ✅ | `.github/workflows/` |
 | Cache layer | ✅ | `app/core/cache/` |
 | Unit tests | ⬜ | No `tests/` directory yet |
-| Frontend | ⬜ | `frontend/` placeholder only |
+| Frontend | ⬜ | `frontend/` placeholder only — [docs/ui/FRONTEND_ARCHITECTURE.md](./ui/FRONTEND_ARCHITECTURE.md) |
 
 ### 3.3 Registered SQLAlchemy models (`app/models.py`)
 
@@ -561,4 +561,4 @@ Database migrations for Phases 2–5 already exist; Python routes follow increme
 | EC2 deploy | [deploy/README.md](../deploy/README.md) |
 | Synthetic seed | [scripts/synthetic_seed/README.md](../scripts/synthetic_seed/README.md) |
 | Migrations | [alembic/versions/README.md](../alembic/versions/README.md) |
-| Frontend (planned) | [frontend/README.md](../frontend/README.md) |
+| Frontend (planned) | [frontend/README.md](../frontend/README.md), [docs/ui/FRONTEND_ARCHITECTURE.md](./ui/FRONTEND_ARCHITECTURE.md) |

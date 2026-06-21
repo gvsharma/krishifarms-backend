@@ -1,36 +1,45 @@
-# KrishiFarms CRM — Frontend (placeholder)
+# KrishiFarms CRM — Frontend
 
-The frontend is not implemented yet. This directory holds **Vercel configuration** matching the [Gamya Couture](https://github.com/gvsharma/gamyaboutique) deployment pattern.
+Next.js 15 App Router UI for farm operations CRM. Deployed on Vercel with API proxy to EC2 backend.
 
-**Planned stack:** Next.js App Router (same as Gamyaboutique)
+**Design inspiration:** [Farm Management SaaS Dashboard (Dribbble)](https://dribbble.com/shots/27437443-Farm-Management-SaaS-Dashboard)
 
----
+## Stack
 
-## Vercel setup (when frontend is ready)
+- Next.js 15 · TypeScript · Tailwind CSS · shadcn-style components
+- TanStack Query · Zustand · next-themes
+- Plus Jakarta Sans + Noto Sans Telugu
 
-1. Import GitHub repo `gvsharma/krishifarms-backend` in Vercel
-2. Set **Root Directory** = `frontend`
-3. Framework preset: Next.js
-4. Production branch: `main`
+## Local development
 
-### Environment variables (Production)
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-| Variable | Example |
-|----------|---------|
-| `NEXT_PUBLIC_API_BASE_URL` | `/api/v1` |
-| `API_PROXY_TARGET` | `http://<EC2_PUBLIC_IP>` |
-| `NEXT_PUBLIC_SITE_URL` | `https://krishifarms.vercel.app` |
+Open [http://localhost:3000](http://localhost:3000) — redirects to `/dashboard`.
 
-**Why proxy:** Browser calls same-origin `/api/v1`; Vercel rewrites to EC2 HTTP backend (avoids mixed content). Same pattern as Gamyaboutique `frontend/next.config.ts`.
+## Scripts
 
-### Backend CORS
+| Command | Purpose |
+|---------|---------|
+| `npm run dev` | Development server |
+| `npm run build` | Production build |
+| `npm run lint` | ESLint (Next.js) |
+| `npm start` | Serve production build |
 
-Set `CORS_ORIGINS` in `/opt/krishifarms/config/application.env` to include `NEXT_PUBLIC_SITE_URL`.
+## Environment
 
----
+Copy `.env.example` to `.env.local`:
 
-## Reference
+| Variable | Default (local) |
+|----------|-----------------|
+| `NEXT_PUBLIC_API_BASE_URL` | `http://localhost:8080/api/v1` |
+| `API_PROXY_TARGET` | `http://localhost:8080` |
 
-See Gamyaboutique frontend: `/Users/venkatgorinta/Desktop/gamya-boutique/frontend/`
+On Vercel: `NEXT_PUBLIC_API_BASE_URL=/api/v1` and `API_PROXY_TARGET=http://<EC2_IP>`.
 
-Full CI/CD docs: [docs/deploy/CI_CD.md](../docs/deploy/CI_CD.md)
+## Architecture
+
+See [docs/ui/FRONTEND_ARCHITECTURE.md](../docs/ui/FRONTEND_ARCHITECTURE.md) and [docs/ui/DESIGN_SYSTEM.md](../docs/ui/DESIGN_SYSTEM.md).
