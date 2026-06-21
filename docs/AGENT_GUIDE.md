@@ -407,7 +407,7 @@ Set in `.env` (local) or `/opt/krishifarms/config/application.env` (production).
 | `validate.yml` | Reusable | Ruff, Docker build, Trivy; frontend when added |
 | `deploy.yml` | Push `main` | Validate → bundle → S3 → SSM → EC2 deploy |
 
-**Branch:** `main` auto-deploys after validation passes.
+**Branch policy:** Never push directly to `main`. Work on feature branches, open PR → `main`. CI validates on PR (and on post-merge `push` to `main`). **Deploy runs only when `deploy.yml` fires on `push` to `main`** (merged PR), not on feature-branch pushes alone.
 
 **Health check:** `GET /api/v1/health`
 

@@ -35,6 +35,21 @@ flowchart TB
 
 ---
 
+
+## Branch strategy
+
+| Rule | Detail |
+|------|--------|
+| Default branch | `main` is production; **never push directly to `main`** |
+| Development | All changes on **feature branches**; open a **PR → `main`** |
+| Pre-merge checks | `ci.yml` runs on **pull_request** targeting `main` (validation only) |
+| Production deploy | **`deploy.yml` runs only on `push` to `main`** — i.e. after a merged PR |
+| Feature-branch pushes | Pushes to feature branches **do not** trigger deploy; CI runs only when a PR targets `main` |
+| Agents | Use feature branch + PR; **never** push or force-push to `main` |
+
+No workflow auto-merges or pushes to `main`.
+
+
 ## Workflows
 
 | Workflow | Trigger | Purpose |
@@ -43,7 +58,7 @@ flowchart TB
 | `validate.yml` | Called by CI/deploy | Ruff lint, Docker build, Trivy scan; frontend when added |
 | `deploy.yml` | Push to `main` only | Validate → bundle → S3 → SSM → Docker Compose deploy |
 
-**Merge to main triggers deployment:** When a PR is merged into `main`, GitHub fires a `push` event on `main`, which runs both `ci.yml` and `deploy.yml`. The deploy job waits for validation to pass first.
+**After merge:** Merging a PR into `main` creates a `push` to `main`, which runs `ci.yml` (validation) and `deploy.yml` (EC2 deploy). Direct commits or pushes to `main` use the same triggers — avoid them; use feature branches and PRs instead.
 
 ---
 
