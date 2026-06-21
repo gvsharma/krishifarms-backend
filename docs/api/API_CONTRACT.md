@@ -338,7 +338,7 @@ npx @redocly/cli bundle docs/api/openapi.yaml -o docs/api/openapi.bundled.yaml
 npx swagger-cli bundle docs/api/openapi.yaml -o docs/api/openapi.bundled.yaml -t yaml
 ```
 
-Import `openapi.bundled.yaml` into Postman, Stoplight, or generate Flutter/Dart and TypeScript clients.
+Import `openapi.bundled.yaml` into Postman, Stoplight, or generate TypeScript clients (`openapi-typescript`).
 
 ---
 

@@ -2,7 +2,7 @@
 
 The frontend is not implemented yet. This directory holds **Vercel configuration** matching the [Gamya Couture](https://github.com/gvsharma/gamyaboutique) deployment pattern.
 
-**Planned stack:** Next.js App Router (same as Gamyaboutique)
+**Planned stack:** Next.js 15 App Router (same as Gamyaboutique). Full architecture: [docs/ui/FRONTEND_ARCHITECTURE.md](../docs/ui/FRONTEND_ARCHITECTURE.md).
 
 ---
 

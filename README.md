@@ -229,6 +229,7 @@ These apply across schema, API, and reporting. Full detail in [AGENTS.md](./AGEN
 | [deploy/README.md](./deploy/README.md) | EC2 bootstrap and rollback |
 | [scripts/synthetic_seed/README.md](./scripts/synthetic_seed/README.md) | Demo data load/purge |
 | [frontend/README.md](./frontend/README.md) | Planned Vercel/Next.js setup |
+| [docs/ui/README.md](./docs/ui/README.md) | Next.js UI/UX design system (wireframes, IA, tokens) |
 
 ---
 
