@@ -49,6 +49,10 @@ const config: Config = {
           DEFAULT: "hsl(var(--harvest) / <alpha-value>)",
           foreground: "hsl(var(--harvest-foreground) / <alpha-value>)",
         },
+        destructive: {
+          DEFAULT: "hsl(var(--destructive) / <alpha-value>)",
+          foreground: "hsl(var(--destructive-foreground) / <alpha-value>)",
+        },
       },
       fontFamily: {
         sans: ["var(--font-jakarta)", "var(--font-noto-telugu)", "system-ui", "sans-serif"],

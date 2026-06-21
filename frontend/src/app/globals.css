@@ -30,6 +30,8 @@
     --warning-foreground: 0 0% 100%;
     --harvest: 32 65% 44%;
     --harvest-foreground: 0 0% 100%;
+    --destructive: 0 72% 42%;
+    --destructive-foreground: 0 0% 100%;
     --chart-1: 152 45% 30%;
     --chart-2: 152 35% 42%;
     --chart-3: 152 40% 55%;
