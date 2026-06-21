@@ -1,7 +1,8 @@
 # Design System — KrishiFarms CRM
 
-**Foundation:** shadcn/ui + Tailwind CSS, inspired by Material Design 3 density patterns  
-**Platform:** Next.js · CSS variables in `globals.css` + `tailwind.config.ts`
+**Foundation:** shadcn/ui + Tailwind CSS, Dribbble-inspired Farm Management SaaS aesthetic  
+**Inspiration:** [Farm Management SaaS Dashboard](https://dribbble.com/shots/27437443-Farm-Management-SaaS-Dashboard) — soft greens, warm neutrals, spacious sidebar, large rounded KPI cards  
+**Platform:** Next.js · CSS variables in `globals.css` + `tailwind.config.ts` · implemented in `frontend/src/`
 
 ---
 
@@ -42,7 +43,7 @@
 | `radius-sm` | 6 px | Inputs, chips |
 | `radius-md` | 8 px | Cards, buttons |
 | `radius-lg` | 12 px | Modals, command palette |
-| `radius-xl` | 16 px | KPI cards, dashboard widgets |
+| `radius-xl` | 16 px | KPI cards, dashboard widgets (Dribbble: generous rounding) |
 | `radius-full` | 9999 px | Avatars, pills |
 
 Tailwind mapping: `rounded-md` as default for cards; `rounded-lg` for KPI tiles.
@@ -54,7 +55,7 @@ Prefer **surface tint + border** over heavy shadows (Linear/Stripe aesthetic).
 | Level | Shadow | Border | Usage |
 |-------|--------|--------|-------|
 | E0 | none | `outlineVariant` 1 px | Tables, flat panels |
-| E1 | `0 1px 2px rgba(0,0,0,0.06)` | optional | Cards, KPI tiles |
+| E1 | `0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(45,106,79,0.06)` | optional | Cards, KPI tiles (green-tinted shadow) |
 | E2 | `0 4px 12px rgba(0,0,0,0.08)` | — | Dropdowns, popovers |
 | E3 | `0 8px 24px rgba(0,0,0,0.12)` | — | Command palette, modals |
 | E4 | `0 16px 48px rgba(0,0,0,0.16)` | — | Full-screen overlay |
@@ -81,10 +82,12 @@ Dark theme: reduce shadow opacity 50%; increase border contrast.
 
 | Role | English | Telugu fallback | Mono |
 |------|---------|-----------------|------|
-| Primary | **Inter** | **Noto Sans Telugu** | **JetBrains Mono** |
+| Primary | **Plus Jakarta Sans** | **Noto Sans Telugu** | **JetBrains Mono** |
 | Fallback | system-ui, sans-serif | Noto Sans, sans-serif | ui-monospace |
 
-Load via `next/font` (`Inter`, `Noto_Sans_Telugu`, `JetBrains_Mono`). When locale `te`, apply Noto Sans Telugu to `body` and headings; keep Inter for Latin numerals in tables if needed for alignment.
+Load via `next/font` (`Plus_Jakarta_Sans`, `Noto_Sans_Telugu`, `JetBrains_Mono`). When locale `te`, apply Noto Sans Telugu to `body` and headings; keep Jakarta for Latin numerals in tables if needed for alignment.
+
+**Dribbble direction:** Clean geometric sans (Plus Jakarta Sans) for headings and UI — modern SaaS feel with agricultural warmth, not corporate blue.
 
 ### 2.2 Type scale
 
@@ -114,7 +117,7 @@ Load via `next/font` (`Inter`, `Noto_Sans_Telugu`, `JetBrains_Mono`). When local
 
 ## 3. Color System
 
-Seed color: **agricultural green** with warm neutral surfaces — trustworthy, not "startup neon."
+Seed color: **agricultural green** with warm neutral surfaces — trustworthy, not "startup neon." Matches Dribbble Farm SaaS shot: `#2D6A4F` primary on `#FAFAF9` page canvas, white card surfaces, subtle green-tinted shadows.
 
 ### 3.1 Brand & semantic (light theme)
 
@@ -224,7 +227,21 @@ Map design tokens to shadcn semantic variables:
 
 Programmatic mirror: `src/lib/design/tokens.ts` (Gamya pattern).
 
-### 5.2 Component theme overrides
+### 5.4 App shell (Dribbble-inspired)
+
+Implemented in `frontend/src/components/shell/`.
+
+| Element | Spec |
+|---------|------|
+| **Sidebar** | Fixed left, 260 px expanded / 72 px collapsed; white surface, border-r; section labels (Overview, Operations, Finance, Insights, System); active item = filled primary green pill with icon + label |
+| **Header** | Sticky 64 px; breadcrumbs left; centered global search with ⌘K hint; quick action, notifications bell (badge), theme toggle, avatar dropdown |
+| **KPI cards** | `rounded-2xl`, white surface, icon in green-tinted circle, large tabular value, delta badge (success/destructive) |
+| **Page canvas** | Warm `#FAFAF9` background; max-width 1440 px centered content |
+| **Collapse** | Sidebar collapse persisted in Zustand `ui-store` |
+
+Reference shot: [Dribbble #27437443](https://dribbble.com/shots/27437443-Farm-Management-SaaS-Dashboard)
+
+### 5.5 Component theme overrides
 
 | shadcn / custom | Customization |
 |-----------------|---------------|
@@ -237,7 +254,7 @@ Programmatic mirror: `src/lib/design/tokens.ts` (Gamya pattern).
 | `Dialog` / `Sheet` | `rounded-lg`, max-w-lg (560 px) |
 | `Sonner` toast | Bottom-right desktop; bottom-center mobile |
 
-### 5.3 Theme modes
+### 5.6 Theme modes
 
 - **Light** default (field officers often outdoors — high contrast).
 - **Dark** optional (office/accounting) via `next-themes`.

@@ -65,9 +65,13 @@ Phase 2+ (farmers, procurement, workforce, assets, rentals, expenses): schema + 
 
 ---
 
-## Frontend (planned)
+## Frontend (Phase 1 shell)
 
-**Next.js 15** on Vercel — `frontend/` is a config placeholder (no app code yet). UI/UX specs: [docs/ui/](./docs/ui/) · architecture: [FRONTEND_ARCHITECTURE.md](./docs/ui/FRONTEND_ARCHITECTURE.md). Stack matches Gamya Couture: App Router, TypeScript, Tailwind, shadcn/ui, TanStack Query, Zustand, Axios.
+**Next.js 15** on Vercel — `frontend/` has app shell, CEO dashboard, and nav placeholders (Dribbble-inspired). UI/UX specs: [docs/ui/](./docs/ui/) · architecture: [FRONTEND_ARCHITECTURE.md](./docs/ui/FRONTEND_ARCHITECTURE.md). Stack: App Router, TypeScript, Tailwind, shadcn-style components, TanStack Query, Zustand, next-themes.
+
+```bash
+cd frontend && npm install && npm run dev
+```
 
 ---
 
