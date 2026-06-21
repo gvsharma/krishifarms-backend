@@ -1,0 +1,29 @@
+---
+description: KrishiFarms CRM project context and conventions for AI agents
+alwaysApply: true
+---
+
+# KrishiFarms CRM Context
+
+Indian farm operations CRM backend (procurement, ledger, workforce, fleet, rentals, finance). Org-scoped multi-tenancy, OpenAPI-first, bilingual EN/TE, INR.
+
+## Start here
+
+1. [AGENTS.md](../../AGENTS.md) — quick scan
+2. [docs/AGENT_GUIDE.md](../../docs/AGENT_GUIDE.md) — full reference + implementation matrix
+
+**Schema and OpenAPI are ahead of Python.** Phase 1 routes only in `app/main.py`. Verify before calling or implementing endpoints.
+
+## Conventions
+
+- `org_id` from JWT only — never from request body
+- `APIResponse` envelope; `require_permission("resource:action")`
+- Money: `Decimal` / `NUMERIC(14,2)` — never `float`
+- Soft delete via `deleted_at`; ledger is immutable (reversing entries)
+- Partitioned tables need partition date on ID lookups
+- Module layout: `router.py` → `service.py` → `models.py` / `schemas.py`
+- Register new models in `app/models.py`
+
+## On every change
+
+Update [docs/CHANGELOG.md](../../docs/CHANGELOG.md) and affected docs (see `maintain-agent-docs` rule).

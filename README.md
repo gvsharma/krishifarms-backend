@@ -4,8 +4,19 @@ Farm procurement, logistics, workforce, rental, and financial management CRM for
 
 **Domain context:** Operations centered on villages like Bhairkhanpally (Telangana), crops such as Paddy and Corn, bilingual English/Telugu UI, INR money, and org-scoped multi-tenancy.
 
-**Repository:** [gvsharma/krishifarms-backend](https://github.com/gvsharma/krishifarms-backend)  
-**Agent context:** See [AGENTS.md](./AGENTS.md) for AI coding agent orientation.
+**Repository:** [gvsharma/krishifarms-backend](https://github.com/gvsharma/krishifarms-backend)
+
+---
+
+## For AI Agents
+
+Cursor and other agentic editors should read documentation in this order:
+
+1. **[AGENTS.md](./AGENTS.md)** — scannable entry point (~5 min)
+2. **[docs/AGENT_GUIDE.md](./docs/AGENT_GUIDE.md)** — master reference: implementation matrix, playbooks, gotchas
+3. **[docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)** — system topology and data flow
+
+**Keep docs updated:** `.cursor/rules/` auto-loads rules requiring [docs/CHANGELOG.md](./docs/CHANGELOG.md) and related docs on every change.
 
 ---
 
@@ -205,7 +216,10 @@ These apply across schema, API, and reporting. Full detail in [AGENTS.md](./AGEN
 
 | Document | Purpose |
 |----------|---------|
-| [AGENTS.md](./AGENTS.md) | AI agent coding guide (start here for Cursor/Copilot) |
+| [AGENTS.md](./AGENTS.md) | AI agent entry point (start here) |
+| [docs/AGENT_GUIDE.md](./docs/AGENT_GUIDE.md) | Comprehensive agent reference, status matrix, playbooks |
+| [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) | System architecture, AWS topology, request flow |
+| [docs/CHANGELOG.md](./docs/CHANGELOG.md) | Release and change history (Keep a Changelog) |
 | [docs/api/API_CONTRACT.md](./docs/api/API_CONTRACT.md) | REST standards, endpoint catalog, RBAC |
 | [docs/api/openapi.yaml](./docs/api/openapi.yaml) | Modular OpenAPI 3.0 spec |
 | [docs/modules/DOCUMENT_MANAGEMENT.md](./docs/modules/DOCUMENT_MANAGEMENT.md) | S3 storage, OCR, tagging, linking |

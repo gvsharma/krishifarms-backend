@@ -1,0 +1,40 @@
+---
+description: Keep agent documentation in sync with every code or config change
+alwaysApply: true
+---
+
+# Maintain Agent Documentation
+
+When making **any** code or config change, update relevant documentation in the **same change** before finishing.
+
+## Always update
+
+- **docs/CHANGELOG.md** — add entry under `[Unreleased]` (what changed, concise)
+
+## Update when applicable
+
+| Change | Also update |
+|--------|-------------|
+| Module implemented or status change | docs/AGENT_GUIDE.md §3 implementation matrix |
+| New/changed convention | AGENTS.md |
+| Module behavior or design | docs/modules/<MODULE>.md |
+| API shape (paths, schemas, contract) | docs/api/paths/, docs/api/schemas/, docs/api/API_CONTRACT.md |
+| Setup commands or env vars | README.md, .env.example, deploy/env/application.env.example |
+| Schema or partitions | alembic/versions/README.md, docs/reporting/sql/ if fact tables affected |
+| Deploy / CI / infra | docs/deploy/CI_CD.md, deploy/README.md |
+| Architecture / topology | docs/ARCHITECTURE.md |
+
+## Rules
+
+1. **Read actual code first** — docs must match implementation, not assumptions.
+2. **Concise updates** — bullet or table row, not essays.
+3. **Check OpenAPI vs main.py** before marking endpoints as implemented.
+4. **No secrets** in documentation.
+5. On release, move `[Unreleased]` items to a dated version section in CHANGELOG.
+
+## Quick checklist
+
+- [ ] CHANGELOG.md updated
+- [ ] Status matrix updated if module/route status changed
+- [ ] OpenAPI updated if API contract changed
+- [ ] README/AGENTS.md if setup or conventions changed
