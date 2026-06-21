@@ -8,6 +8,22 @@ env:
   NODE_VERSION: "22"
 
 jobs:
+  detect:
+    name: Detect frontend
+    runs-on: ubuntu-latest
+    outputs:
+      has_frontend: ${{ steps.check.outputs.has_frontend }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: check
+        run: |
+          if [[ -f frontend/package-lock.json ]]; then
+            echo "has_frontend=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_frontend=false" >> "$GITHUB_OUTPUT"
+          fi
+
   backend:
     name: Backend lint & build
     runs-on: ubuntu-latest
@@ -37,7 +53,8 @@ jobs:
 
   frontend:
     name: Frontend lint & build
-    if: hashFiles('frontend/package-lock.json') != ''
+    needs: detect
+    if: needs.detect.outputs.has_frontend == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     defaults:
@@ -71,6 +88,7 @@ jobs:
 
   security:
     name: Security scan
+    needs: detect
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -83,7 +101,7 @@ jobs:
           trivy fs --severity CRITICAL,HIGH --ignore-unfixed --exit-code 1 --scanners vuln .
 
       - name: npm audit (frontend)
-        if: hashFiles('frontend/package-lock.json') != ''
+        if: needs.detect.outputs.has_frontend == 'true'
         working-directory: frontend
         run: |
           npm ci --ignore-scripts

@@ -31,6 +31,7 @@ When making **any** code or config change, update relevant documentation in the 
 3. **Check OpenAPI vs main.py** before marking endpoints as implemented.
 4. **No secrets** in documentation.
 5. On release, move `[Unreleased]` items to a dated version section in CHANGELOG.
+6. **Never push to `main`** — feature branch + PR only; deploy on merge ([CI_CD.md](../../docs/deploy/CI_CD.md#branch-strategy)).
 
 ## Quick checklist
 

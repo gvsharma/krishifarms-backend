@@ -23,6 +23,7 @@ Indian farm operations CRM backend (procurement, ledger, workforce, fleet, renta
 - Partitioned tables need partition date on ID lookups
 - Module layout: `router.py` → `service.py` → `models.py` / `schemas.py`
 - Register new models in `app/models.py`
+- **Git / deploy:** feature branches + PR to `main` only — **never push to `main`**; production deploy starts on merge (`deploy.yml` on `push` to `main`), not on feature-branch pushes alone
 
 ## On every change
 
