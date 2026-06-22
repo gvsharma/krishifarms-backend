@@ -60,6 +60,8 @@ jobs:
           EC2_INSTANCE_ID_SECRET: ${{ secrets.EC2_INSTANCE_ID }}
           EC2_HOST_VAR: ${{ vars.EC2_HOST }}
           EC2_HOST_SECRET: ${{ secrets.EC2_HOST }}
+          EC2_NAME_TAG_VAR: ${{ vars.EC2_NAME_TAG }}
+          EC2_NAME_TAG_SECRET: ${{ secrets.EC2_NAME_TAG }}
           RDS_INSTANCE_ID_VAR: ${{ vars.RDS_INSTANCE_ID }}
           RDS_INSTANCE_ID_SECRET: ${{ secrets.RDS_INSTANCE_ID }}
         run: |
@@ -77,6 +79,7 @@ jobs:
           DEPLOY_BUCKET="$(pick_non_empty "$DEPLOY_BUCKET_VAR" "$DEPLOY_BUCKET_SECRET")"
           EC2_INSTANCE_ID="$(pick_non_empty "$EC2_INSTANCE_ID_VAR" "$EC2_INSTANCE_ID_SECRET")"
           EC2_HOST="$(pick_non_empty "$EC2_HOST_VAR" "$EC2_HOST_SECRET")"
+          EC2_NAME_TAG="$(pick_non_empty "$EC2_NAME_TAG_VAR" "$EC2_NAME_TAG_SECRET")"
           RDS_INSTANCE_ID="$(pick_non_empty "$RDS_INSTANCE_ID_VAR" "$RDS_INSTANCE_ID_SECRET")"
           RDS_INSTANCE_ID="${RDS_INSTANCE_ID//[[:space:]]/}"
 
@@ -90,6 +93,9 @@ jobs:
 
           if [[ -z "${EC2_INSTANCE_ID//[[:space:]]/}" ]]; then
             echo "EC2_INSTANCE_ID not set — will resolve from AWS by instance Name tag during deploy."
+            if [[ "${DEPLOY_BUCKET}" == *krishifarms* ]]; then
+              echo "::notice::KrishiFarms uses shared Gamya EC2. Set EC2_INSTANCE_ID=i-0426cdc00ff15bfe9 (recommended) or EC2_NAME_TAG=gamya-couture-dev-api to avoid lookup for krishifarms-dev-api."
+            fi
           fi
           if [[ -z "${EC2_HOST//[[:space:]]/}" ]]; then
             echo "EC2_HOST not set — will resolve current public IP from AWS during deploy."
@@ -98,6 +104,7 @@ jobs:
           echo "deploy_bucket=${DEPLOY_BUCKET}" >> "$GITHUB_OUTPUT"
           echo "ec2_instance_id=${EC2_INSTANCE_ID}" >> "$GITHUB_OUTPUT"
           echo "ec2_host=${EC2_HOST}" >> "$GITHUB_OUTPUT"
+          echo "ec2_name_tag=${EC2_NAME_TAG}" >> "$GITHUB_OUTPUT"
           echo "rds_instance_id=${RDS_INSTANCE_ID}" >> "$GITHUB_OUTPUT"
 
       - name: Configure AWS credentials (OIDC)
@@ -168,6 +175,7 @@ jobs:
         env:
           DEPLOY_BUCKET: ${{ steps.deploy_cfg.outputs.deploy_bucket }}
           CONFIGURED_INSTANCE_ID: ${{ steps.deploy_cfg.outputs.ec2_instance_id }}
+          CONFIGURED_NAME_TAG: ${{ steps.deploy_cfg.outputs.ec2_name_tag }}
         run: |
           set -euo pipefail
           EC2_INSTANCE_ID="${CONFIGURED_INSTANCE_ID//[[:space:]]/}"
@@ -175,7 +183,17 @@ jobs:
           if [[ "${NAME_PREFIX}" == "${DEPLOY_BUCKET}" ]]; then
             NAME_PREFIX="${DEPLOY_BUCKET%-deploy}"
           fi
-          EC2_NAME_TAG="${NAME_PREFIX}-api"
+          EC2_NAME_TAG="${CONFIGURED_NAME_TAG//[[:space:]]/}"
+          if [[ -z "${EC2_NAME_TAG}" ]]; then
+            if [[ "${DEPLOY_BUCKET}" == *krishifarms* ]]; then
+              EC2_NAME_TAG="gamya-couture-dev-api"
+              echo "EC2_NAME_TAG not set — using shared Gamya EC2 tag ${EC2_NAME_TAG}"
+            else
+              EC2_NAME_TAG="${NAME_PREFIX}-api"
+            fi
+          else
+            echo "Using configured EC2_NAME_TAG=${EC2_NAME_TAG}"
+          fi
 
           instance_state() {
             aws ec2 describe-instances \

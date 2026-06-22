@@ -44,13 +44,21 @@ Use the **same secret names** as Gamyaboutique where applicable.
 | Secret | Required | Description |
 |--------|----------|-------------|
 | `AWS_BACKEND_DEPLOY_ROLE_ARN` | Yes | IAM role ARN for OIDC deploy (same AWS account as Gamyaboutique) |
-| `DEPLOY_BUCKET` | Yes* | S3 bucket for deploy artifacts (e.g. `krishifarms-dev-backend-deploy`) |
-| `EC2_INSTANCE_ID` | No | Auto-resolved by tag `{prefix}-api` if missing |
-| `EC2_HOST` | No | Auto-resolved from EC2 public IP at deploy time |
-| `SMOKE_TEST_EMAIL` | No | Owner email for post-deploy smoke tests |
-| `SMOKE_TEST_PASSWORD` | No | Owner password for post-deploy smoke tests |
 
-\* `DEPLOY_BUCKET` can be a **Variable** instead of a secret (Gamyaboutique uses Variables tab).
+**Variables** (Actions → **Variables** tab):
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `DEPLOY_BUCKET` | Yes | S3 bucket for deploy artifacts (e.g. `krishifarms-dev-backend-deploy`) |
+| `EC2_INSTANCE_ID` | **Yes** (shared Gamya EC2) | `i-0426cdc00ff15bfe9` — skips name-tag lookup |
+| `EC2_HOST` | **Yes** (shared Gamya EC2) | `13.232.200.243` — health checks and smoke tests |
+| `EC2_NAME_TAG` | No | `gamya-couture-dev-api` if instance ID omitted (auto-default when bucket name contains `krishifarms`) |
+| `NGINX_LOCAL_PORT` | No | Default `8082` on shared dev host |
+| `PUBLIC_HEALTH_CHECK_URL` | No | Default `http://<EC2_HOST>:8082/api/v1/health` |
+
+Optional **secrets**: `SMOKE_TEST_EMAIL`, `SMOKE_TEST_PASSWORD`.
+
+Full values: [`.github/DEPLOY_CONFIG.md`](../.github/DEPLOY_CONFIG.md).
 
 ## EC2 one-time setup
 

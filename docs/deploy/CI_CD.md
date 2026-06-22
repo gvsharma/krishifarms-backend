@@ -77,14 +77,18 @@ Configure in **Settings → Secrets and variables → Actions** for `gvsharma/kr
 | Name | Example | Description |
 |------|---------|-------------|
 | `DEPLOY_BUCKET` | `krishifarms-dev-backend-deploy` | S3 bucket for deploy artifacts. Gamyaboutique uses `gamya-couture-dev-backend-deploy`. |
+| `EC2_INSTANCE_ID` | `i-0426cdc00ff15bfe9` | **Required for shared Gamya EC2.** Target instance ID; when set, name-tag lookup is skipped. |
+| `EC2_HOST` | `13.232.200.243` | **Required for shared Gamya EC2.** Public IP for health checks and smoke tests. |
 
 ### Optional (auto-resolved if omitted)
 
 | Name | Example | Description |
 |------|---------|-------------|
-| `EC2_INSTANCE_ID` | `i-xxxxxxxx` | EC2 instance ID. If unset, resolved by tag `Name={DEPLOY_BUCKET_PREFIX}-api` (e.g. `krishifarms-dev-api`). |
-| `EC2_HOST` | `13.232.200.243` | Public IP for health checks. Auto-resolved from EC2 at deploy time. |
+| `EC2_NAME_TAG` | `gamya-couture-dev-api` | EC2 `Name` tag for lookup when `EC2_INSTANCE_ID` is unset. Workflow defaults to `gamya-couture-dev-api` when `DEPLOY_BUCKET` contains `krishifarms`. |
 | `RDS_INSTANCE_ID` | — | Not used by default. KrishiFarms uses local PostgreSQL in Docker Compose. Set only if you migrate to RDS. |
+| `AWS_REGION` | `ap-south-1` | Default `ap-south-1` in workflow. |
+| `NGINX_LOCAL_PORT` | `8082` | Default `8082` on shared dev EC2. |
+| `PUBLIC_HEALTH_CHECK_URL` | `http://13.232.200.243:8082/api/v1/health` | Default built from EC2 host + port. |
 
 ### Optional smoke test secrets
 
@@ -101,8 +105,25 @@ On **`gvsharma/krishifarms-backend`** (not `krishifarms-crm`) → **Settings →
 
 1. **Secrets → New repository secret:** `AWS_BACKEND_DEPLOY_ROLE_ARN` = IAM role ARN from infra (see below).
 2. **Variables → New repository variable:** `DEPLOY_BUCKET` = S3 deploy bucket name (e.g. `krishifarms-dev-backend-deploy`).
+3. **Variables (shared Gamya EC2 — required):** `EC2_INSTANCE_ID` = `i-0426cdc00ff15bfe9`, `EC2_HOST` = `13.232.200.243`.
 
-Optional variables: `EC2_INSTANCE_ID`, `EC2_HOST`, `AWS_REGION`, `NGINX_LOCAL_PORT`, `PUBLIC_HEALTH_CHECK_URL`. Optional secrets: `SMOKE_TEST_EMAIL`, `SMOKE_TEST_PASSWORD`.
+Optional variables: `EC2_NAME_TAG` (`gamya-couture-dev-api`), `AWS_REGION`, `NGINX_LOCAL_PORT`, `PUBLIC_HEALTH_CHECK_URL`. Optional secrets: `SMOKE_TEST_EMAIL`, `SMOKE_TEST_PASSWORD`.
+
+### Shared Gamya EC2 (dev)
+
+KrishiFarms dev deploys to the **same EC2** as Gamya Couture — not a separate `krishifarms-dev-api` instance.
+
+| Item | Value |
+|------|-------|
+| EC2 Name tag | `gamya-couture-dev-api` |
+| Instance ID | `i-0426cdc00ff15bfe9` |
+| Public IP | `13.232.200.243` |
+| KrishiFarms nginx port | **8082** (Gamya uses **8080**) |
+| App path on host | `/opt/krishifarms` |
+
+**You must set GitHub Variables `EC2_INSTANCE_ID` and `EC2_HOST`** (see [`.github/DEPLOY_CONFIG.md`](../../.github/DEPLOY_CONFIG.md)). Without them, deploy used to derive tag `krishifarms-dev-api` from `DEPLOY_BUCKET` and fail.
+
+If `EC2_INSTANCE_ID` is omitted, set `EC2_NAME_TAG=gamya-couture-dev-api` or rely on workflow auto-default when `DEPLOY_BUCKET` contains `krishifarms`.
 
 ### Where to get values (krishifarms-infra)
 
@@ -117,8 +138,9 @@ terraform output -json backend_deploy_github_setup
 |----------------------|-------------|------|
 | `secret_AWS_BACKEND_DEPLOY_ROLE_ARN` | `AWS_BACKEND_DEPLOY_ROLE_ARN` | **Secret** (required) |
 | `variable_DEPLOY_BUCKET` | `DEPLOY_BUCKET` | **Variable** (required) |
-| `variable_EC2_INSTANCE_ID` | `EC2_INSTANCE_ID` | Variable (optional) |
-| `variable_EC2_HOST` | `EC2_HOST` | Variable (optional) |
+| `variable_EC2_INSTANCE_ID` | `EC2_INSTANCE_ID` | **Variable (required for shared EC2)** |
+| `variable_EC2_HOST` | `EC2_HOST` | **Variable (required for shared EC2)** |
+| `variable_EC2_NAME_TAG` | `EC2_NAME_TAG` | Variable (optional; `gamya-couture-dev-api`) |
 | `variable_AWS_REGION` | `AWS_REGION` | Variable (optional; default `ap-south-1`) |
 
 **Auto-sync** (after `gh auth login`, PAT with `repo` on the backend repo):
@@ -142,7 +164,7 @@ Locally generated copy: [`.github/DEPLOY_CONFIG.md`](../../.github/DEPLOY_CONFIG
 | `Missing deploy config::Set AWS_BACKEND_DEPLOY_ROLE_ARN and DEPLOY_BUCKET` | Required secret/variable not set on backend repo | Add both on `gvsharma/krishifarms-backend`; re-run failed job |
 | **Create deploy bundle** succeeds, **Resolve deploy configuration** fails | Same — tar/bundle step is fine; config check runs next | Configure secrets (above); no code change needed |
 | OIDC `configure-aws-credentials` fails | Wrong/missing role ARN or trust policy repo mismatch | Role trust must include `repo:gvsharma/krishifarms-backend:*` |
-| `No EC2 instance found with tag Name=…-api` | Infra not applied or `DEPLOY_BUCKET` prefix mismatch | Apply `krishifarms-infra` dev or set `EC2_INSTANCE_ID` |
+| `No EC2 instance found with tag Name=…-api` | Shared Gamya EC2: tag is `gamya-couture-dev-api`, not `krishifarms-dev-api` | Set `EC2_INSTANCE_ID=i-0426cdc00ff15bfe9` and `EC2_HOST=13.232.200.243`, or `EC2_NAME_TAG=gamya-couture-dev-api` |
 | SSM PingStatus ≠ Online | Instance stopped, SSM agent down, or missing IAM | Start EC2; verify `AmazonSSMManagedInstanceCore` on instance role |
 | Public health check timeout | EC2 bootstrap incomplete or nginx/API not up | Check `/opt/krishifarms/logs/deploy.latest.log` via Session Manager |
 
@@ -152,8 +174,9 @@ Locally generated copy: [`.github/DEPLOY_CONFIG.md`](../../.github/DEPLOY_CONFIG
 |------|----------|------|-------|
 | `AWS_BACKEND_DEPLOY_ROLE_ARN` | **Yes** | Secret | GitHub OIDC → S3 + SSM deploy role |
 | `DEPLOY_BUCKET` | **Yes** | Variable (or secret) | e.g. `krishifarms-dev-backend-deploy` |
-| `EC2_INSTANCE_ID` | No | Variable/secret | Auto-resolved from tag `{prefix}-api` |
-| `EC2_HOST` | No | Variable/secret | Auto-resolved at deploy time |
+| `EC2_INSTANCE_ID` | **Yes** (shared EC2) | Variable/secret | `i-0426cdc00ff15bfe9` — skips name-tag lookup |
+| `EC2_HOST` | **Yes** (shared EC2) | Variable/secret | `13.232.200.243` — health/smoke target |
+| `EC2_NAME_TAG` | No | Variable/secret | `gamya-couture-dev-api` if instance ID omitted |
 | `RDS_INSTANCE_ID` | No | Variable/secret | Skipped by default (local Postgres in Docker) |
 | `AWS_REGION` | No | Variable | Default `ap-south-1` in workflow |
 | `NGINX_LOCAL_PORT` | No | Variable | Default `8082` on shared dev EC2 |
@@ -168,7 +191,7 @@ After fixing GitHub config, **Re-run jobs** on the failed workflow run (Actions 
 
 Same AWS account and patterns as Gamyaboutique (`gamya-couture-infra`):
 
-- [ ] **EC2 instance** with tag `Name=krishifarms-dev-api` (or set `EC2_INSTANCE_ID`)
+- [ ] **Shared EC2** — Gamya host `gamya-couture-dev-api` (`i-0426cdc00ff15bfe9`); set `EC2_INSTANCE_ID` + `EC2_HOST` in GitHub
 - [ ] **S3 deploy bucket** (e.g. `krishifarms-dev-backend-deploy`) with EC2 + deploy role access
 - [ ] **IAM role** for GitHub OIDC (`AWS_BACKEND_DEPLOY_ROLE_ARN`) — trust `gvsharma/krishifarms-backend`, permissions: S3 Put/Get on deploy bucket, SSM SendCommand, EC2 Describe/Start, optional RDS Start
 - [ ] **SSM agent** on EC2 (Amazon Linux 2023 default) with instance role including `AmazonSSMManagedInstanceCore`
@@ -178,7 +201,7 @@ Same AWS account and patterns as Gamyaboutique (`gamya-couture-infra`):
   - `/krishifarms/dev/app/secret_key`
   - `/krishifarms/dev/db/password`
 
-You can reuse Gamyaboutique's Terraform patterns from `gamya-couture-infra` — create a parallel `krishifarms` environment with its own EC2, deploy bucket, and GitHub OIDC role.
+You can reuse Gamyaboutique's Terraform patterns from `gamya-couture-infra` — KrishiFarms dev currently **shares** the Gamya EC2 (port 8082, `/opt/krishifarms`) with its own deploy bucket and GitHub OIDC role.
 
 ---
 
@@ -267,11 +290,10 @@ Same account/config pattern as Gamyaboutique:
 | Gap | Action required |
 |-----|-----------------|
 | No KrishiFarms Terraform yet | Provision EC2 + S3 deploy bucket + OIDC role (mirror `gamya-couture-infra`) |
-| GitHub secrets not set | Add `AWS_BACKEND_DEPLOY_ROLE_ARN` and `DEPLOY_BUCKET` before first deploy — see [Troubleshooting deploy failures](#troubleshooting-deploy-failures) |
-| EC2 not bootstrapped | Run `deploy/scripts/ec2-bootstrap.sh` once |
+| GitHub secrets not set | Add `AWS_BACKEND_DEPLOY_ROLE_ARN`, `DEPLOY_BUCKET`, `EC2_INSTANCE_ID`, and `EC2_HOST` before first deploy — see [Troubleshooting deploy failures](#troubleshooting-deploy-failures) |
+| EC2 not bootstrapped | Run `deploy/scripts/ec2-bootstrap.sh` once on shared Gamya host (`/opt/krishifarms`) |
 | Frontend not built | Add Next.js app under `frontend/` when ready; Vercel config is prepared |
 | No unit tests in CI yet | `validate.yml` runs ruff + Docker build; add pytest when tests exist |
-| Separate EC2 recommended | Do not share Gamyaboutique's EC2 (`13.232.200.243`) — provision dedicated instance |
 
 ---
 
