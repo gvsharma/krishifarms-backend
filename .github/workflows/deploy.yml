@@ -39,14 +39,15 @@ jobs:
       - name: Create deploy bundle
         run: |
           set -euo pipefail
-          tar -czf deploy.tar.gz \
+          BUNDLE="${RUNNER_TEMP}/deploy.tar.gz"
+          tar -czf "${BUNDLE}" \
             --exclude='.git' \
             --exclude='.venv' \
             --exclude='__pycache__' \
             --exclude='.ruff_cache' \
             --exclude='.cursor' \
-            --exclude='deploy.tar.gz' \
             .
+          mv "${BUNDLE}" deploy.tar.gz
           echo "Bundle size: $(du -h deploy.tar.gz | cut -f1)"
 
       - name: Resolve deploy configuration
