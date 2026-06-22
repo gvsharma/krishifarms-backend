@@ -44,6 +44,15 @@ bash scripts/sync-backend-deploy-github-config.sh
 - OIDC trust is on **`gvsharma/krishifarms-backend`**, not `krishifarms-crm`.
 - EC2 must have `/opt/krishifarms` (bootstrap) and SSM Online.
 
+## SSM parameters (Terraform / Console)
+
+| Parameter | Type | Purpose |
+|-----------|------|---------|
+| `/krishifarms/dev/app/secret_key` | SecureString | FastAPI JWT signing |
+| `/krishifarms/dev/db/password` | SecureString | Docker Postgres password |
+
+Grant the shared EC2 instance role `ssm:GetParameter` on `arn:aws:ssm:ap-south-1:*:parameter/krishifarms/dev/*` (mirror Gamya `/gamya-couture/dev/db/*`).
+
 ## Verify
 
 ```bash

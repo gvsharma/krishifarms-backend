@@ -11,6 +11,54 @@ Reference source: `/Users/venkatgorinta/Desktop/gamya-boutique`
 
 ---
 
+## Same as Gamya (SSM deploy orchestration)
+
+KrishiFarms uses the **same S3 → SSM → async kickoff → status poll** pattern as [Gamya Couture](https://github.com/gvsharma/gamyaboutique). Only runtime stack and paths differ.
+
+| Step | Gamya Couture | KrishiFarms CRM |
+|------|---------------|-----------------|
+| **Trigger** | Push to `main` | Push to `main` |
+| **Build artifact** | Maven JAR → `incoming/gamya-couture.jar` | `deploy.tar.gz` → `incoming/deploy.tar.gz` |
+| **S3 script keys** | `incoming/remote-deploy.sh`, `incoming/sync-rds-env-from-ssm.sh`, `incoming/ssm-kickoff-deploy.sh` | Same pattern; `sync-env-from-ssm.sh` + `incoming/application.env.example` |
+| **EC2 app path** | `/opt/gamya-couture` | `/opt/krishifarms` |
+| **Shared dev EC2** | `i-0426cdc00ff15bfe9` (`gamya-couture-dev-api`) | Same instance |
+| **Public nginx port** | **8080** (host nginx → systemd JAR) | **8082** (Docker Compose nginx) |
+| **SSM ping attempts** | 36 (48 if cold-start) | 36 (48 if cold-start) |
+| **Stale SSM cleanup** | Cancel InProgress/Pending commands &lt; 3 h | Same |
+| **SSM probe → kickoff → poll** | Short SSM commands; `nohup ssm-kickoff-deploy.sh` | Same + Docker preflight before kickoff |
+| **`deploy.status` lifecycle** | `running` → `success` / `failed` in `${APP_PATH}/logs/` | Same |
+| **Status poll** | 36 × 10 s (~6 min) | 36 × 10 s (~6 min) |
+| **Public health URL** | `http://<EC2>/actuator/health` | `http://<EC2>:8082/api/v1/health` |
+| **Smoke test host** | `http://<EC2>` (port 80) | `http://<EC2>:8082` |
+| **Env sync script** | `sync-rds-env-from-ssm.sh` (RDS creds) | `sync-env-from-ssm.sh` (local Postgres + app secrets) |
+| **SSM param prefix** | `/gamya-couture/dev/db/*` | `/krishifarms/dev/app/*`, `/krishifarms/dev/db/*` |
+| **Runtime deploy** | systemd JAR + host nginx | `docker compose -f infra/docker-compose.prod.yml` + Alembic |
+| **One-time bootstrap** | Manual: `ec2-bootstrap.sh` (Java 21, systemd) | Manual: `ec2-bootstrap.sh` (Docker, Compose plugin) |
+| **`application.env`** | Created at bootstrap from template | Created at bootstrap; kickoff can seed from S3 template if missing |
+
+### Gamya deploy flow (step-by-step)
+
+1. **Validate** — reusable `validate.yml` (lint/build).
+2. **Build** — Gamya: `mvn package`; KrishiFarms: `tar` bundle excluding `.git`, `.venv`.
+3. **Resolve config** — OIDC role, `DEPLOY_BUCKET`, EC2 instance (ID or Name tag).
+4. **Prepare RDS** (Gamya) — start stopped RDS; KrishiFarms skips unless `RDS_INSTANCE_ID` set.
+5. **Prepare EC2** — start if stopped; wait status checks; poll SSM `PingStatus=Online` (36 attempts).
+6. **Upload to S3** — artifact + three scripts (+ KrishiFarms env template).
+7. **SSM orchestration (GitHub runner)**:
+   - Cancel stale SSM commands.
+   - **Probe** — verify SSM can run shell (`SSM_PROBE_OK`).
+   - **Preflight** (KrishiFarms only) — Docker/Compose available; clear stale `deploy.pid` / `deploy.status`.
+   - **Kickoff** — mkdir, download kickoff script, `nohup ssm-kickoff-deploy.sh`, write `deploy.pid`, return `DEPLOY_KICKED_OFF`.
+   - **Poll** — read `deploy.status` + tail `deploy.latest.log` until `success` or `failed` (36 × 10 s).
+8. **On EC2 (`ssm-kickoff-deploy.sh`)** — download scripts + artifact from S3 → sync env from SSM → `sudo remote-deploy.sh` → write `deploy.status`.
+9. **On EC2 (`remote-deploy.sh`)** — Gamya: JAR swap + systemd restart; KrishiFarms: extract tar, `docker compose up`, `alembic upgrade head`, health check, rollback on failure.
+10. **Public health** — curl nginx health endpoint from runner.
+11. **Smoke tests** — `scripts/smoke-test-api.sh`.
+
+Bootstrap is **one-time manual** on EC2 (Session Manager) for both projects — not automated by the workflow. See [EC2 one-time bootstrap](#ec2-one-time-bootstrap).
+
+---
+
 ## Architecture
 
 ```mermaid
@@ -200,9 +248,14 @@ Same AWS account and patterns as Gamyaboutique (`gamya-couture-infra`):
 - [ ] **SSM agent** on EC2 (Amazon Linux 2023 default) with instance role including `AmazonSSMManagedInstanceCore`
 - [ ] **Security group:** port **8082** open for KrishiFarms nginx (Gamya uses 8080; Vercel `API_PROXY_TARGET` uses `:8082`)
 - [ ] **S3 documents bucket** (`krishifarms-documents`) with EC2 instance role `s3:PutObject` / `s3:GetObject`
-- [ ] (Optional) **SSM parameters** for secrets:
-  - `/krishifarms/dev/app/secret_key`
-  - `/krishifarms/dev/db/password`
+- [ ] (Optional) **SSM parameters** for secrets (create in `krishifarms-infra` Terraform or AWS Console):
+
+| Parameter | Purpose |
+|-----------|---------|
+| `/krishifarms/dev/app/secret_key` | FastAPI `SECRET_KEY` (SecureString) |
+| `/krishifarms/dev/db/password` | Docker Postgres `POSTGRES_PASSWORD` + `DATABASE_URL` (SecureString) |
+
+EC2 instance role needs `ssm:GetParameter` on `/krishifarms/dev/*` (mirror Gamya's `/gamya-couture/dev/db/*` grant on the shared host).
 
 You can reuse Gamyaboutique's Terraform patterns from `gamya-couture-infra` — KrishiFarms dev currently **shares** the Gamya EC2 (port 8082, `/opt/krishifarms`) with its own deploy bucket and GitHub OIDC role.
 
@@ -210,12 +263,17 @@ You can reuse Gamyaboutique's Terraform patterns from `gamya-couture-infra` — 
 
 ## EC2 one-time bootstrap
 
+Same as Gamya: **manual, one-time** via AWS Session Manager. The deploy workflow does not run bootstrap automatically.
+
 ```bash
-# Connect via AWS Session Manager (ap-south-1)
-git clone https://github.com/gvsharma/krishifarms-backend.git
-cd krishifarms-backend
+# Connect via AWS Session Manager (ap-south-1) on shared Gamya EC2
+sudo dnf install -y git
+git clone https://github.com/gvsharma/krishifarms-backend.git /tmp/krishifarms-backend
+cd /tmp/krishifarms-backend
 sudo APP_PATH=/opt/krishifarms bash deploy/scripts/ec2-bootstrap.sh
 sudo nano /opt/krishifarms/config/application.env
+# Or sync from SSM after creating parameters:
+sudo APP_PATH=/opt/krishifarms bash deploy/scripts/sync-env-from-ssm.sh
 ```
 
 Required values in `application.env`:

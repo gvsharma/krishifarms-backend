@@ -17,8 +17,8 @@ DB_PASSWORD_PATH="${SSM_DB_PASSWORD_PATH:-/krishifarms/dev/db/password}"
 log() { echo "[$(date -Iseconds)] $*"; }
 
 if ! command -v aws >/dev/null 2>&1; then
-  log "WARN: aws CLI not found — skip SSM sync"
-  exit 0
+  log "ERROR: aws CLI not found — run ec2-bootstrap.sh first (dnf install blocked during deploy)"
+  exit 1
 fi
 
 ensure_env_file() {

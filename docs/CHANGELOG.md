@@ -13,6 +13,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- Deploy: align SSM orchestration with Gamya (stale command cancel, `log_ssm_invocation`, probe/kickoff logging, 36×10s status poll); smoke tests use `:8082`; `sync-env-from-ssm.sh` fails fast without AWS CLI
+- Docs: `CI_CD.md` and `deploy/README.md` — "Same as Gamya" side-by-side; SSM parameter names for `krishifarms-infra`
+
+### Changed
+
 - Deploy workflow: optional `EC2_NAME_TAG` variable; auto-default `gamya-couture-dev-api` when `DEPLOY_BUCKET` contains `krishifarms` (shared Gamya EC2)
 - `.github/DEPLOY_CONFIG.md`, `docs/deploy/CI_CD.md`, `deploy/README.md` — `EC2_INSTANCE_ID` and `EC2_HOST` **required** for shared Gamya EC2; shared-host section (port 8082, `/opt/krishifarms`)
 
