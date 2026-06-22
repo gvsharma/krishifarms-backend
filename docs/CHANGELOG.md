@@ -11,8 +11,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `.github/DEPLOY_CONFIG.md` — GitHub Actions secrets/variables from `krishifarms-infra` dev Terraform outputs
 - Deploy workflow: `AWS_REGION`, `NGINX_LOCAL_PORT`, and `PUBLIC_HEALTH_CHECK_URL` vars for shared EC2 dev (port 8082)
 
+### Changed
+
+- Deploy workflow: optional `EC2_NAME_TAG` variable; auto-default `gamya-couture-dev-api` when `DEPLOY_BUCKET` contains `krishifarms` (shared Gamya EC2)
+- `.github/DEPLOY_CONFIG.md`, `docs/deploy/CI_CD.md`, `deploy/README.md` — `EC2_INSTANCE_ID` and `EC2_HOST` **required** for shared Gamya EC2; shared-host section (port 8082, `/opt/krishifarms`)
+
 ### Fixed
 
+- Deploy: `infra/docker-compose.prod.yml` maps nginx to host port **8082** (`NGINX_HOST_PORT`, default 8082) on shared Gamya EC2
+- Deploy: `remote-deploy.sh` on-host health check uses `http://127.0.0.1:8082/api/v1/health`
+- Deploy: GitHub Actions SSM deploy status poll extended (90 attempts × 10s) and job timeout 45m for first Docker build
+
+- Deploy: EC2 resolution no longer looks up non-existent `krishifarms-dev-api` tag when using shared Gamya host
 - Deploy: write `deploy.tar.gz` under `$RUNNER_TEMP` before moving to workspace — GNU tar exits 1 (`file changed as we read it`) when the archive is created inside the tree being packed
 - Frontend Vercel: `API_PROXY_TARGET` includes EC2 nginx port `:8082`; `NEXT_PUBLIC_SITE_URL` set to `https://krishifarms-backend.vercel.app`; env templates and `frontend/README.md` aligned
 - CI: set dummy `SECRET_KEY` and `DATABASE_URL` in `validate.yml` backend job so import sanity check passes without a `.env` file
