@@ -95,6 +95,73 @@ Configure in **Settings → Secrets and variables → Actions** for `gvsharma/kr
 
 **Never commit real secret values.** Use `${{ secrets.XXX }}` and `${{ vars.XXX }}` in workflows only.
 
+### Manual setup (GitHub UI)
+
+On **`gvsharma/krishifarms-backend`** (not `krishifarms-crm`) → **Settings → Secrets and variables → Actions**:
+
+1. **Secrets → New repository secret:** `AWS_BACKEND_DEPLOY_ROLE_ARN` = IAM role ARN from infra (see below).
+2. **Variables → New repository variable:** `DEPLOY_BUCKET` = S3 deploy bucket name (e.g. `krishifarms-dev-backend-deploy`).
+
+Optional variables: `EC2_INSTANCE_ID`, `EC2_HOST`, `AWS_REGION`, `NGINX_LOCAL_PORT`, `PUBLIC_HEALTH_CHECK_URL`. Optional secrets: `SMOKE_TEST_EMAIL`, `SMOKE_TEST_PASSWORD`.
+
+### Where to get values (krishifarms-infra)
+
+Same pattern as Gamya Couture (`gamya-couture-infra` → `backend_deploy_github_setup` output).
+
+```bash
+cd krishifarms-infra/environments/dev
+terraform output -json backend_deploy_github_setup
+```
+
+| Terraform output key | GitHub name | Type |
+|----------------------|-------------|------|
+| `secret_AWS_BACKEND_DEPLOY_ROLE_ARN` | `AWS_BACKEND_DEPLOY_ROLE_ARN` | **Secret** (required) |
+| `variable_DEPLOY_BUCKET` | `DEPLOY_BUCKET` | **Variable** (required) |
+| `variable_EC2_INSTANCE_ID` | `EC2_INSTANCE_ID` | Variable (optional) |
+| `variable_EC2_HOST` | `EC2_HOST` | Variable (optional) |
+| `variable_AWS_REGION` | `AWS_REGION` | Variable (optional; default `ap-south-1`) |
+
+**Auto-sync** (after `gh auth login`, PAT with `repo` on the backend repo):
+
+```bash
+export GH_TOKEN=<PAT>
+export GITHUB_BACKEND_REPOSITORY=gvsharma/krishifarms-backend
+bash krishifarms-infra/scripts/sync-backend-deploy-github-config.sh
+```
+
+Or set secret `KRISHIFARMS_GH_TOKEN` on **krishifarms-infra** so Terraform module `github_backend_deploy_config` pushes values on apply (see `krishifarms-infra/docs/GITHUB_ACTIONS.md`).
+
+Locally generated copy: [`.github/DEPLOY_CONFIG.md`](../../.github/DEPLOY_CONFIG.md) (from last Terraform apply — regenerate after infra changes; do not paste ARNs into public docs).
+
+---
+
+## Troubleshooting deploy failures
+
+| Symptom | Likely cause | Action |
+|---------|--------------|--------|
+| `Missing deploy config::Set AWS_BACKEND_DEPLOY_ROLE_ARN and DEPLOY_BUCKET` | Required secret/variable not set on backend repo | Add both on `gvsharma/krishifarms-backend`; re-run failed job |
+| **Create deploy bundle** succeeds, **Resolve deploy configuration** fails | Same — tar/bundle step is fine; config check runs next | Configure secrets (above); no code change needed |
+| OIDC `configure-aws-credentials` fails | Wrong/missing role ARN or trust policy repo mismatch | Role trust must include `repo:gvsharma/krishifarms-backend:*` |
+| `No EC2 instance found with tag Name=…-api` | Infra not applied or `DEPLOY_BUCKET` prefix mismatch | Apply `krishifarms-infra` dev or set `EC2_INSTANCE_ID` |
+| SSM PingStatus ≠ Online | Instance stopped, SSM agent down, or missing IAM | Start EC2; verify `AmazonSSMManagedInstanceCore` on instance role |
+| Public health check timeout | EC2 bootstrap incomplete or nginx/API not up | Check `/opt/krishifarms/logs/deploy.latest.log` via Session Manager |
+
+### Required vs optional (quick reference)
+
+| Name | Required | Type | Notes |
+|------|----------|------|-------|
+| `AWS_BACKEND_DEPLOY_ROLE_ARN` | **Yes** | Secret | GitHub OIDC → S3 + SSM deploy role |
+| `DEPLOY_BUCKET` | **Yes** | Variable (or secret) | e.g. `krishifarms-dev-backend-deploy` |
+| `EC2_INSTANCE_ID` | No | Variable/secret | Auto-resolved from tag `{prefix}-api` |
+| `EC2_HOST` | No | Variable/secret | Auto-resolved at deploy time |
+| `RDS_INSTANCE_ID` | No | Variable/secret | Skipped by default (local Postgres in Docker) |
+| `AWS_REGION` | No | Variable | Default `ap-south-1` in workflow |
+| `NGINX_LOCAL_PORT` | No | Variable | Default `8082` on shared dev EC2 |
+| `PUBLIC_HEALTH_CHECK_URL` | No | Variable | Default `http://<EC2>:8082/api/v1/health` |
+| `SMOKE_TEST_EMAIL` / `SMOKE_TEST_PASSWORD` | No | Secrets | Authenticated post-deploy smoke tests |
+
+After fixing GitHub config, **Re-run jobs** on the failed workflow run (Actions → run → **Deploy to EC2** → Re-run).
+
 ---
 
 ## AWS setup checklist
@@ -200,7 +267,7 @@ Same account/config pattern as Gamyaboutique:
 | Gap | Action required |
 |-----|-----------------|
 | No KrishiFarms Terraform yet | Provision EC2 + S3 deploy bucket + OIDC role (mirror `gamya-couture-infra`) |
-| GitHub secrets not set | Add `AWS_BACKEND_DEPLOY_ROLE_ARN` and `DEPLOY_BUCKET` before first deploy |
+| GitHub secrets not set | Add `AWS_BACKEND_DEPLOY_ROLE_ARN` and `DEPLOY_BUCKET` before first deploy — see [Troubleshooting deploy failures](#troubleshooting-deploy-failures) |
 | EC2 not bootstrapped | Run `deploy/scripts/ec2-bootstrap.sh` once |
 | Frontend not built | Add Next.js app under `frontend/` when ready; Vercel config is prepared |
 | No unit tests in CI yet | `validate.yml` runs ruff + Docker build; add pytest when tests exist |
