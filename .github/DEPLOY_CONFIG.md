@@ -38,6 +38,7 @@ bash scripts/sync-backend-deploy-github-config.sh
 - **Same host as Gamya Couture** — EC2 tag `Name=gamya-couture-dev-api` (not `krishifarms-dev-api`).
 - Instance `i-0426cdc00ff15bfe9` at `13.232.200.243`.
 - KrishiFarms dev listens on **8082** (Gamya uses **8080**); app path `/opt/krishifarms`.
+- `infra/docker-compose.prod.yml` publishes nginx as `${NGINX_HOST_PORT:-8082}:80` (override `NGINX_HOST_PORT` only if the host mapping changes).
 - **Set `EC2_INSTANCE_ID` and `EC2_HOST` in GitHub Variables** — required for shared setup so deploy skips `{prefix}-api` lookup.
 - Optional `EC2_NAME_TAG=gamya-couture-dev-api` if you omit `EC2_INSTANCE_ID` (workflow also auto-defaults when `DEPLOY_BUCKET` contains `krishifarms`).
 - OIDC trust is on **`gvsharma/krishifarms-backend`**, not `krishifarms-crm`.

@@ -26,7 +26,7 @@ jobs:
     name: Deploy to EC2
     needs: validate
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     permissions:
       id-token: write
@@ -295,7 +295,7 @@ jobs:
           SSM_SHORT_TIMEOUT=120
           SSM_POLL_INTERVAL=5
           SSM_SHORT_POLL_ATTEMPTS=24
-          DEPLOY_STATUS_POLL_ATTEMPTS=36
+          DEPLOY_STATUS_POLL_ATTEMPTS=90
           DEPLOY_STATUS_POLL_INTERVAL=10
 
           send_ssm_shell_command() {

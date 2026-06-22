@@ -18,7 +18,7 @@ flowchart TB
   User[Users]
   Vercel[Vercel CDN]
   EC2[EC2 t3.small]
-  NGINX[nginx :80]
+  NGINX[nginx host :8082]
   API[FastAPI :8000]
   PG[(PostgreSQL Docker)]
   S3[(S3 documents)]
@@ -195,7 +195,7 @@ Same AWS account and patterns as Gamyaboutique (`gamya-couture-infra`):
 - [ ] **S3 deploy bucket** (e.g. `krishifarms-dev-backend-deploy`) with EC2 + deploy role access
 - [ ] **IAM role** for GitHub OIDC (`AWS_BACKEND_DEPLOY_ROLE_ARN`) — trust `gvsharma/krishifarms-backend`, permissions: S3 Put/Get on deploy bucket, SSM SendCommand, EC2 Describe/Start, optional RDS Start
 - [ ] **SSM agent** on EC2 (Amazon Linux 2023 default) with instance role including `AmazonSSMManagedInstanceCore`
-- [ ] **Security group:** port 80 open for nginx (Vercel proxy target)
+- [ ] **Security group:** port **8082** open for KrishiFarms nginx (Gamya uses 8080; Vercel `API_PROXY_TARGET` uses `:8082`)
 - [ ] **S3 documents bucket** (`krishifarms-documents`) with EC2 instance role `s3:PutObject` / `s3:GetObject`
 - [ ] (Optional) **SSM parameters** for secrets:
   - `/krishifarms/dev/app/secret_key`
@@ -281,7 +281,7 @@ Same account/config pattern as Gamyaboutique:
 | File | Use |
 |------|-----|
 | `infra/docker-compose.yml` | Local dev (bind mounts, port 8080) |
-| `infra/docker-compose.prod.yml` | EC2 production (no bind mounts, nginx on port 80) |
+| `infra/docker-compose.prod.yml` | EC2 production (no bind mounts, nginx `${NGINX_HOST_PORT:-8082}:80`) |
 
 ---
 
