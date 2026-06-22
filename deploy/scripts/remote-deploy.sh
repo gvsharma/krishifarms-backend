@@ -25,6 +25,13 @@ require_root() {
   fi
 }
 
+ensure_service_user() {
+  if ! id krishifarms >/dev/null 2>&1; then
+    log "Creating service user krishifarms (bootstrap was not run)"
+    useradd --system --home-dir "${APP_PATH}" --shell /sbin/nologin krishifarms
+  fi
+}
+
 is_healthy() {
   local response
   response="$(curl -sf "${HEALTH_URL}" 2>/dev/null || true)"
@@ -99,6 +106,7 @@ sync_runtime_env() {
 }
 
 require_root
+ensure_service_user
 
 mkdir -p "${REPO_DIR}" "${BACKUP_DIR}" "${APP_PATH}/logs"
 chown -R ec2-user:krishifarms "${APP_PATH}/logs"

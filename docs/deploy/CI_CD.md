@@ -166,7 +166,10 @@ Locally generated copy: [`.github/DEPLOY_CONFIG.md`](../../.github/DEPLOY_CONFIG
 | OIDC `configure-aws-credentials` fails | Wrong/missing role ARN or trust policy repo mismatch | Role trust must include `repo:gvsharma/krishifarms-backend:*` |
 | `No EC2 instance found with tag Name=…-api` | Shared Gamya EC2: tag is `gamya-couture-dev-api`, not `krishifarms-dev-api` | Set `EC2_INSTANCE_ID=i-0426cdc00ff15bfe9` and `EC2_HOST=13.232.200.243`, or `EC2_NAME_TAG=gamya-couture-dev-api` |
 | SSM PingStatus ≠ Online | Instance stopped, SSM agent down, or missing IAM | Start EC2; verify `AmazonSSMManagedInstanceCore` on instance role |
-| Public health check timeout | EC2 bootstrap incomplete or nginx/API not up | Check `/opt/krishifarms/logs/deploy.latest.log` via Session Manager |
+| **Deploy on EC2 via SSM** times out; `deploy.status=running` | EC2 not bootstrapped: missing `/opt/krishifarms/config/application.env`; kickoff died before marking `failed` | See [EC2 bootstrap](#ec2-one-time-bootstrap). Reset zombie: `echo failed > /opt/krishifarms/logs/deploy.status`. Re-run workflow after bootstrap or SSM secrets are set |
+| `application.env not found. Run ec2-bootstrap.sh first` in `deploy.latest.log` | Bootstrap never run; workflow only created empty dirs | Run `ec2-bootstrap.sh` once, or let deploy auto-create env from S3 template (needs real `SECRET_KEY` / `POSTGRES_PASSWORD` via SSM or manual edit) |
+| `docker_ok=no` in preflight | Docker not installed on shared host | `sudo APP_PATH=/opt/krishifarms bash deploy/scripts/ec2-bootstrap.sh` via Session Manager |
+| Public health check timeout | Bootstrap incomplete, placeholder secrets, or nginx/API not up | Check `/opt/krishifarms/logs/deploy.latest.log` via Session Manager; set SSM params `/krishifarms/dev/app/secret_key` and `/krishifarms/dev/db/password` or edit `application.env` |
 
 ### Required vs optional (quick reference)
 

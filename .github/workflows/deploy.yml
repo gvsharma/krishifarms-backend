@@ -17,6 +17,7 @@ env:
   DEPLOY_SCRIPT_KEY: incoming/remote-deploy.sh
   DEPLOY_SYNC_SCRIPT_KEY: incoming/sync-env-from-ssm.sh
   DEPLOY_KICKOFF_SCRIPT_KEY: incoming/ssm-kickoff-deploy.sh
+  DEPLOY_ENV_TEMPLATE_KEY: incoming/application.env.example
 
 jobs:
   validate:
@@ -285,6 +286,7 @@ jobs:
           aws s3 cp deploy/scripts/remote-deploy.sh "s3://${DEPLOY_BUCKET}/${DEPLOY_SCRIPT_KEY}"
           aws s3 cp deploy/scripts/sync-env-from-ssm.sh "s3://${DEPLOY_BUCKET}/${DEPLOY_SYNC_SCRIPT_KEY}"
           aws s3 cp deploy/scripts/ssm-kickoff-deploy.sh "s3://${DEPLOY_BUCKET}/${DEPLOY_KICKOFF_SCRIPT_KEY}"
+          aws s3 cp deploy/env/application.env.example "s3://${DEPLOY_BUCKET}/${DEPLOY_ENV_TEMPLATE_KEY}"
 
       - name: Deploy on EC2 via SSM
         run: |
@@ -295,7 +297,7 @@ jobs:
           SSM_SHORT_TIMEOUT=120
           SSM_POLL_INTERVAL=5
           SSM_SHORT_POLL_ATTEMPTS=24
-          DEPLOY_STATUS_POLL_ATTEMPTS=90
+          DEPLOY_STATUS_POLL_ATTEMPTS=36
           DEPLOY_STATUS_POLL_INTERVAL=10
 
           send_ssm_shell_command() {
@@ -355,13 +357,28 @@ jobs:
           grep -q "SSM_PROBE_OK" <<< "${PROBE_OUT}" || { echo "::error::SSM probe failed" >&2; exit 1; }
 
           write_ssm_params \
+            "set -euo pipefail" \
+            "DOCKER_OK=no" \
+            "if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then DOCKER_OK=yes; fi" \
+            "echo docker_ok=\${DOCKER_OK}" \
+            "if [[ -f ${APP_PATH}/logs/deploy.status ]]; then echo prior_deploy_status=\$(cat ${APP_PATH}/logs/deploy.status); fi" \
+            "if [[ -f ${APP_PATH}/logs/deploy.pid ]]; then OLD_PID=\$(cat ${APP_PATH}/logs/deploy.pid); if ! kill -0 \"\${OLD_PID}\" 2>/dev/null; then echo stale_deploy_pid=\${OLD_PID}; echo failed > ${APP_PATH}/logs/deploy.status; fi; fi"
+          PREFLIGHT_ID="$(send_ssm_shell_command "${SSM_SHORT_TIMEOUT}" "GitHub Actions deploy preflight" /tmp/ssm-command-params.json)"
+          PREFLIGHT_OUT="$(wait_for_ssm_command "${PREFLIGHT_ID}" "SSM preflight" "${SSM_SHORT_POLL_ATTEMPTS}")" || exit 1
+          echo "${PREFLIGHT_OUT}"
+          if ! grep -q 'docker_ok=yes' <<< "${PREFLIGHT_OUT}"; then
+            echo "::error::Docker or docker compose not available on EC2 — run ec2-bootstrap.sh via Session Manager" >&2
+            exit 1
+          fi
+
+          write_ssm_params \
             "set -euxo pipefail" \
             "export AWS_DEFAULT_REGION=${AWS_REGION}" \
             "mkdir -p ${APP_PATH}/scripts ${APP_PATH}/logs ${APP_PATH}/incoming ${APP_PATH}/config" \
             "aws s3 cp s3://${DEPLOY_BUCKET}/${DEPLOY_KICKOFF_SCRIPT_KEY} ${APP_PATH}/scripts/ssm-kickoff-deploy.sh" \
             "chmod 755 ${APP_PATH}/scripts/ssm-kickoff-deploy.sh" \
             "if [[ -f ${APP_PATH}/logs/deploy.pid ]]; then kill \"\$(cat ${APP_PATH}/logs/deploy.pid)\" 2>/dev/null || true; fi" \
-            "nohup env DEPLOY_BUCKET=${DEPLOY_BUCKET} AWS_REGION=${AWS_REGION} APP_PATH=${APP_PATH} DEPLOY_OBJECT_KEY=${DEPLOY_OBJECT_KEY} DEPLOY_SCRIPT_KEY=${DEPLOY_SCRIPT_KEY} DEPLOY_SYNC_SCRIPT_KEY=${DEPLOY_SYNC_SCRIPT_KEY} bash ${APP_PATH}/scripts/ssm-kickoff-deploy.sh >> ${APP_PATH}/logs/kickoff-wrapper.log 2>&1 &" \
+            "nohup env DEPLOY_BUCKET=${DEPLOY_BUCKET} AWS_REGION=${AWS_REGION} APP_PATH=${APP_PATH} DEPLOY_OBJECT_KEY=${DEPLOY_OBJECT_KEY} DEPLOY_SCRIPT_KEY=${DEPLOY_SCRIPT_KEY} DEPLOY_SYNC_SCRIPT_KEY=${DEPLOY_SYNC_SCRIPT_KEY} DEPLOY_ENV_TEMPLATE_KEY=${DEPLOY_ENV_TEMPLATE_KEY} bash ${APP_PATH}/scripts/ssm-kickoff-deploy.sh >> ${APP_PATH}/logs/kickoff-wrapper.log 2>&1 &" \
             "echo \$! > ${APP_PATH}/logs/deploy.pid" \
             "echo DEPLOY_KICKED_OFF"
           KICKOFF_ID="$(send_ssm_shell_command "${SSM_SHORT_TIMEOUT}" "GitHub Actions deploy kickoff" /tmp/ssm-command-params.json)"
@@ -400,6 +417,7 @@ jobs:
           DEPLOY_SCRIPT_KEY: ${{ env.DEPLOY_SCRIPT_KEY }}
           DEPLOY_SYNC_SCRIPT_KEY: ${{ env.DEPLOY_SYNC_SCRIPT_KEY }}
           DEPLOY_KICKOFF_SCRIPT_KEY: ${{ env.DEPLOY_KICKOFF_SCRIPT_KEY }}
+          DEPLOY_ENV_TEMPLATE_KEY: ${{ env.DEPLOY_ENV_TEMPLATE_KEY }}
 
       - name: Verify public health via nginx
         id: public_health
