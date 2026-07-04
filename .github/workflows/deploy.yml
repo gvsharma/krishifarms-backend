@@ -41,12 +41,15 @@ jobs:
         run: |
           set -euo pipefail
           BUNDLE="${RUNNER_TEMP}/deploy.tar.gz"
-          tar -czf "${BUNDLE}" \
+          # COPYFILE_DISABLE prevents macOS AppleDouble (._*) files that break Alembic
+          COPYFILE_DISABLE=1 tar -czf "${BUNDLE}" \
             --exclude='.git' \
             --exclude='.venv' \
             --exclude='__pycache__' \
             --exclude='.ruff_cache' \
             --exclude='.cursor' \
+            --exclude='**/._*' \
+            --exclude='**/__MACOSX' \
             .
           mv "${BUNDLE}" deploy.tar.gz
           echo "Bundle size: $(du -h deploy.tar.gz | cut -f1)"
