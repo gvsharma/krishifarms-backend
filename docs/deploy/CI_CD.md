@@ -151,20 +151,20 @@ First deploy happens automatically on merge to `main` — no manual `docker comp
 Same account/config pattern as Gamyaboutique:
 
 - [ ] Create Vercel project linked to `gvsharma/krishifarms-backend`
-- [ ] Set **Root Directory** = `frontend` (when Next.js app exists; placeholder config is ready)
+- [ ] Set **Root Directory** = `frontend`
 - [ ] Production branch: `main`
 - [ ] Environment variables (Production):
 
 | Variable | Value |
 |----------|-------|
 | `NEXT_PUBLIC_API_BASE_URL` | `/api/v1` |
-| `API_PROXY_TARGET` | `http://<EC2_PUBLIC_IP>` |
-| `NEXT_PUBLIC_SITE_URL` | `https://krishifarms.vercel.app` (or your Vercel URL) |
+| `API_PROXY_TARGET` | `http://<EC2_PUBLIC_IP>:8082` |
+| `NEXT_PUBLIC_SITE_URL` | `https://krishifarms-backend.vercel.app` |
 
 - [ ] Update EC2 `CORS_ORIGINS` to include `NEXT_PUBLIC_SITE_URL`
 - [ ] Verify: Vercel homepage → Network tab shows `/api/v1/health` → 200 via proxy
 
-**Note:** Frontend app code is not implemented yet. `frontend/vercel.json` and env templates are placeholders. Vercel deploy will succeed once a Next.js app is added (copy pattern from `gamya-boutique/frontend/`).
+**Note:** EC2 nginx listens on port **8082** on the shared dev instance. If the backend is stopped, Vercel will build but API proxy requests will fail until the instance is running.
 
 ---
 

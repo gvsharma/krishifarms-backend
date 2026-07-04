@@ -11,7 +11,7 @@ concurrency:
 
 env:
   PYTHON_VERSION: "3.12"
-  AWS_REGION: ap-south-1
+  AWS_REGION: ${{ vars.AWS_REGION || 'ap-south-1' }}
   APP_PATH: /opt/krishifarms
   DEPLOY_OBJECT_KEY: incoming/deploy.tar.gz
   DEPLOY_SCRIPT_KEY: incoming/remote-deploy.sh
@@ -384,9 +384,17 @@ jobs:
 
       - name: Verify public health via nginx
         id: public_health
+        env:
+          PUBLIC_HEALTH_CHECK_URL: ${{ vars.PUBLIC_HEALTH_CHECK_URL }}
+          NGINX_LOCAL_PORT: ${{ vars.NGINX_LOCAL_PORT || '8082' }}
         run: |
           EC2_HOST="${{ steps.ec2_target.outputs.ec2_host }}"
-          HEALTH_URL="http://${EC2_HOST}/api/v1/health"
+          if [[ -n "${PUBLIC_HEALTH_CHECK_URL//[[:space:]]/}" ]]; then
+            HEALTH_URL="${PUBLIC_HEALTH_CHECK_URL}"
+          else
+            HEALTH_URL="http://${EC2_HOST}:${NGINX_LOCAL_PORT}/api/v1/health"
+          fi
+          echo "Health URL: ${HEALTH_URL}"
           for attempt in $(seq 1 48); do
             RESPONSE="$(curl -sS "$HEALTH_URL" || true)"
             if echo "$RESPONSE" | grep -q '"status"[[:space:]]*:[[:space:]]*"ok"'; then
@@ -396,7 +404,7 @@ jobs:
             echo "Attempt ${attempt}/48 — response: ${RESPONSE:-<empty>}"
             sleep 5
           done
-          echo "::error::Public health check failed — backend not healthy behind nginx." >&2
+          echo "::error::Public health check failed — backend not healthy at ${HEALTH_URL}." >&2
           exit 1
 
       - name: Dump EC2 deploy logs on health failure

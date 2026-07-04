@@ -21,7 +21,7 @@ const publicApiBase = (() => {
 const apiProxyTarget = (() => {
   const raw = process.env.API_PROXY_TARGET?.replace(/\/$/, "");
   if (isVercel) {
-    return raw || "http://13.232.200.243";
+    return raw || "http://13.232.200.243:8082";
   }
   return raw ?? "";
 })();

@@ -31,14 +31,25 @@ Open [http://localhost:3000](http://localhost:3000) — redirects to `/dashboard
 
 ## Environment
 
-Copy `.env.example` to `.env.local`:
+Copy `.env.local.example` to `.env.local` for local development:
 
-| Variable | Default (local) |
-|----------|-----------------|
+| Variable | Local default |
+|----------|---------------|
 | `NEXT_PUBLIC_API_BASE_URL` | `http://localhost:8080/api/v1` |
 | `API_PROXY_TARGET` | `http://localhost:8080` |
+| `NEXT_PUBLIC_SITE_URL` | `http://localhost:3000` |
 
-On Vercel: `NEXT_PUBLIC_API_BASE_URL=/api/v1` and `API_PROXY_TARGET=http://<EC2_IP>`.
+### Vercel (Production)
+
+Set in the Vercel dashboard (**Settings → Environment Variables**) or rely on defaults in `vercel.json`:
+
+| Variable | Value |
+|----------|-------|
+| `NEXT_PUBLIC_API_BASE_URL` | `/api/v1` |
+| `API_PROXY_TARGET` | `http://13.232.200.243:8082` |
+| `NEXT_PUBLIC_SITE_URL` | `https://krishifarms-backend.vercel.app` |
+
+Browser calls same-origin `/api/v1`; Next.js rewrites proxy to EC2 nginx on port **8082** (avoids mixed content). Update EC2 `CORS_ORIGINS` to include `NEXT_PUBLIC_SITE_URL`.
 
 ## Architecture
 
