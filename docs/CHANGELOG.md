@@ -13,14 +13,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- Deploy: align SSM orchestration with Gamya (stale command cancel, `log_ssm_invocation`, probe/kickoff logging, 36×10s status poll); smoke tests use `:8082`; `sync-env-from-ssm.sh` fails fast without AWS CLI
+- Docs: `CI_CD.md` and `deploy/README.md` — "Same as Gamya" side-by-side; SSM parameter names for `krishifarms-infra`
+
+### Changed
+
 - Deploy workflow: optional `EC2_NAME_TAG` variable; auto-default `gamya-couture-dev-api` when `DEPLOY_BUCKET` contains `krishifarms` (shared Gamya EC2)
 - `.github/DEPLOY_CONFIG.md`, `docs/deploy/CI_CD.md`, `deploy/README.md` — `EC2_INSTANCE_ID` and `EC2_HOST` **required** for shared Gamya EC2; shared-host section (port 8082, `/opt/krishifarms`)
 
 ### Fixed
 
+- Deploy SSM: auto-create `application.env` from S3 template when bootstrap was skipped; `ssm-kickoff-deploy.sh` marks `deploy.status=failed` on early errors (no more zombie `running`); creates `krishifarms` service user if missing; workflow preflight checks Docker and clears stale deploy PID/status
+- Deploy: revert SSM status poll to 36 attempts × 10s; upload `application.env.example` to S3 for kickoff
 - Deploy: `infra/docker-compose.prod.yml` maps nginx to host port **8082** (`NGINX_HOST_PORT`, default 8082) on shared Gamya EC2
 - Deploy: `remote-deploy.sh` on-host health check uses `http://127.0.0.1:8082/api/v1/health`
-- Deploy: GitHub Actions SSM deploy status poll extended (90 attempts × 10s) and job timeout 45m for first Docker build
 
 - Deploy: EC2 resolution no longer looks up non-existent `krishifarms-dev-api` tag when using shared Gamya host
 - Deploy: write `deploy.tar.gz` under `$RUNNER_TEMP` before moving to workspace — GNU tar exits 1 (`file changed as we read it`) when the archive is created inside the tree being packed
