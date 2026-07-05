@@ -12,10 +12,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Admin platform Phase 1b** — REST APIs for buyers, field agents, activity types, vehicle types, crop price rules, comments, tags (`app/modules/platform/`); migrations `017`/`018`
 - Shared patterns: `AuditMetaMixin`, `entity_notes` helper; docs `FARMERS.md`, `CROSS_CUTTING.md`, `PROCUREMENT.md`, `PRODUCT_ROADMAP.md`
 - Tests: `tests/test_farmers_rbac.py`, `tests/test_platform_admin.py`
+- **Frontend Phase W1 (Material UI)** — MUI v6 MD3 theme (`frontend/src/theme/`), `MuiAppShell` with role-aware nav, reusable `CommentThread`, settings pages (users, villages, master-data hub), API client with `X-Device-Id` / `X-Client-Type: web`
+- `docs/ui/MATERIAL_DESIGN.md` — MD3 tokens, Helvetica stack, component conventions
 
 ### Changed
 
 - RBAC: platform + farmer permissions in `app/shared/permissions.py`; MANAGER no delete; AGENT/DRIVER comments-only
+- **Frontend:** App layout uses MUI shell; dashboard retains Tailwind KPI layout; root typography switched to system Helvetica stack
+- **Merge:** Reconciled `feature/material-ui-phase1` with `main` after admin-platform merge (PR #16); resolved shell/routes/theme overlap
 
 ### Added
 

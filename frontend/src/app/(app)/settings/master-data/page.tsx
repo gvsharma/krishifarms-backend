@@ -8,40 +8,55 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import { ChevronRight, Dataset, LocationCity, People } from "@mui/icons-material";
+import {
+  Agriculture,
+  ChevronRight,
+  Groups,
+  LocalShipping,
+  Store,
+} from "@mui/icons-material";
 import Link from "next/link";
-import { ROUTES } from "@/constants/routes";
 import { MuiPageShell } from "@/components/shell/mui-page-shell";
 
-const SETTINGS_LINKS = [
+const MASTER_LINKS = [
   {
-    href: ROUTES.settingsUsers,
-    title: "Users & roles",
-    description: "Members, RBAC roles, and access control",
-    icon: People,
+    href: "/settings/master-data/crops",
+    title: "Crop types",
+    description: "Paddy, corn, and seasonal crop catalog",
+    icon: Agriculture,
+    status: "W2",
   },
   {
-    href: ROUTES.settingsVillages,
+    href: "/settings/master-data/buyers",
+    title: "Buyers",
+    description: "Mill and trader contacts for procurement",
+    icon: Store,
+    status: "W2",
+  },
+  {
+    href: "/settings/master-data/agents",
+    title: "Field agents",
+    description: "Collection and village agent roster",
+    icon: Groups,
+    status: "W2",
+  },
+  {
+    href: "/settings/villages",
     title: "Villages",
-    description: "Geography master for farmers and trips",
-    icon: LocationCity,
-  },
-  {
-    href: ROUTES.settingsMasterData,
-    title: "Master data",
-    description: "Crops, buyers, agents, and catalogs",
-    icon: Dataset,
+    description: "Geography master — live CRUD stub",
+    icon: LocalShipping,
+    status: "W1",
   },
 ] as const;
 
-export default function SettingsPage() {
+export default function SettingsMasterDataPage() {
   return (
     <MuiPageShell
-      title="Settings"
-      description="Organization, users, roles, master data, and locale preferences."
+      title="Master data"
+      description="Links to crops, buyers, agents, and related admin catalogs."
     >
       <Grid container spacing={2}>
-        {SETTINGS_LINKS.map((link) => {
+        {MASTER_LINKS.map((link) => {
           const Icon = link.icon;
           return (
             <Grid key={link.href} size={{ xs: 12, sm: 6, md: 4 }}>
@@ -59,6 +74,9 @@ export default function SettingsPage() {
                         </Stack>
                         <Typography variant="body2" color="text.secondary">
                           {link.description}
+                        </Typography>
+                        <Typography variant="caption" color="primary">
+                          Phase {link.status}
                         </Typography>
                       </Stack>
                     </Stack>

@@ -35,16 +35,13 @@ import { usePathname } from "next/navigation";
 import { useTheme as useNextTheme } from "next-themes";
 import { useEffect, useState, type ReactNode } from "react";
 import {
-  DRAWER_WIDTH,
-  DRAWER_WIDTH_COLLAPSED,
-} from "@/theme/material-theme";
-import {
   filterNavByRole,
   NAV_SECTIONS,
   PLACEHOLDER_USER_ROLE,
   ROUTES,
   SITE_NAME,
 } from "@/constants/routes";
+import { DRAWER_WIDTH, DRAWER_WIDTH_COLLAPSED } from "@/theme/material-theme";
 import { useUiStore } from "@/stores/ui-store";
 
 interface MuiAppShellProps {

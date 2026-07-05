@@ -1,24 +1,15 @@
 import type { Metadata } from "next";
-import { JetBrains_Mono, Noto_Sans_Telugu, Plus_Jakarta_Sans } from "next/font/google";
+import { Noto_Sans_Telugu } from "next/font/google";
 import { Providers } from "@/app/providers";
 import "./globals.css";
 
-const jakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  variable: "--font-jakarta",
-  display: "swap",
-});
+/** Helvetica stack via system fonts — no webfont files required. */
+const helveticaClass = "font-helvetica";
 
 const notoTelugu = Noto_Sans_Telugu({
   subsets: ["telugu"],
   weight: ["400", "500", "600", "700"],
   variable: "--font-noto-telugu",
-  display: "swap",
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
-  variable: "--font-mono",
   display: "swap",
 });
 
@@ -33,7 +24,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${jakarta.variable} ${notoTelugu.variable} ${jetbrainsMono.variable}`}>
+      <body className={`${helveticaClass} ${notoTelugu.variable}`}>
         <Providers>{children}</Providers>
       </body>
     </html>

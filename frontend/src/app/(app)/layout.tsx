@@ -1,8 +1,7 @@
 "use client";
 
-import { AppShell } from "@/components/shell/app-shell";
-import { PageShell } from "@/components/shell/page-shell";
+import { MuiAppShell } from "@/components/shell/mui-app-shell";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  return <AppShell>{children}</AppShell>;
+  return <MuiAppShell>{children}</MuiAppShell>;
 }

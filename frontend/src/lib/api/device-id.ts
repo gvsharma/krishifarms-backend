@@ -7,7 +7,7 @@ function generateId(): string {
   return `web-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
 }
 
-/** Stable device -browser device id for audit / comment accountability headers. */
+/** Stable browser device id for audit / comment accountability headers. */
 export function getDeviceId(): string {
   if (typeof window === "undefined") return "server";
   try {
