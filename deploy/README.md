@@ -98,6 +98,8 @@ Create in Terraform or AWS Console (SecureString). EC2 instance role needs `ssm:
 |-----------|---------------------------|
 | `/krishifarms/dev/app/secret_key` | `SECRET_KEY` |
 | `/krishifarms/dev/db/password` | `POSTGRES_PASSWORD`, `DATABASE_URL` |
+| `/krishifarms/dev/app/firebase_service_account_json` | `FIREBASE_SERVICE_ACCOUNT_JSON` (quoted in env file) |
+| `/krishifarms/dev/app/firebase_project_id` | `FIREBASE_PROJECT_ID` (optional; default `krishifarms-prod` in template) |
 
 Gamya equivalent: `/gamya-couture/dev/db/username`, `/gamya-couture/dev/db/password`.
 
