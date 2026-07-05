@@ -4,6 +4,7 @@ from types import SimpleNamespace
 
 from app.modules.auth.permission_catalog import (
     EXPENSE_VIEW,
+    FARMER_CREATE,
     FARMER_VIEW,
     PROCUREMENT_VIEW,
     ROLE_MOBILE_PERMISSIONS,
