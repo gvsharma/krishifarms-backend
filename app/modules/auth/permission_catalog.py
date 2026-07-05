@@ -71,6 +71,11 @@ TRIP_VIEW = "TRIP_VIEW"
 ASSET_VIEW = "ASSET_VIEW"
 RENTAL_VIEW = "RENTAL_VIEW"
 
+COMMENT_VIEW = "COMMENT_VIEW"
+COMMENT_CREATE = "COMMENT_CREATE"
+TAG_VIEW = "TAG_VIEW"
+TAG_MANAGE = "TAG_MANAGE"
+
 ALL_MOBILE_PERMISSIONS: frozenset[str] = frozenset(
     [
         FARMER_VIEW,
@@ -121,6 +126,10 @@ ALL_MOBILE_PERMISSIONS: frozenset[str] = frozenset(
         TRIP_VIEW,
         ASSET_VIEW,
         RENTAL_VIEW,
+        COMMENT_VIEW,
+        COMMENT_CREATE,
+        TAG_VIEW,
+        TAG_MANAGE,
     ]
 )
 
@@ -165,6 +174,31 @@ _MANAGER: frozenset[str] = frozenset(
         TRIP_VIEW,
         ASSET_VIEW,
         RENTAL_VIEW,
+        COMMENT_VIEW,
+        COMMENT_CREATE,
+        TAG_VIEW,
+    ]
+)
+
+_AGENT: frozenset[str] = frozenset(
+    [
+        COMMENT_VIEW,
+        COMMENT_CREATE,
+        TAG_VIEW,
+        REPORT_VIEW,
+        SETTINGS_VIEW,
+    ]
+)
+
+_DRIVER: frozenset[str] = frozenset(
+    [
+        VEHICLE_VIEW,
+        TRIP_VIEW,
+        COMMENT_VIEW,
+        COMMENT_CREATE,
+        TAG_VIEW,
+        REPORT_VIEW,
+        SETTINGS_VIEW,
     ]
 )
 
@@ -189,6 +223,9 @@ _SUPERVISOR: frozenset[str] = frozenset(
         VEHICLE_VIEW,
         TRIP_VIEW,
         ASSET_VIEW,
+        COMMENT_VIEW,
+        COMMENT_CREATE,
+        TAG_VIEW,
     ]
 )
 
@@ -201,6 +238,8 @@ _WORKER: frozenset[str] = frozenset(
         ATTENDANCE_UPDATE,
         DOCUMENT_VIEW,
         DOCUMENT_CREATE,
+        COMMENT_VIEW,
+        COMMENT_CREATE,
         SETTINGS_VIEW,
     ]
 )
@@ -231,6 +270,8 @@ ROLE_MOBILE_PERMISSIONS: dict[str, frozenset[str]] = {
     "OWNER": _OWNER,
     "MANAGER": _MANAGER,
     "SUPERVISOR": _SUPERVISOR,
+    "AGENT": _AGENT,
+    "DRIVER": _DRIVER,
     "WORKER": _WORKER,
     "ACCOUNTANT": _ACCOUNTANT,
 }
@@ -286,6 +327,32 @@ BACKEND_TO_MOBILE: dict[str, str] = {
     "rentals:read": RENTAL_VIEW,
     "rentals:create": RENTAL_VIEW,
     "rentals:update": RENTAL_VIEW,
+    "villages:read": SETTINGS_VIEW,
+    "villages:create": SETTINGS_MANAGE,
+    "villages:update": SETTINGS_MANAGE,
+    "crop_types:read": SETTINGS_VIEW,
+    "crop_types:create": SETTINGS_MANAGE,
+    "crop_types:update": SETTINGS_MANAGE,
+    "crop_prices:read": SETTINGS_VIEW,
+    "crop_prices:create": SETTINGS_MANAGE,
+    "crop_prices:update": SETTINGS_MANAGE,
+    "buyers:read": SETTINGS_VIEW,
+    "buyers:create": SETTINGS_MANAGE,
+    "buyers:update": SETTINGS_MANAGE,
+    "agents:read": SETTINGS_VIEW,
+    "agents:create": SETTINGS_MANAGE,
+    "agents:update": SETTINGS_MANAGE,
+    "activity_types:read": SETTINGS_VIEW,
+    "activity_types:create": SETTINGS_MANAGE,
+    "activity_types:update": SETTINGS_MANAGE,
+    "vehicle_types:read": VEHICLE_VIEW,
+    "vehicle_types:create": SETTINGS_MANAGE,
+    "vehicle_types:update": SETTINGS_MANAGE,
+    "comments:read": COMMENT_VIEW,
+    "comments:create": COMMENT_CREATE,
+    "tags:read": TAG_VIEW,
+    "tags:create": TAG_MANAGE,
+    "tags:delete": TAG_MANAGE,
 }
 
 # Module keys returned as accessibleModules — any matching view permission grants access.

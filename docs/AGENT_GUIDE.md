@@ -78,13 +78,14 @@ docs/deploy/           → CI/CD details
 | Auth | ✅ | ✅ | — | `001` | `paths/auth.yaml` | 1 |
 | Users / Roles | ✅ | ✅ | ✅ | `001`, `002`, `015` | in `001` spec | 1 |
 | Villages / Crop types | ✅ | ✅ | ✅ | `001`, `003` | in master paths | 1 |
+| Platform (buyers, agents, services, prices, comments, tags) | ✅ | ✅ | ✅ | `017`, `018` | `paths/platform.yaml` | 1b |
 | Expense categories | ✅ | ✅ | ✅ | `001` | in financial paths | 1 |
 | Documents | 🟡 | ✅ | 🟡 | `001`, `007` | `paths/documents.yaml` | 1 |
 | Audit / Activity | ✅ | ✅ | ✅ | `001`, `013` | in platform paths | 1 |
 | Dashboard / Health | 🟡 | ✅ | — | — | in platform paths | 1 |
-| Farmers | ⬜ | — | — | `004` | `paths/farmers.yaml` | 2 |
+| Farmers | ✅ | ✅ | ✅ | `004` | `paths/farmers.yaml` | 2a |
 | Farms | ⬜ | — | — | `006` | `paths/farms.yaml` | 4 |
-| Procurements | ⬜ | — | — | `008` | `paths/procurement.yaml` | 2 |
+| Procurements | ⬜ | — | — | `008` | `paths/procurement.yaml` | 2b |
 | Farmer payments / Ledger | ⬜ | — | — | `008` | `paths/payments.yaml` | 2 |
 | Workers | ⬜ | — | — | `005` | `paths/workers.yaml` | 4 |
 | Work orders / Attendance | ⬜ | — | — | `009` | `paths/work-orders.yaml` | 4 |

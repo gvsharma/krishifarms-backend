@@ -21,6 +21,8 @@ class AuditLog(Base, UUIDPrimaryKeyMixin):
     ip_address: Mapped[str | None] = mapped_column(INET, nullable=True)
     user_agent: Mapped[str | None] = mapped_column(Text, nullable=True)
     request_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    device_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    client_type: Mapped[str | None] = mapped_column(String(30), nullable=True)
     occurred_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
@@ -35,6 +37,8 @@ class ActivityFeed(Base, UUIDPrimaryKeyMixin):
     entity_type: Mapped[str] = mapped_column(String(50), nullable=False)
     entity_id: Mapped[UUID | None] = mapped_column(PGUUID(as_uuid=True), nullable=True)
     visibility: Mapped[str] = mapped_column(String(20), default="org", nullable=False)
+    device_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    client_type: Mapped[str | None] = mapped_column(String(30), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

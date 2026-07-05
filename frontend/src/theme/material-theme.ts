@@ -17,7 +17,8 @@ const agriSecondary = {
   contrastText: "#FFFFFF",
 };
 
-const helveticaStack = '"Helvetica Neue", Helvetica, Arial, sans-serif';
+const helveticaStack =
+  '"Helvetica Neue", Helvetica, Arial, sans-serif';
 
 export const materialTheme = createTheme({
   cssVariables: {
