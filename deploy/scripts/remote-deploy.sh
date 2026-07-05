@@ -131,6 +131,9 @@ log "Extracting incoming deploy bundle"
 rm -rf "${REPO_DIR}.new"
 mkdir -p "${REPO_DIR}.new"
 tar -xzf "${INCOMING_ARCHIVE}" -C "${REPO_DIR}.new"
+# macOS tar bundles may include AppleDouble metadata (._*) — Alembic loads them as .py
+find "${REPO_DIR}.new" -name '._*' -delete
+find "${REPO_DIR}.new" -type d -name '__MACOSX' -prune -exec rm -rf {} + 2>/dev/null || true
 rm -rf "${REPO_DIR}"
 mv "${REPO_DIR}.new" "${REPO_DIR}"
 chown -R ec2-user:krishifarms "${REPO_DIR}"

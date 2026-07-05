@@ -21,7 +21,15 @@ if ! command -v docker >/dev/null 2>&1; then
   systemctl enable --now docker
 fi
 if ! docker compose version >/dev/null 2>&1; then
-  dnf install -y docker-compose-plugin || true
+  dnf install -y docker-compose-plugin 2>/dev/null || true
+fi
+if ! docker compose version >/dev/null 2>&1; then
+  log "Installing Docker Compose v2 binary (AL2023 lacks docker-compose-plugin package)"
+  COMPOSE_VERSION="${DOCKER_COMPOSE_VERSION:-v2.29.7}"
+  mkdir -p /usr/local/lib/docker/cli-plugins
+  curl -fsSL "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-linux-$(uname -m)" \
+    -o /usr/local/lib/docker/cli-plugins/docker-compose
+  chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
 fi
 
 log "Creating service user: ${SERVICE_USER}"
