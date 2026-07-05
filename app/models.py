@@ -3,7 +3,7 @@
 from app.core.database import Base
 from app.modules.audit.models import ActivityFeed, AuditLog  # noqa: F401
 from app.modules.documents.models import Document, DocumentLink  # noqa: F401
-from app.modules.farmers.models import Farmer  # noqa: F401
+from app.modules.farmers.models import Farmer, FarmerBankAccount, FarmerLandParcel  # noqa: F401
 from app.modules.procurements.models import (  # noqa: F401
     FarmerLedgerEntry,
     Procurement,
