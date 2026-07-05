@@ -1,6 +1,8 @@
 # Frontend Architecture — KrishiFarms CRM Web
 
-**Stack:** Next.js 15 (App Router) · TypeScript · Tailwind CSS · shadcn/ui · TanStack Query · Zustand
+**Stack:** Next.js 15 (App Router) · TypeScript · **MUI v6 (MD3)** · Tailwind CSS (legacy dashboard) · TanStack Query · Zustand
+
+**UI phase W1:** Material Design 3 shell, settings/admin foundation, reusable comments — see [MATERIAL_DESIGN.md](./MATERIAL_DESIGN.md).
 
 Aligned with the [Gamya Couture frontend](https://github.com/gvsharma/gamyaboutique) (`gamya-boutique/frontend/`) deployment pattern: Vercel hosting, `/api/v1` proxy to EC2, Axios + JWT.
 
@@ -14,6 +16,7 @@ Aligned with the [Gamya Couture frontend](https://github.com/gvsharma/gamyabouti
 | **Gamya parity** | Proven stack in sibling project — App Router, TanStack Query, Zustand, Axios |
 | **Dashboard SaaS velocity** | RSC for shell/layout; client components for dense tables, Kanban, command palette |
 | **OpenAPI clients** | TypeScript client generation from `docs/api/openapi.bundled.yaml` |
+| **MUI MD3 (W1+)** | `@mui/material@6` with `colorSchemes`, Helvetica typography, `AppRouterCacheProvider` — incremental migration from Tailwind dashboard |
 
 **Mobile:** Responsive web first (breakpoints in [DESIGN_SYSTEM.md](./DESIGN_SYSTEM.md)). PWA optional later — **not** Flutter mobile.
 

@@ -55,10 +55,16 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ["var(--font-jakarta)", "var(--font-noto-telugu)", "system-ui", "sans-serif"],
-        display: ["var(--font-jakarta)", "var(--font-noto-telugu)", "system-ui", "sans-serif"],
+        sans: [
+          "Helvetica Neue",
+          "Helvetica",
+          "Arial",
+          "var(--font-noto-telugu)",
+          "sans-serif",
+        ],
+        display: ["Helvetica Neue", "Helvetica", "Arial", "sans-serif"],
+        helvetica: ["Helvetica Neue", "Helvetica", "Arial", "sans-serif"],
         telugu: ["var(--font-noto-telugu)", "Noto Sans", "sans-serif"],
-        mono: ["var(--font-mono)", "ui-monospace", "monospace"],
       },
       borderRadius: {
         lg: "var(--radius)",

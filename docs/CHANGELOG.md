@@ -8,6 +8,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Frontend Phase W1 (Material UI)** — MUI v6 MD3 theme (`frontend/src/theme/`), `MuiAppShell` with role-aware nav, reusable `CommentThread`, settings pages (users, villages, master-data hub), API client with `X-Device-Id` / `X-Client-Type: web`
+- `docs/ui/MATERIAL_DESIGN.md` — MD3 tokens, Helvetica stack, component conventions
+
+### Changed
+
+- **Frontend:** App layout uses MUI shell; dashboard retains Tailwind KPI layout; root typography switched to system Helvetica stack
+
+### Added
+
 - `POST /auth/firebase-login` — verify Firebase Phone OTP ID token (Admin SDK), lookup user by phone, issue CRM JWT + RBAC; 403 if not registered
 - `GET /auth/me` — current user profile with roles, permissions, and accessible modules (mobile)
 - Firebase auth module (`app/modules/auth/firebase.py`), phone normalization, login rate limiting
