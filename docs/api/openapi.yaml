@@ -87,10 +87,18 @@ paths:
     $ref: paths/procurement.yaml#/procurements
   /procurements/{procurement_id}:
     $ref: paths/procurement.yaml#/procurementById
+  /procurements/{procurement_id}/submit:
+    $ref: paths/procurement.yaml#/procurementSubmit
+  /procurements/{procurement_id}/weighment:
+    $ref: paths/procurement.yaml#/procurementWeighment
+  /procurements/{procurement_id}/apply-price:
+    $ref: paths/procurement.yaml#/procurementApplyPrice
   /procurements/{procurement_id}/confirm:
     $ref: paths/procurement.yaml#/procurementConfirm
   /procurements/{procurement_id}/cancel:
     $ref: paths/procurement.yaml#/procurementCancel
+  /procurements/{procurement_id}/reverse:
+    $ref: paths/procurement.yaml#/procurementReverse
   /procurements/{procurement_id}/deductions:
     $ref: paths/procurement.yaml#/procurementDeductions
 

@@ -19,7 +19,7 @@ procurements:
         schema: { type: string, format: uuid }
       - name: status
         in: query
-        schema: { $ref: '../schemas/common.yaml#/StatusDraftConfirmedCancelled' }
+        schema: { $ref: '../schemas/procurement.yaml#/ProcurementStatus' }
     responses:
       '200':
         content:
@@ -65,19 +65,82 @@ procurementById:
         in: path
         required: true
         schema: { type: string, format: uuid }
+      - name: procurement_date
+        in: query
+        required: true
+        schema: { type: string, format: date }
     responses:
       '200': { description: Updated }
 
-procurementConfirm:
+procurementSubmit:
   post:
     tags: [Procurement]
-    operationId: confirmProcurement
-    description: Confirm procurement and post farmer ledger entry.
+    operationId: submitProcurement
+    description: Transition draft → pending_weighment.
     parameters:
       - name: procurement_id
         in: path
         required: true
         schema: { type: string, format: uuid }
+      - name: procurement_date
+        in: query
+        required: true
+        schema: { type: string, format: date }
+    responses:
+      '200': { description: Submitted }
+
+procurementWeighment:
+  post:
+    tags: [Procurement]
+    operationId: recordProcurementWeighment
+    description: Record gross/tare and transition pending_weighment → weighed.
+    parameters:
+      - name: procurement_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: procurement_date
+        in: query
+        required: true
+        schema: { type: string, format: date }
+    requestBody:
+      content:
+        application/json:
+          schema: { $ref: '../schemas/procurement.yaml#/ProcurementWeighment' }
+    responses:
+      '200': { description: Weighed }
+
+procurementApplyPrice:
+  post:
+    tags: [Procurement]
+    operationId: applyProcurementPrice
+    description: Snapshot rate from crop_price_rules; transition weighed → priced.
+    parameters:
+      - name: procurement_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: procurement_date
+        in: query
+        required: true
+        schema: { type: string, format: date }
+    responses:
+      '200': { description: Priced }
+
+procurementConfirm:
+  post:
+    tags: [Procurement]
+    operationId: confirmProcurement
+    description: Confirm procurement and post farmer ledger debit entry.
+    parameters:
+      - name: procurement_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: procurement_date
+        in: query
+        required: true
+        schema: { type: string, format: date }
     responses:
       '200': { description: Confirmed }
       '409': { $ref: '../openapi.yaml#/components/responses/Conflict' }
@@ -91,12 +154,38 @@ procurementCancel:
         in: path
         required: true
         schema: { type: string, format: uuid }
+      - name: procurement_date
+        in: query
+        required: true
+        schema: { type: string, format: date }
     requestBody:
       content:
         application/json:
           schema: { $ref: '../schemas/procurement.yaml#/ProcurementCancel' }
     responses:
       '200': { description: Cancelled }
+
+procurementReverse:
+  post:
+    tags: [Procurement]
+    operationId: reverseProcurement
+    description: OWNER-only post-confirm reversal with ledger credit entry.
+    parameters:
+      - name: procurement_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: procurement_date
+        in: query
+        required: true
+        schema: { type: string, format: date }
+    requestBody:
+      content:
+        application/json:
+          schema: { $ref: '../schemas/procurement.yaml#/ProcurementReverse' }
+    responses:
+      '200': { description: Reversed }
+      '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
 
 procurementDeductions:
   post:
@@ -107,5 +196,13 @@ procurementDeductions:
         in: path
         required: true
         schema: { type: string, format: uuid }
+      - name: procurement_date
+        in: query
+        required: true
+        schema: { type: string, format: date }
+    requestBody:
+      content:
+        application/json:
+          schema: { $ref: '../schemas/procurement.yaml#/ProcurementDeductionCreate' }
     responses:
       '201': { description: Deduction added }

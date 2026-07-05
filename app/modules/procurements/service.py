@@ -1,0 +1,708 @@
+from __future__ import annotations
+
+import re
+from datetime import UTC, date, datetime
+from decimal import ROUND_HALF_UP, Decimal
+from uuid import UUID
+
+from sqlalchemy.orm import Session, joinedload
+
+from app.core.client_context import ClientContext
+from app.core.exceptions import ConflictError, NotFoundError
+from app.modules.farmers.models import Farmer
+from app.modules.master_data.models import CropType, Village
+from app.modules.platform.models import CropPriceRule
+from app.modules.procurements.models import FarmerLedgerEntry, Procurement, ProcurementDeduction
+from app.modules.procurements.schemas import (
+    CANCELLABLE_STATUSES,
+    ProcurementCancelRequest,
+    ProcurementCreateRequest,
+    ProcurementDeductionInput,
+    ProcurementReverseRequest,
+    ProcurementUpdateRequest,
+    WeighmentRequest,
+)
+from app.shared.services.audit import write_activity_feed, write_audit_log
+
+_PROCUREMENT_NUMBER_PREFIX = "PR-"
+_QUINTAL_KG = Decimal("100")
+_ZERO = Decimal("0")
+_TWOPLACES = Decimal("0.01")
+
+ALLOWED_TRANSITIONS: dict[str, frozenset[str]] = {
+    "draft": frozenset({"pending_weighment", "cancelled"}),
+    "pending_weighment": frozenset({"weighed", "cancelled"}),
+    "weighed": frozenset({"priced", "cancelled"}),
+    "priced": frozenset({"confirmed"}),
+    "confirmed": frozenset({"reversed"}),
+}
+
+
+def can_transition(current: str, target: str) -> bool:
+    return target in ALLOWED_TRANSITIONS.get(current, frozenset())
+
+
+def _money(value: Decimal) -> Decimal:
+    return value.quantize(_TWOPLACES, rounding=ROUND_HALF_UP)
+
+
+def _next_procurement_number(db: Session, org_id: UUID) -> str:
+    rows = (
+        db.query(Procurement.procurement_number)
+        .filter(
+            Procurement.org_id == org_id,
+            Procurement.procurement_number.like(f"{_PROCUREMENT_NUMBER_PREFIX}%"),
+        )
+        .all()
+    )
+    max_seq = 0
+    for (code,) in rows:
+        match = re.match(rf"^{re.escape(_PROCUREMENT_NUMBER_PREFIX)}(\d+)$", code or "")
+        if match:
+            max_seq = max(max_seq, int(match.group(1)))
+    return f"{_PROCUREMENT_NUMBER_PREFIX}{max_seq + 1:04d}"
+
+
+def _audit(
+    db: Session,
+    *,
+    org_id: UUID,
+    actor_user_id: UUID,
+    action: str,
+    entity_id: UUID,
+    before: dict | None = None,
+    after: dict | None = None,
+    client: ClientContext | None = None,
+    summary: str | None = None,
+) -> None:
+    write_audit_log(
+        db,
+        org_id=org_id,
+        actor_user_id=actor_user_id,
+        action=action,
+        entity_type="procurement",
+        entity_id=entity_id,
+        before_state=before,
+        after_state=after,
+        device_id=client.device_id if client else None,
+        client_type=client.client_type if client else None,
+        request_id=client.request_id if client else None,
+    )
+    if summary:
+        write_activity_feed(
+            db,
+            org_id=org_id,
+            actor_user_id=actor_user_id,
+            summary=summary,
+            entity_type="procurement",
+            entity_id=entity_id,
+        )
+
+
+def _get_procurement(
+    db: Session,
+    org_id: UUID,
+    procurement_id: UUID,
+    procurement_date: date,
+) -> Procurement:
+    row = (
+        db.query(Procurement)
+        .options(joinedload(Procurement.deductions))
+        .filter(
+            Procurement.id == procurement_id,
+            Procurement.procurement_date == procurement_date,
+            Procurement.org_id == org_id,
+            Procurement.deleted_at.is_(None),
+        )
+        .first()
+    )
+    if row is None:
+        raise NotFoundError("Procurement not found")
+    return row
+
+
+def _validate_farmer(db: Session, org_id: UUID, farmer_id: UUID) -> Farmer:
+    row = (
+        db.query(Farmer)
+        .filter(Farmer.id == farmer_id, Farmer.org_id == org_id, Farmer.deleted_at.is_(None))
+        .first()
+    )
+    if row is None:
+        raise NotFoundError("Farmer not found")
+    return row
+
+
+def _validate_village(db: Session, org_id: UUID, village_id: UUID) -> Village:
+    row = (
+        db.query(Village)
+        .filter(Village.id == village_id, Village.org_id == org_id, Village.deleted_at.is_(None))
+        .first()
+    )
+    if row is None:
+        raise NotFoundError("Village not found")
+    return row
+
+
+def _validate_crop_type(db: Session, org_id: UUID, crop_type_id: UUID) -> CropType:
+    row = (
+        db.query(CropType)
+        .filter(CropType.id == crop_type_id, CropType.org_id == org_id, CropType.deleted_at.is_(None))
+        .first()
+    )
+    if row is None:
+        raise NotFoundError("Crop type not found")
+    return row
+
+
+def resolve_rate_per_quintal(
+    db: Session,
+    org_id: UUID,
+    crop_type_id: UUID,
+    village_id: UUID,
+    as_of: date,
+) -> Decimal:
+    rule = (
+        db.query(CropPriceRule)
+        .filter(
+            CropPriceRule.org_id == org_id,
+            CropPriceRule.crop_type_id == crop_type_id,
+            CropPriceRule.is_active.is_(True),
+            CropPriceRule.deleted_at.is_(None),
+            CropPriceRule.effective_from <= as_of,
+            (CropPriceRule.effective_to.is_(None)) | (CropPriceRule.effective_to >= as_of),
+            (CropPriceRule.village_id == village_id) | (CropPriceRule.village_id.is_(None)),
+        )
+        .order_by(CropPriceRule.village_id.is_(None).asc(), CropPriceRule.effective_from.desc())
+        .first()
+    )
+    if rule is None:
+        raise NotFoundError("No active crop price rule for this crop and date")
+    return rule.rate_per_quintal
+
+
+def compute_amounts(
+    net_weight_kg: Decimal,
+    rate_per_quintal: Decimal,
+    deduction_amount: Decimal,
+) -> tuple[Decimal, Decimal, Decimal]:
+    gross_amount = _money((net_weight_kg / _QUINTAL_KG) * rate_per_quintal)
+    deduction_amount = _money(deduction_amount)
+    net_amount = _money(gross_amount - deduction_amount)
+    if net_amount < _ZERO:
+        raise ConflictError("Deductions exceed gross amount")
+    return gross_amount, deduction_amount, net_amount
+
+
+def _sum_deductions(procurement: Procurement) -> Decimal:
+    return _money(sum((d.amount for d in procurement.deductions), _ZERO))
+
+
+def _sync_amounts(procurement: Procurement) -> None:
+    gross_amount, deduction_amount, net_amount = compute_amounts(
+        procurement.net_weight_kg,
+        procurement.rate_per_quintal,
+        _sum_deductions(procurement),
+    )
+    procurement.gross_amount = gross_amount
+    procurement.deduction_amount = deduction_amount
+    procurement.net_amount = net_amount
+
+
+def _latest_ledger_balance(db: Session, org_id: UUID, farmer_id: UUID) -> Decimal:
+    row = (
+        db.query(FarmerLedgerEntry.balance_after)
+        .filter(FarmerLedgerEntry.org_id == org_id, FarmerLedgerEntry.farmer_id == farmer_id)
+        .order_by(FarmerLedgerEntry.entry_date.desc(), FarmerLedgerEntry.posted_at.desc())
+        .first()
+    )
+    return row[0] if row else _ZERO
+
+
+def _post_ledger_entry(
+    db: Session,
+    *,
+    org_id: UUID,
+    farmer_id: UUID,
+    entry_date: date,
+    entry_type: str,
+    reference_id: UUID,
+    debit: Decimal,
+    credit: Decimal,
+    description: str,
+    posted_by: UUID,
+    reversal_of_id: UUID | None = None,
+) -> FarmerLedgerEntry:
+    balance_after = _money(_latest_ledger_balance(db, org_id, farmer_id) + debit - credit)
+    row = FarmerLedgerEntry(
+        org_id=org_id,
+        farmer_id=farmer_id,
+        entry_date=entry_date,
+        entry_type=entry_type,
+        reference_type="procurement",
+        reference_id=reference_id,
+        debit=debit,
+        credit=credit,
+        balance_after=balance_after,
+        description=description,
+        reversal_of_id=reversal_of_id,
+        posted_at=datetime.now(UTC),
+        posted_by=posted_by,
+    )
+    db.add(row)
+    db.flush()
+    return row
+
+
+def _transition(procurement: Procurement, target: str) -> None:
+    if not can_transition(procurement.status, target):
+        raise ConflictError(f"Cannot transition from {procurement.status} to {target}")
+    procurement.status = target
+
+
+def list_procurements(
+    db: Session,
+    org_id: UUID,
+    *,
+    page: int,
+    page_size: int,
+    farmer_id: UUID | None = None,
+    village_id: UUID | None = None,
+    crop_type_id: UUID | None = None,
+    status: str | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
+) -> tuple[list[Procurement], int]:
+    q = db.query(Procurement).filter(Procurement.org_id == org_id, Procurement.deleted_at.is_(None))
+    if farmer_id:
+        q = q.filter(Procurement.farmer_id == farmer_id)
+    if village_id:
+        q = q.filter(Procurement.village_id == village_id)
+    if crop_type_id:
+        q = q.filter(Procurement.crop_type_id == crop_type_id)
+    if status:
+        q = q.filter(Procurement.status == status)
+    if date_from:
+        q = q.filter(Procurement.procurement_date >= date_from)
+    if date_to:
+        q = q.filter(Procurement.procurement_date <= date_to)
+    q = q.order_by(Procurement.procurement_date.desc(), Procurement.procurement_number.desc())
+    total = q.count()
+    items = q.offset((page - 1) * page_size).limit(page_size).all()
+    return items, total
+
+
+def get_procurement(
+    db: Session,
+    org_id: UUID,
+    procurement_id: UUID,
+    procurement_date: date,
+) -> Procurement:
+    return _get_procurement(db, org_id, procurement_id, procurement_date)
+
+
+def create_procurement(
+    db: Session,
+    org_id: UUID,
+    payload: ProcurementCreateRequest,
+    actor_user_id: UUID,
+    client: ClientContext | None,
+    *,
+    idempotency_key: str | None = None,
+) -> Procurement:
+    if idempotency_key:
+        existing = (
+            db.query(Procurement)
+            .filter(Procurement.org_id == org_id, Procurement.idempotency_key == idempotency_key)
+            .first()
+        )
+        if existing:
+            return existing
+
+    _validate_farmer(db, org_id, payload.farmer_id)
+    _validate_village(db, org_id, payload.village_id)
+    _validate_crop_type(db, org_id, payload.crop_type_id)
+
+    row = Procurement(
+        org_id=org_id,
+        procurement_number=_next_procurement_number(db, org_id),
+        status="draft",
+        bag_count=payload.bag_count,
+        gross_weight_kg=_ZERO,
+        net_weight_kg=_ZERO,
+        rate_per_quintal=_ZERO,
+        gross_amount=_ZERO,
+        deduction_amount=_ZERO,
+        net_amount=_ZERO,
+        idempotency_key=idempotency_key,
+        notes=payload.notes,
+        created_by=actor_user_id,
+        updated_by=actor_user_id,
+        **payload.model_dump(exclude={"notes", "bag_count"}),
+    )
+    db.add(row)
+    db.flush()
+    _audit(
+        db,
+        org_id=org_id,
+        actor_user_id=actor_user_id,
+        action="CREATE",
+        entity_id=row.id,
+        after={"procurement_number": row.procurement_number, "status": row.status},
+        client=client,
+        summary=f"Procurement draft created: {row.procurement_number}",
+    )
+    db.commit()
+    db.refresh(row)
+    return row
+
+
+def update_procurement(
+    db: Session,
+    org_id: UUID,
+    procurement_id: UUID,
+    procurement_date: date,
+    payload: ProcurementUpdateRequest,
+    actor_user_id: UUID,
+    client: ClientContext | None,
+) -> Procurement:
+    row = _get_procurement(db, org_id, procurement_id, procurement_date)
+    if row.status != "draft":
+        raise ConflictError("Only draft procurements can be updated")
+
+    data = payload.model_dump(exclude_unset=True)
+    if "farmer_id" in data and data["farmer_id"] is not None:
+        _validate_farmer(db, org_id, data["farmer_id"])
+    if "village_id" in data and data["village_id"] is not None:
+        _validate_village(db, org_id, data["village_id"])
+    if "crop_type_id" in data and data["crop_type_id"] is not None:
+        _validate_crop_type(db, org_id, data["crop_type_id"])
+
+    before = {"status": row.status, "farmer_id": str(row.farmer_id)}
+    for field, value in data.items():
+        setattr(row, field, value)
+    row.updated_by = actor_user_id
+    _audit(
+        db,
+        org_id=org_id,
+        actor_user_id=actor_user_id,
+        action="UPDATE",
+        entity_id=row.id,
+        before=before,
+        after=data,
+        client=client,
+        summary=f"Procurement updated: {row.procurement_number}",
+    )
+    db.commit()
+    db.refresh(row)
+    return row
+
+
+def submit_procurement(
+    db: Session,
+    org_id: UUID,
+    procurement_id: UUID,
+    procurement_date: date,
+    actor_user_id: UUID,
+    client: ClientContext | None,
+) -> Procurement:
+    row = _get_procurement(db, org_id, procurement_id, procurement_date)
+    before_status = row.status
+    _transition(row, "pending_weighment")
+    row.updated_by = actor_user_id
+    _audit(
+        db,
+        org_id=org_id,
+        actor_user_id=actor_user_id,
+        action="SUBMIT",
+        entity_id=row.id,
+        before={"status": before_status},
+        after={"status": row.status},
+        client=client,
+        summary=f"Procurement submitted for weighment: {row.procurement_number}",
+    )
+    db.commit()
+    db.refresh(row)
+    return row
+
+
+def record_weighment(
+    db: Session,
+    org_id: UUID,
+    procurement_id: UUID,
+    procurement_date: date,
+    payload: WeighmentRequest,
+    actor_user_id: UUID,
+    client: ClientContext | None,
+) -> Procurement:
+    row = _get_procurement(db, org_id, procurement_id, procurement_date)
+    before_status = row.status
+    _transition(row, "weighed")
+
+    net_weight = payload.gross_weight_kg - payload.tare_weight_kg
+    if net_weight <= _ZERO:
+        raise ConflictError("Net weight must be positive after tare deduction")
+
+    row.gross_weight_kg = payload.gross_weight_kg
+    row.net_weight_kg = net_weight
+    row.moisture_pct = payload.moisture_pct
+    if payload.bag_count is not None:
+        row.bag_count = payload.bag_count
+    row.updated_by = actor_user_id
+
+    _audit(
+        db,
+        org_id=org_id,
+        actor_user_id=actor_user_id,
+        action="WEIGH",
+        entity_id=row.id,
+        before={"status": before_status},
+        after={"status": row.status, "net_weight_kg": str(row.net_weight_kg)},
+        client=client,
+        summary=f"Weighment recorded: {row.procurement_number}",
+    )
+    db.commit()
+    db.refresh(row)
+    return row
+
+
+def apply_price(
+    db: Session,
+    org_id: UUID,
+    procurement_id: UUID,
+    procurement_date: date,
+    actor_user_id: UUID,
+    client: ClientContext | None,
+) -> Procurement:
+    row = _get_procurement(db, org_id, procurement_id, procurement_date)
+    before_status = row.status
+    _transition(row, "priced")
+
+    rate = resolve_rate_per_quintal(db, org_id, row.crop_type_id, row.village_id, row.procurement_date)
+    row.rate_per_quintal = rate
+    _sync_amounts(row)
+    row.updated_by = actor_user_id
+
+    _audit(
+        db,
+        org_id=org_id,
+        actor_user_id=actor_user_id,
+        action="PRICE",
+        entity_id=row.id,
+        before={"status": before_status},
+        after={
+            "status": row.status,
+            "rate_per_quintal": str(row.rate_per_quintal),
+            "net_amount": str(row.net_amount),
+        },
+        client=client,
+        summary=f"Price applied: {row.procurement_number}",
+    )
+    db.commit()
+    db.refresh(row)
+    return row
+
+
+def confirm_procurement(
+    db: Session,
+    org_id: UUID,
+    procurement_id: UUID,
+    procurement_date: date,
+    actor_user_id: UUID,
+    client: ClientContext | None,
+) -> Procurement:
+    row = _get_procurement(db, org_id, procurement_id, procurement_date)
+    if row.status == "confirmed":
+        raise ConflictError("Procurement already confirmed")
+    before_status = row.status
+    _transition(row, "confirmed")
+
+    if row.rate_per_quintal <= _ZERO or row.net_amount <= _ZERO:
+        raise ConflictError("Procurement must be priced before confirmation")
+
+    row.confirmed_at = datetime.now(UTC)
+    row.confirmed_by = actor_user_id
+    row.updated_by = actor_user_id
+
+    _post_ledger_entry(
+        db,
+        org_id=org_id,
+        farmer_id=row.farmer_id,
+        entry_date=row.procurement_date,
+        entry_type="procurement",
+        reference_id=row.id,
+        debit=row.net_amount,
+        credit=_ZERO,
+        description=f"Procurement {row.procurement_number}",
+        posted_by=actor_user_id,
+    )
+
+    _audit(
+        db,
+        org_id=org_id,
+        actor_user_id=actor_user_id,
+        action="CONFIRM",
+        entity_id=row.id,
+        before={"status": before_status},
+        after={"status": row.status, "net_amount": str(row.net_amount)},
+        client=client,
+        summary=f"Procurement confirmed: {row.procurement_number}",
+    )
+    db.commit()
+    db.refresh(row)
+    return row
+
+
+def cancel_procurement(
+    db: Session,
+    org_id: UUID,
+    procurement_id: UUID,
+    procurement_date: date,
+    payload: ProcurementCancelRequest,
+    actor_user_id: UUID,
+    client: ClientContext | None,
+) -> Procurement:
+    row = _get_procurement(db, org_id, procurement_id, procurement_date)
+    if row.status not in CANCELLABLE_STATUSES:
+        raise ConflictError(f"Cannot cancel procurement in status {row.status}")
+
+    before_status = row.status
+    row.status = "cancelled"
+    row.cancelled_at = datetime.now(UTC)
+    row.cancellation_reason = payload.reason
+    row.updated_by = actor_user_id
+
+    _audit(
+        db,
+        org_id=org_id,
+        actor_user_id=actor_user_id,
+        action="CANCEL",
+        entity_id=row.id,
+        before={"status": before_status},
+        after={"status": row.status, "reason": payload.reason},
+        client=client,
+        summary=f"Procurement cancelled: {row.procurement_number}",
+    )
+    db.commit()
+    db.refresh(row)
+    return row
+
+
+def reverse_procurement(
+    db: Session,
+    org_id: UUID,
+    procurement_id: UUID,
+    procurement_date: date,
+    payload: ProcurementReverseRequest,
+    actor_user_id: UUID,
+    client: ClientContext | None,
+) -> Procurement:
+    row = _get_procurement(db, org_id, procurement_id, procurement_date)
+    before_status = row.status
+    _transition(row, "reversed")
+
+    original_entry = (
+        db.query(FarmerLedgerEntry)
+        .filter(
+            FarmerLedgerEntry.org_id == org_id,
+            FarmerLedgerEntry.reference_type == "procurement",
+            FarmerLedgerEntry.reference_id == row.id,
+            FarmerLedgerEntry.entry_type == "procurement",
+            FarmerLedgerEntry.debit > _ZERO,
+        )
+        .order_by(FarmerLedgerEntry.posted_at.desc())
+        .first()
+    )
+    if original_entry is None:
+        raise ConflictError("No ledger entry found for this procurement")
+
+    _post_ledger_entry(
+        db,
+        org_id=org_id,
+        farmer_id=row.farmer_id,
+        entry_date=row.procurement_date,
+        entry_type="procurement_reversal",
+        reference_id=row.id,
+        debit=_ZERO,
+        credit=row.net_amount,
+        description=f"Reversal of {row.procurement_number}: {payload.reason}",
+        posted_by=actor_user_id,
+        reversal_of_id=original_entry.id,
+    )
+
+    row.updated_by = actor_user_id
+    _audit(
+        db,
+        org_id=org_id,
+        actor_user_id=actor_user_id,
+        action="REVERSE",
+        entity_id=row.id,
+        before={"status": before_status},
+        after={"status": row.status, "reason": payload.reason},
+        client=client,
+        summary=f"Procurement reversed: {row.procurement_number}",
+    )
+    db.commit()
+    db.refresh(row)
+    return row
+
+
+def add_deduction(
+    db: Session,
+    org_id: UUID,
+    procurement_id: UUID,
+    procurement_date: date,
+    payload: ProcurementDeductionInput,
+    actor_user_id: UUID,
+    client: ClientContext | None,
+) -> Procurement:
+    row = _get_procurement(db, org_id, procurement_id, procurement_date)
+    if row.status not in {"draft", "pending_weighment", "weighed"}:
+        raise ConflictError("Deductions can only be added before pricing")
+
+    deduction = ProcurementDeduction(
+        org_id=org_id,
+        procurement_id=row.id,
+        procurement_date=row.procurement_date,
+        **payload.model_dump(),
+    )
+    db.add(deduction)
+    db.flush()
+    row.deductions.append(deduction)
+
+    if row.status == "weighed" and row.rate_per_quintal > _ZERO:
+        _sync_amounts(row)
+
+    row.updated_by = actor_user_id
+    _audit(
+        db,
+        org_id=org_id,
+        actor_user_id=actor_user_id,
+        action="DEDUCTION",
+        entity_id=row.id,
+        after={"deduction_type": payload.deduction_type, "amount": str(payload.amount)},
+        client=client,
+        summary=f"Deduction added to {row.procurement_number}",
+    )
+    db.commit()
+    db.refresh(row)
+    return row
+
+
+def related_names(
+    db: Session,
+    procurements: list[Procurement],
+) -> tuple[dict[UUID, str], dict[UUID, str], dict[UUID, str]]:
+    farmer_ids = {p.farmer_id for p in procurements}
+    village_ids = {p.village_id for p in procurements}
+    crop_ids = {p.crop_type_id for p in procurements}
+
+    farmers = {}
+    if farmer_ids:
+        farmers = dict(db.query(Farmer.id, Farmer.full_name).filter(Farmer.id.in_(farmer_ids)).all())
+    villages = {}
+    if village_ids:
+        villages = dict(db.query(Village.id, Village.name).filter(Village.id.in_(village_ids)).all())
+    crops = {}
+    if crop_ids:
+        crops = dict(db.query(CropType.id, CropType.name).filter(CropType.id.in_(crop_ids)).all())
+    return farmers, villages, crops

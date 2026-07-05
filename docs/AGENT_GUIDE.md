@@ -85,7 +85,7 @@ docs/deploy/           → CI/CD details
 | Dashboard / Health | 🟡 | ✅ | — | — | in platform paths | 1 |
 | Farmers | ✅ | ✅ | ✅ | `004` | `paths/farmers.yaml` | 2a |
 | Farms | ⬜ | — | — | `006` | `paths/farms.yaml` | 4 |
-| Procurements | ⬜ | — | — | `008` | `paths/procurement.yaml` | 2b |
+| Procurements | ✅ | ✅ | ✅ | `008`, `019` | `paths/procurement.yaml` | 2b |
 | Farmer payments / Ledger | ⬜ | — | — | `008` | `paths/payments.yaml` | 2 |
 | Workers | ⬜ | — | — | `005` | `paths/workers.yaml` | 4 |
 | Work orders / Attendance | ⬜ | — | — | `009` | `paths/work-orders.yaml` | 4 |

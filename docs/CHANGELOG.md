@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Procurements Phase 2b** — full workflow API (`app/modules/procurements/`): draft → weighment → priced → confirmed with `crop_price_rules` snapshot, ledger debit on confirm, OWNER-only reverse with credit entry; migration `019` extends status CHECK; tests `tests/test_procurements.py`
 - **Farmers Phase 2a** — CRUD API (`app/modules/farmers/`), auto `farmer_code`, comments/tags on detail, OWNER-only delete, audit + activity feed with `ClientContext`
 - **Admin platform Phase 1b** — REST APIs for buyers, field agents, activity types, vehicle types, crop price rules, comments, tags (`app/modules/platform/`); migrations `017`/`018`
 - Shared patterns: `AuditMetaMixin`, `entity_notes` helper; docs `FARMERS.md`, `CROSS_CUTTING.md`, `PROCUREMENT.md`, `PRODUCT_ROADMAP.md`
