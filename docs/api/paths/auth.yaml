@@ -1,7 +1,7 @@
 login:
   post:
     tags: [Authentication]
-    summary: Login with email and password
+    summary: Login with email or mobile and password
     security: []
     operationId: authLogin
     requestBody:
@@ -19,6 +19,45 @@ login:
               $ref: '../schemas/auth.yaml#/TokenAPIResponse'
       '401':
         $ref: '../openapi.yaml#/components/responses/Unauthorized'
+
+firebaseLogin:
+  post:
+    tags: [Authentication]
+    summary: Exchange Firebase phone OTP ID token for CRM JWT
+    description: |
+      Client completes Firebase Phone Authentication (SMS OTP) and sends the
+      Firebase ID token in the Authorization header. Backend verifies the token
+      with Firebase Admin SDK, looks up the user by verified phone in PostgreSQL,
+      and returns CRM JWT + RBAC. No auto-registration — admin must create the user first.
+    security: []
+    operationId: authFirebaseLogin
+    parameters:
+      - name: Authorization
+        in: header
+        required: true
+        description: `Bearer {firebase_id_token}`
+        schema:
+          type: string
+          example: Bearer eyJhbGciOiJSUzI1NiIs...
+    responses:
+      '200':
+        description: CRM tokens issued
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/auth.yaml#/TokenAPIResponse'
+      '401':
+        $ref: '../openapi.yaml#/components/responses/Unauthorized'
+      '403':
+        description: Phone verified but user not registered in CRM
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yaml#/ErrorResponse'
+      '429':
+        description: Too many login attempts
+      '503':
+        description: Firebase not configured on server
 
 refresh:
   post:
@@ -61,3 +100,25 @@ logout:
           application/json:
             schema:
               $ref: '../schemas/auth.yaml#/MessageAPIResponse'
+
+me:
+  get:
+    tags: [Authentication]
+    summary: Current user profile with RBAC (mobile)
+    operationId: authMe
+    responses:
+      '200':
+        description: Profile and permissions
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [success, data]
+              properties:
+                success:
+                  type: boolean
+                  enum: [true]
+                data:
+                  $ref: '../schemas/auth.yaml#/AuthMeResponse'
+      '401':
+        $ref: '../openapi.yaml#/components/responses/Unauthorized'

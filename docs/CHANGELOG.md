@@ -8,6 +8,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- `POST /auth/firebase-login` — verify Firebase Phone OTP ID token (Admin SDK), lookup user by phone, issue CRM JWT + RBAC; 403 if not registered
+- `GET /auth/me` — current user profile with roles, permissions, and accessible modules (mobile)
+- Firebase auth module (`app/modules/auth/firebase.py`), phone normalization, login rate limiting
+- Migration `202506210016` — `users.firebase_uid`, `users.village_id`, nullable `password_hash`
+- `require_role()` dependency alongside existing `require_permission()`
+- Admin can create phone-only users (no email/password) for Firebase field staff login
+
+### Changed
+
+- JWT access token claims include `phone`, `name`, `village_id` (plus existing `org_id`, `role`)
+- Login audit log records `auth_method` (`password` | `firebase`) and phone
+- `UserCreateRequest` — email/password optional when phone is provided for Firebase-only users
+
+### Added
+
 - `.github/DEPLOY_CONFIG.md` — GitHub Actions secrets/variables from `krishifarms-infra` dev Terraform outputs
 - Deploy workflow: `AWS_REGION`, `NGINX_LOCAL_PORT`, and `PUBLIC_HEALTH_CHECK_URL` vars for shared EC2 dev (port 8082)
 

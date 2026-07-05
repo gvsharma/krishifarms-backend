@@ -305,7 +305,10 @@ Error: `{ "success": false, "error": { "message": "...", "details": {...} } }`
 
 | File | Role |
 |------|------|
-| `router.py` | `POST /auth/login`, `/refresh`, `/logout` |
+| `router.py` | `POST /auth/login`, `/auth/firebase-login`, `/refresh`, `/logout`, `GET /auth/me` |
+| `firebase.py` | Firebase Admin SDK ID token verification (phone OTP) |
+| `phone.py` | E.164 → lookup normalization |
+| `rate_limit.py` | Firebase login rate limit (cache-backed) |
 | `service.py` | Credential check, token issue/revoke |
 | `schemas.py` | Login request, token response |
 

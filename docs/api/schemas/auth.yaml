@@ -38,6 +38,29 @@ AuthUserResponse:
       type: string
       format: email
       nullable: true
+    village_id:
+      type: string
+      format: uuid
+      nullable: true
+
+AuthMeResponse:
+  type: object
+  required: [user, roles, permissions, accessibleModules]
+  properties:
+    user:
+      $ref: '#/AuthUserResponse'
+    roles:
+      type: array
+      items:
+        type: string
+    permissions:
+      type: array
+      items:
+        type: string
+    accessibleModules:
+      type: array
+      items:
+        type: string
 
 TokenResponse:
   type: object
