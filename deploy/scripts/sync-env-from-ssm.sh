@@ -13,6 +13,8 @@ ENV_TEMPLATE="${ENV_TEMPLATE:-${APP_PATH}/scripts/application.env.example}"
 REGION="${AWS_REGION:-ap-south-1}"
 SECRET_KEY_PATH="${SSM_SECRET_KEY_PATH:-/krishifarms/dev/app/secret_key}"
 DB_PASSWORD_PATH="${SSM_DB_PASSWORD_PATH:-/krishifarms/dev/db/password}"
+FIREBASE_JSON_PATH="${SSM_FIREBASE_JSON_PATH:-/krishifarms/dev/app/firebase_service_account_json}"
+FIREBASE_PROJECT_ID_PATH="${SSM_FIREBASE_PROJECT_ID_PATH:-/krishifarms/dev/app/firebase_project_id}"
 
 log() { echo "[$(date -Iseconds)] $*"; }
 
@@ -53,6 +55,30 @@ upsert() {
   fi
 }
 
+upsert_quoted() {
+  local key="$1"
+  local value="$2"
+  UPSERT_ENV_FILE="$ENV_FILE" UPSERT_ENV_KEY="$key" UPSERT_ENV_VALUE="$value" python3 <<'PY'
+import os
+import pathlib
+import re
+
+path = pathlib.Path(os.environ["UPSERT_ENV_FILE"])
+key = os.environ["UPSERT_ENV_KEY"]
+value = os.environ["UPSERT_ENV_VALUE"]
+line = f'{key}="{value.replace(chr(34), chr(92) + chr(34))}"'
+text = path.read_text() if path.exists() else ""
+pattern = re.compile(rf"^{re.escape(key)}=.*$", re.MULTILINE)
+if pattern.search(text):
+    text = pattern.sub(line, text, count=1)
+else:
+    if text and not text.endswith("\n"):
+        text += "\n"
+    text += line + "\n"
+path.write_text(text)
+PY
+}
+
 fetch_param() {
   aws ssm get-parameter \
     --name "$1" \
@@ -73,6 +99,18 @@ if [[ -n "${DB_PASSWORD}" && "${DB_PASSWORD}" != "None" ]]; then
   log "Syncing POSTGRES_PASSWORD from ${DB_PASSWORD_PATH}"
   upsert "POSTGRES_PASSWORD" "${DB_PASSWORD}"
   upsert "DATABASE_URL" "postgresql+psycopg2://krishi:${DB_PASSWORD}@postgres:5432/krishifarms"
+fi
+
+FIREBASE_JSON="$(fetch_param "${FIREBASE_JSON_PATH}")"
+if [[ -n "${FIREBASE_JSON}" && "${FIREBASE_JSON}" != "None" ]]; then
+  log "Syncing FIREBASE_SERVICE_ACCOUNT_JSON from ${FIREBASE_JSON_PATH}"
+  upsert_quoted "FIREBASE_SERVICE_ACCOUNT_JSON" "${FIREBASE_JSON}"
+fi
+
+FIREBASE_PROJECT_ID="$(fetch_param "${FIREBASE_PROJECT_ID_PATH}")"
+if [[ -n "${FIREBASE_PROJECT_ID}" && "${FIREBASE_PROJECT_ID}" != "None" ]]; then
+  log "Syncing FIREBASE_PROJECT_ID from ${FIREBASE_PROJECT_ID_PATH}"
+  upsert "FIREBASE_PROJECT_ID" "${FIREBASE_PROJECT_ID}"
 fi
 
 chmod 640 "$ENV_FILE"

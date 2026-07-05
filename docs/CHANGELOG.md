@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- `sync-env-from-ssm.sh` — optional sync of `/krishifarms/dev/app/firebase_service_account_json` and `firebase_project_id` into EC2 `application.env`
+- Env examples: default `FIREBASE_PROJECT_ID=krishifarms-prod` (matches Firebase Android app)
 - JWT access token claims include `phone`, `name`, `village_id` (plus existing `org_id`, `role`)
 - Login audit log records `auth_method` (`password` | `firebase`) and phone
 - `UserCreateRequest` — email/password optional when phone is provided for Firebase-only users

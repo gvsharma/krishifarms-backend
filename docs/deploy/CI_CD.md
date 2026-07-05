@@ -254,6 +254,8 @@ Same AWS account and patterns as Gamyaboutique (`gamya-couture-infra`):
 |-----------|---------|
 | `/krishifarms/dev/app/secret_key` | FastAPI `SECRET_KEY` (SecureString) |
 | `/krishifarms/dev/db/password` | Docker Postgres `POSTGRES_PASSWORD` + `DATABASE_URL` (SecureString) |
+| `/krishifarms/dev/app/firebase_service_account_json` | Firebase Admin SDK JSON for phone-auth token verify (SecureString) |
+| `/krishifarms/dev/app/firebase_project_id` | Optional override for `FIREBASE_PROJECT_ID` (String) |
 
 EC2 instance role needs `ssm:GetParameter` on `/krishifarms/dev/*` (mirror Gamya's `/gamya-couture/dev/db/*` grant on the shared host).
 
