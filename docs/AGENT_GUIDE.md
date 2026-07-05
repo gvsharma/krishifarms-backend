@@ -83,7 +83,7 @@ docs/deploy/           → CI/CD details
 | Documents | 🟡 | ✅ | 🟡 | `001`, `007` | `paths/documents.yaml` | 1 |
 | Audit / Activity | ✅ | ✅ | ✅ | `001`, `013` | in platform paths | 1 |
 | Dashboard / Health | 🟡 | ✅ | — | — | in platform paths | 1 |
-| Farmers | ✅ | ✅ | ✅ | `004` | `paths/farmers.yaml` | 2a |
+| Farmers | ✅ | ✅ | ✅ | `004` | `paths/farmers.yaml` | 2a/2b (sub-resources) |
 | Farms | ⬜ | — | — | `006` | `paths/farms.yaml` | 4 |
 | Procurements | ✅ | ✅ | ✅ | `008`, `019` | `paths/procurement.yaml` | 2b |
 | Farmer payments / Ledger | ⬜ | — | — | `008` | `paths/payments.yaml` | 2 |

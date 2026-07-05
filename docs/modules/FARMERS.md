@@ -1,4 +1,4 @@
-# Farmers Module — Phase 2a
+# Farmers Module — Phase 2a / 2b
 
 Org-scoped farmer registry for Bhairkhanpally field operations. Maps to migration `202506210004`.
 
@@ -11,11 +11,11 @@ Org-scoped farmer registry for Bhairkhanpally field operations. Maps to migratio
 | **Contact** | `phone_primary`, `phone_secondary`, `address`, `address_te` | `farmers` | ✅ |
 | **Village** | `village_id`, resolved `village_name` | `farmers` → `villages` | ✅ |
 | **KYC** | `aadhaar_last4`, `pan_encrypted` | `farmers` | ✅ last4 only; PAN Phase 2b |
-| **GPS** | `geo_lat`, `geo_lng` per land parcel | `farmer_land_parcels` | 📋 Phase 2b sub-resource |
-| **Bank** | account holder, IFSC, masked account | `farmer_bank_accounts` | 📋 Phase 2b sub-resource |
-| **Land / crops** | survey number, acres, crop history | `farmer_land_parcels`, `farmer_crop_history` | 📋 Phase 2b |
+| **GPS** | `geo_lat`, `geo_lng` per land parcel | `farmer_land_parcels` | ✅ Phase 2b sub-resource |
+| **Bank** | account holder, IFSC, masked account | `farmer_bank_accounts` | ✅ Phase 2b sub-resource |
+| **Land / crops** | survey number, acres, crop history | `farmer_land_parcels`, `farmer_crop_history` | ✅ land parcels; crop history 📋 |
 | **Rating** | reliability score (1–5) from procurement/payment history | derived / future column | 📋 computed in Phase 2b+ |
-| **Ledger** | `outstanding_amount` | `farmer_ledger_entries` | 📋 Phase 2b |
+| **Ledger** | `outstanding_amount` | `farmer_ledger_entries` | ✅ on GET detail + `/outstanding` |
 
 ## API (Python)
 
@@ -23,9 +23,14 @@ Org-scoped farmer registry for Bhairkhanpally field operations. Maps to migratio
 |--------|------|------------|-------|
 | GET | `/farmers` | `farmers:read` | Filter: `village_id`, `status`, `q` (name/phone/code) |
 | POST | `/farmers` | `farmers:create` | Auto-generates `farmer_code` |
-| GET | `/farmers/{id}` | `farmers:read` | Includes comments + tags |
+| GET | `/farmers/{id}` | `farmers:read` | Includes comments, tags, outstanding, bank accounts, land parcels |
 | PATCH | `/farmers/{id}` | `farmers:update` | |
 | DELETE | `/farmers/{id}` | `farmers:delete` + **OWNER role** | Soft delete |
+| GET/POST | `/farmers/{id}/bank-accounts` | read / update | Encrypted account number; masked in responses |
+| PATCH/DELETE | `/farmers/{id}/bank-accounts/{account_id}` | `farmers:update` | |
+| GET/POST | `/farmers/{id}/land-parcels` | read / update | GPS optional on create |
+| PATCH/DELETE | `/farmers/{id}/land-parcels/{parcel_id}` | `farmers:update` | |
+| GET | `/farmers/{id}/outstanding` | `farmers:read` | Latest ledger balance |
 
 Comments use platform polymorphic API with `entity_type=farmer`.
 

@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Farmers Phase 2b** — bank account + land parcel sub-resources (`/farmers/{id}/bank-accounts`, `/land-parcels`); Fernet encryption for account numbers; `outstanding_amount` on GET detail + `GET /farmers/{id}/outstanding`; tests `tests/test_farmers_subresources.py`
+- **Frontend Phase W2 (partial)** — farmers list/detail with `CommentThread`; procurement list, create wizard, detail; dev auth bootstrap (`NEXT_PUBLIC_DEV_LOGIN_*` / token)
 - **Procurements Phase 2b** — full workflow API (`app/modules/procurements/`): draft → weighment → priced → confirmed with `crop_price_rules` snapshot, ledger debit on confirm, OWNER-only reverse with credit entry; migration `019` extends status CHECK; tests `tests/test_procurements.py`
 - **Farmers Phase 2a** — CRUD API (`app/modules/farmers/`), auto `farmer_code`, comments/tags on detail, OWNER-only delete, audit + activity feed with `ClientContext`
 - **Admin platform Phase 1b** — REST APIs for buyers, field agents, activity types, vehicle types, crop price rules, comments, tags (`app/modules/platform/`); migrations `017`/`018`

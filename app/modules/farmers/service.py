@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from datetime import UTC, datetime
+from decimal import Decimal
 from uuid import UUID
 
 from sqlalchemy import or_
@@ -9,12 +10,24 @@ from sqlalchemy.orm import Session
 
 from app.core.client_context import ClientContext
 from app.core.exceptions import ConflictError, NotFoundError
-from app.modules.farmers.models import Farmer
-from app.modules.farmers.schemas import FarmerCreateRequest, FarmerUpdateRequest
+from app.modules.farmers.models import Farmer, FarmerBankAccount, FarmerLandParcel
+from app.modules.farmers.schemas import (
+    BankAccountCreateRequest,
+    BankAccountResponse,
+    BankAccountUpdateRequest,
+    LandParcelCreateRequest,
+    LandParcelResponse,
+    LandParcelUpdateRequest,
+    FarmerCreateRequest,
+    FarmerUpdateRequest,
+)
 from app.modules.master_data.models import Village
+from app.modules.procurements.models import FarmerLedgerEntry
+from app.shared.crypto import decrypt_value, encrypt_value, mask_account_number
 from app.shared.services.audit import write_activity_feed, write_audit_log
 
 _FARMER_CODE_PREFIX = "FMR-"
+_ZERO = Decimal("0")
 
 
 def _soft_delete(entity: Farmer, actor_user_id: UUID) -> None:
@@ -254,3 +267,305 @@ def delete_farmer(
 
 def village_name_map(db: Session, farmers: list[Farmer]) -> dict[UUID, str]:
     return _village_names(db, {f.village_id for f in farmers})
+
+
+def farmer_outstanding(db: Session, org_id: UUID, farmer_id: UUID) -> Decimal:
+    row = (
+        db.query(FarmerLedgerEntry.balance_after)
+        .filter(FarmerLedgerEntry.org_id == org_id, FarmerLedgerEntry.farmer_id == farmer_id)
+        .order_by(FarmerLedgerEntry.entry_date.desc(), FarmerLedgerEntry.posted_at.desc())
+        .first()
+    )
+    return row[0] if row else _ZERO
+
+
+def _bank_account_response(row: FarmerBankAccount) -> BankAccountResponse:
+    account_number = decrypt_value(row.account_number_encrypted)
+    return BankAccountResponse(
+        id=row.id,
+        account_holder_name=row.account_holder_name,
+        bank_name=row.bank_name,
+        branch=row.branch,
+        ifsc=row.ifsc,
+        account_number_masked=mask_account_number(account_number),
+        is_primary=row.is_primary,
+    )
+
+
+def list_bank_accounts(db: Session, org_id: UUID, farmer_id: UUID) -> list[BankAccountResponse]:
+    get_farmer(db, org_id, farmer_id)
+    rows = (
+        db.query(FarmerBankAccount)
+        .filter(
+            FarmerBankAccount.org_id == org_id,
+            FarmerBankAccount.farmer_id == farmer_id,
+            FarmerBankAccount.deleted_at.is_(None),
+        )
+        .order_by(FarmerBankAccount.is_primary.desc(), FarmerBankAccount.created_at)
+        .all()
+    )
+    return [_bank_account_response(row) for row in rows]
+
+
+def _clear_primary_bank_accounts(
+    db: Session, org_id: UUID, farmer_id: UUID, *, exclude_id: UUID | None = None
+) -> None:
+    q = db.query(FarmerBankAccount).filter(
+        FarmerBankAccount.org_id == org_id,
+        FarmerBankAccount.farmer_id == farmer_id,
+        FarmerBankAccount.is_primary.is_(True),
+        FarmerBankAccount.deleted_at.is_(None),
+    )
+    if exclude_id:
+        q = q.filter(FarmerBankAccount.id != exclude_id)
+    for row in q.all():
+        row.is_primary = False
+
+
+def create_bank_account(
+    db: Session,
+    org_id: UUID,
+    farmer_id: UUID,
+    payload: BankAccountCreateRequest,
+    actor_user_id: UUID,
+    client: ClientContext | None,
+) -> BankAccountResponse:
+    get_farmer(db, org_id, farmer_id)
+    if payload.is_primary:
+        _clear_primary_bank_accounts(db, org_id, farmer_id)
+    row = FarmerBankAccount(
+        org_id=org_id,
+        farmer_id=farmer_id,
+        account_holder_name=payload.account_holder_name,
+        bank_name=payload.bank_name,
+        branch=payload.branch,
+        ifsc=payload.ifsc.upper(),
+        account_number_encrypted=encrypt_value(payload.account_number),
+        is_primary=payload.is_primary,
+        created_by=actor_user_id,
+        updated_by=actor_user_id,
+    )
+    db.add(row)
+    db.flush()
+    _audit(
+        db,
+        org_id=org_id,
+        actor_user_id=actor_user_id,
+        action="CREATE",
+        entity_id=farmer_id,
+        after={"bank_account_id": str(row.id), "bank_name": row.bank_name},
+        client=client,
+        summary="Bank account added for farmer",
+    )
+    db.commit()
+    db.refresh(row)
+    return _bank_account_response(row)
+
+
+def update_bank_account(
+    db: Session,
+    org_id: UUID,
+    farmer_id: UUID,
+    account_id: UUID,
+    payload: BankAccountUpdateRequest,
+    actor_user_id: UUID,
+    client: ClientContext | None,
+) -> BankAccountResponse:
+    get_farmer(db, org_id, farmer_id)
+    row = (
+        db.query(FarmerBankAccount)
+        .filter(
+            FarmerBankAccount.id == account_id,
+            FarmerBankAccount.org_id == org_id,
+            FarmerBankAccount.farmer_id == farmer_id,
+            FarmerBankAccount.deleted_at.is_(None),
+        )
+        .first()
+    )
+    if row is None:
+        raise NotFoundError("Bank account not found")
+
+    data = payload.model_dump(exclude_unset=True)
+    account_number = data.pop("account_number", None)
+    if account_number is not None:
+        row.account_number_encrypted = encrypt_value(account_number)
+    if data.get("is_primary"):
+        _clear_primary_bank_accounts(db, org_id, farmer_id, exclude_id=account_id)
+    if "ifsc" in data and data["ifsc"] is not None:
+        data["ifsc"] = data["ifsc"].upper()
+    for field, value in data.items():
+        setattr(row, field, value)
+    row.updated_by = actor_user_id
+    _audit(
+        db,
+        org_id=org_id,
+        actor_user_id=actor_user_id,
+        action="UPDATE",
+        entity_id=farmer_id,
+        after={"bank_account_id": str(row.id)},
+        client=client,
+        summary="Farmer bank account updated",
+    )
+    db.commit()
+    db.refresh(row)
+    return _bank_account_response(row)
+
+
+def delete_bank_account(
+    db: Session,
+    org_id: UUID,
+    farmer_id: UUID,
+    account_id: UUID,
+    actor_user_id: UUID,
+    client: ClientContext | None,
+) -> None:
+    get_farmer(db, org_id, farmer_id)
+    row = (
+        db.query(FarmerBankAccount)
+        .filter(
+            FarmerBankAccount.id == account_id,
+            FarmerBankAccount.org_id == org_id,
+            FarmerBankAccount.farmer_id == farmer_id,
+            FarmerBankAccount.deleted_at.is_(None),
+        )
+        .first()
+    )
+    if row is None:
+        raise NotFoundError("Bank account not found")
+    _soft_delete(row, actor_user_id)
+    _audit(
+        db,
+        org_id=org_id,
+        actor_user_id=actor_user_id,
+        action="DELETE",
+        entity_id=farmer_id,
+        before={"bank_account_id": str(row.id)},
+        client=client,
+        summary="Farmer bank account deleted",
+    )
+    db.commit()
+
+
+def list_land_parcels(db: Session, org_id: UUID, farmer_id: UUID) -> list[LandParcelResponse]:
+    get_farmer(db, org_id, farmer_id)
+    rows = (
+        db.query(FarmerLandParcel)
+        .filter(
+            FarmerLandParcel.org_id == org_id,
+            FarmerLandParcel.farmer_id == farmer_id,
+            FarmerLandParcel.deleted_at.is_(None),
+        )
+        .order_by(FarmerLandParcel.survey_number)
+        .all()
+    )
+    return [LandParcelResponse.model_validate(row) for row in rows]
+
+
+def create_land_parcel(
+    db: Session,
+    org_id: UUID,
+    farmer_id: UUID,
+    payload: LandParcelCreateRequest,
+    actor_user_id: UUID,
+    client: ClientContext | None,
+) -> LandParcelResponse:
+    get_farmer(db, org_id, farmer_id)
+    row = FarmerLandParcel(
+        org_id=org_id,
+        farmer_id=farmer_id,
+        created_by=actor_user_id,
+        updated_by=actor_user_id,
+        **payload.model_dump(),
+    )
+    db.add(row)
+    db.flush()
+    _audit(
+        db,
+        org_id=org_id,
+        actor_user_id=actor_user_id,
+        action="CREATE",
+        entity_id=farmer_id,
+        after={"land_parcel_id": str(row.id), "survey_number": row.survey_number},
+        client=client,
+        summary=f"Land parcel added: {row.survey_number}",
+    )
+    db.commit()
+    db.refresh(row)
+    return LandParcelResponse.model_validate(row)
+
+
+def update_land_parcel(
+    db: Session,
+    org_id: UUID,
+    farmer_id: UUID,
+    parcel_id: UUID,
+    payload: LandParcelUpdateRequest,
+    actor_user_id: UUID,
+    client: ClientContext | None,
+) -> LandParcelResponse:
+    get_farmer(db, org_id, farmer_id)
+    row = (
+        db.query(FarmerLandParcel)
+        .filter(
+            FarmerLandParcel.id == parcel_id,
+            FarmerLandParcel.org_id == org_id,
+            FarmerLandParcel.farmer_id == farmer_id,
+            FarmerLandParcel.deleted_at.is_(None),
+        )
+        .first()
+    )
+    if row is None:
+        raise NotFoundError("Land parcel not found")
+
+    data = payload.model_dump(exclude_unset=True)
+    for field, value in data.items():
+        setattr(row, field, value)
+    row.updated_by = actor_user_id
+    _audit(
+        db,
+        org_id=org_id,
+        actor_user_id=actor_user_id,
+        action="UPDATE",
+        entity_id=farmer_id,
+        after={"land_parcel_id": str(row.id)},
+        client=client,
+        summary="Farmer land parcel updated",
+    )
+    db.commit()
+    db.refresh(row)
+    return LandParcelResponse.model_validate(row)
+
+
+def delete_land_parcel(
+    db: Session,
+    org_id: UUID,
+    farmer_id: UUID,
+    parcel_id: UUID,
+    actor_user_id: UUID,
+    client: ClientContext | None,
+) -> None:
+    get_farmer(db, org_id, farmer_id)
+    row = (
+        db.query(FarmerLandParcel)
+        .filter(
+            FarmerLandParcel.id == parcel_id,
+            FarmerLandParcel.org_id == org_id,
+            FarmerLandParcel.farmer_id == farmer_id,
+            FarmerLandParcel.deleted_at.is_(None),
+        )
+        .first()
+    )
+    if row is None:
+        raise NotFoundError("Land parcel not found")
+    _soft_delete(row, actor_user_id)
+    _audit(
+        db,
+        org_id=org_id,
+        actor_user_id=actor_user_id,
+        action="DELETE",
+        entity_id=farmer_id,
+        before={"land_parcel_id": str(row.id)},
+        client=client,
+        summary="Farmer land parcel deleted",
+    )
+    db.commit()

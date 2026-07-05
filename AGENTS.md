@@ -8,7 +8,7 @@
 
 Backend API for Indian farm operations: procurement, farmer ledger, workforce, fleet, rentals, finance, documents. Domain: Bhairkhanpally (Telangana), Paddy/Corn, INR, bilingual EN/TE.
 
-**Critical:** Full DB schema + OpenAPI exist for Phases 1–5. **Python routes are Phase 1 only.** Check [implementation matrix](./docs/AGENT_GUIDE.md#3-implementation-status-matrix) before assuming an endpoint exists.
+**Critical:** Full DB schema + OpenAPI exist for Phases 1–5. **Python routes through Phase 2b** (farmers, procurements, platform admin). Check [implementation matrix](./docs/AGENT_GUIDE.md#3-implementation-status-matrix) before assuming an endpoint exists.
 
 ---
 
@@ -60,8 +60,11 @@ Mount routers           → app/main.py
 | documents | `/documents` (partial — see DOCUMENT_MANAGEMENT.md) |
 | audit | `/audit-logs`, `/activity-feed` |
 | dashboard | `/dashboard/summary`, `/health` |
+| platform | `/buyers`, `/field-agents`, comments, tags, price rules |
+| farmers | `/farmers` (+ bank accounts, land parcels, outstanding) |
+| procurements | `/procurements` (full workflow) |
 
-Phase 2+ (farmers, procurement, workforce, assets, rentals, expenses): schema + OpenAPI ready; implement per [AGENT_GUIDE §11](./docs/AGENT_GUIDE.md#11-common-agent-workflows).
+Phase 2+ remaining (payments, workforce, assets, rentals, expenses): schema + OpenAPI ready; implement per [AGENT_GUIDE §11](./docs/AGENT_GUIDE.md#11-common-agent-workflows).
 
 ---
 

@@ -1,3 +1,4 @@
+from datetime import date
 from decimal import Decimal
 from uuid import UUID
 
@@ -79,3 +80,74 @@ class FarmerListResponse(BaseModel):
     total: int
     page: int
     page_size: int
+
+
+class BankAccountCreateRequest(BaseModel):
+    account_holder_name: str = Field(min_length=2, max_length=200)
+    bank_name: str = Field(min_length=2, max_length=200)
+    branch: str | None = Field(default=None, max_length=200)
+    ifsc: str = Field(min_length=11, max_length=11)
+    account_number: str = Field(min_length=4, max_length=30)
+    is_primary: bool = False
+
+
+class BankAccountUpdateRequest(BaseModel):
+    account_holder_name: str | None = Field(default=None, min_length=2, max_length=200)
+    bank_name: str | None = Field(default=None, min_length=2, max_length=200)
+    branch: str | None = Field(default=None, max_length=200)
+    ifsc: str | None = Field(default=None, min_length=11, max_length=11)
+    account_number: str | None = Field(default=None, min_length=4, max_length=30)
+    is_primary: bool | None = None
+
+
+class BankAccountResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    account_holder_name: str
+    bank_name: str
+    branch: str | None
+    ifsc: str
+    account_number_masked: str
+    is_primary: bool
+
+
+class LandParcelCreateRequest(BaseModel):
+    survey_number: str = Field(min_length=1, max_length=100)
+    acres: Decimal = Field(gt=0)
+    land_type: str | None = Field(default=None, max_length=50)
+    location_notes: str | None = None
+    geo_lat: Decimal | None = None
+    geo_lng: Decimal | None = None
+
+
+class LandParcelUpdateRequest(BaseModel):
+    survey_number: str | None = Field(default=None, min_length=1, max_length=100)
+    acres: Decimal | None = Field(default=None, gt=0)
+    land_type: str | None = Field(default=None, max_length=50)
+    location_notes: str | None = None
+    geo_lat: Decimal | None = None
+    geo_lng: Decimal | None = None
+
+
+class LandParcelResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    survey_number: str
+    acres: Decimal
+    land_type: str | None
+    location_notes: str | None
+    geo_lat: Decimal | None
+    geo_lng: Decimal | None
+
+
+class OutstandingResponse(BaseModel):
+    farmer_id: UUID
+    outstanding_amount: Decimal
+    as_of_date: date
+
+
+class FarmerDetailResponse(FarmerResponse):
+    bank_accounts: list[BankAccountResponse] = []
+    land_parcels: list[LandParcelResponse] = []

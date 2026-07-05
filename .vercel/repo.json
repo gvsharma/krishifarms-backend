@@ -1,0 +1,11 @@
+{
+  "remoteName": "origin",
+  "projects": [
+    {
+      "id": "prj_WejCivUmdiyKpLcuAquqQuTcvmaY",
+      "name": "krishifarms-backend",
+      "directory": ".",
+      "orgId": "team_oGQZMAq9m0nIIDQkIwbA9mTB"
+    }
+  ]
+}
