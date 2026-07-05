@@ -25,6 +25,11 @@ class Settings(BaseSettings):
 
     cors_origins: str = "http://localhost:3000"
 
+    firebase_project_id: str | None = None
+    firebase_credentials_path: str | None = None
+    firebase_service_account_json: str | None = None
+    firebase_login_rate_limit_per_minute: int = 10
+
     default_org_name: str = "Krishi Farms"
     default_owner_email: str = "owner@krishifarms.local"
     default_owner_password: str = "ChangeMe123!"
@@ -33,6 +38,12 @@ class Settings(BaseSettings):
     @property
     def cors_origin_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+
+    @property
+    def firebase_enabled(self) -> bool:
+        if not self.firebase_project_id:
+            return False
+        return bool(self.firebase_credentials_path or self.firebase_service_account_json)
 
 
 settings = Settings()

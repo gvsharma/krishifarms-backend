@@ -100,6 +100,20 @@ def require_permission(permission: str):
     return dependency
 
 
+def require_role(*role_codes: str):
+    allowed = {code.upper() for code in role_codes}
+
+    def dependency(
+        ctx: CurrentUserContext = Depends(get_current_user_context),
+    ) -> CurrentUserContext:
+        user_role = (ctx.user.role.code if ctx.user.role else "").upper()
+        if user_role not in allowed:
+            raise ForbiddenError(f"Role required: {', '.join(sorted(allowed))}")
+        return ctx
+
+    return dependency
+
+
 def get_optional_user_id(request: Request) -> UUID | None:
     auth_header = request.headers.get("Authorization")
     if not auth_header or not auth_header.startswith("Bearer "):

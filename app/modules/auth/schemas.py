@@ -30,6 +30,16 @@ class AuthUserResponse(BaseModel):
     name: str
     mobile: str
     email: str | None = None
+    village_id: str | None = None
+
+
+class AuthMeResponse(BaseModel):
+    user: AuthUserResponse
+    roles: list[str] = Field(default_factory=list)
+    permissions: list[str] = Field(default_factory=list)
+    accessible_modules: list[str] = Field(default_factory=list, serialization_alias="accessibleModules")
+
+    model_config = {"populate_by_name": True}
 
 
 class TokenResponse(BaseModel):

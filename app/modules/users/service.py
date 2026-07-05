@@ -1,11 +1,14 @@
 from uuid import UUID
 
+import secrets
+
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.cache import get_cache_provider
 from app.core.cache.keys import user_permissions_key
 from app.core.exceptions import ConflictError, NotFoundError
 from app.core.security import hash_password
+from app.modules.auth.phone import normalize_phone_for_lookup
 from app.modules.users.models import Role, User
 from app.modules.users.schemas import UserCreateRequest, UserUpdateRequest
 from app.shared.services.audit import write_audit_log
@@ -53,25 +56,44 @@ def create_user(
     payload: UserCreateRequest,
     actor_user_id: UUID,
 ) -> User:
-    existing = (
-        db.query(User)
-        .filter(User.org_id == org_id, User.email == payload.email, User.deleted_at.is_(None))
-        .first()
-    )
-    if existing:
-        raise ConflictError("User with this email already exists")
+    if payload.email:
+        existing = (
+            db.query(User)
+            .filter(User.org_id == org_id, User.email == payload.email, User.deleted_at.is_(None))
+            .first()
+        )
+        if existing:
+            raise ConflictError("User with this email already exists")
+
+    normalized_phone = normalize_phone_for_lookup(payload.phone) if payload.phone else None
+    if normalized_phone:
+        phone_conflict = (
+            db.query(User)
+            .filter(User.org_id == org_id, User.phone.isnot(None), User.deleted_at.is_(None))
+            .all()
+        )
+        for candidate in phone_conflict:
+            if normalize_phone_for_lookup(candidate.phone or "") == normalized_phone:
+                raise ConflictError("User with this phone already exists")
 
     role = db.query(Role).filter(Role.id == payload.role_id, Role.org_id == org_id).first()
     if role is None:
         raise NotFoundError("Role not found")
 
+    password_hash = (
+        hash_password(payload.password)
+        if payload.password
+        else hash_password(secrets.token_urlsafe(32))
+    )
+
     user = User(
         org_id=org_id,
         email=payload.email,
-        phone=payload.phone,
-        password_hash=hash_password(payload.password),
+        phone=normalized_phone or payload.phone,
+        password_hash=password_hash,
         full_name=payload.full_name,
         role_id=payload.role_id,
+        village_id=payload.village_id,
         preferred_locale=payload.preferred_locale,
         created_by=actor_user_id,
         updated_by=actor_user_id,
@@ -111,7 +133,9 @@ def update_user(
     if payload.full_name is not None:
         user.full_name = payload.full_name
     if payload.phone is not None:
-        user.phone = payload.phone
+        user.phone = normalize_phone_for_lookup(payload.phone) or payload.phone
+    if payload.village_id is not None:
+        user.village_id = payload.village_id
     if payload.preferred_locale is not None:
         user.preferred_locale = payload.preferred_locale
     if payload.is_active is not None:

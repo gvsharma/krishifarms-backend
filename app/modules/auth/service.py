@@ -11,7 +11,7 @@ from app.core.security import (
     verify_token_hash,
 )
 from app.core.security import TokenValidationError, get_token_subject
-from app.core.exceptions import NotFoundError, UnauthorizedError
+from app.core.exceptions import NotFoundError, UnauthorizedError, ForbiddenError
 from app.modules.auth.rbac import build_auth_user, build_rbac_payload
 from app.modules.users.models import RefreshToken, Role, User
 from app.shared.services.audit import write_audit_log
@@ -37,15 +37,73 @@ def authenticate_user(
         raise UnauthorizedError("Email or mobile is required")
 
     user = query.first()
-    if user is None or not verify_password(password, user.password_hash):
+    if user is None or user.password_hash is None or not verify_password(password, user.password_hash):
         raise UnauthorizedError("Invalid credentials")
     return user
+
+
+def _find_active_user_by_phone(db: Session, phone: str) -> User | None:
+    from app.modules.auth.phone import normalize_phone_for_lookup
+
+    target = normalize_phone_for_lookup(phone)
+    if not target:
+        return None
+
+    candidates = (
+        db.query(User)
+        .options(joinedload(User.role).joinedload(Role.permissions))
+        .filter(
+            User.deleted_at.is_(None),
+            User.is_active.is_(True),
+            User.phone.isnot(None),
+        )
+        .all()
+    )
+    for user in candidates:
+        if normalize_phone_for_lookup(user.phone or "") == target:
+            return user
+    return None
+
+
+def firebase_login(
+    db: Session,
+    *,
+    firebase_id_token: str,
+    ip_address: str | None = None,
+    user_agent: str | None = None,
+) -> dict:
+    from app.modules.auth.firebase import verify_firebase_id_token
+
+    claims = verify_firebase_id_token(firebase_id_token)
+    if not claims.phone_number:
+        raise UnauthorizedError("Firebase account has no verified phone number")
+
+    user = _find_active_user_by_phone(db, claims.phone_number)
+    if user is None:
+        raise ForbiddenError("User not registered")
+
+    user.firebase_uid = claims.uid
+    tokens = issue_tokens(db, user)
+    log_login(
+        db,
+        user,
+        ip_address=ip_address,
+        user_agent=user_agent,
+        auth_method="firebase",
+    )
+    return tokens
 
 
 def issue_tokens(db: Session, user: User) -> dict:
     access_token = create_access_token(
         str(user.id),
-        extra_claims={"org_id": str(user.org_id), "role": user.role.code},
+        extra_claims={
+            "org_id": str(user.org_id),
+            "role": user.role.code,
+            "phone": user.phone or "",
+            "name": user.full_name,
+            "village_id": str(user.village_id) if user.village_id else None,
+        },
     )
     refresh_token = create_refresh_token(str(user.id))
     refresh_entry = RefreshToken(
@@ -120,7 +178,14 @@ def revoke_refresh_token(db: Session, refresh_token: str) -> None:
     raise NotFoundError("Refresh token not found")
 
 
-def log_login(db: Session, user: User, ip_address: str | None, user_agent: str | None) -> None:
+def log_login(
+    db: Session,
+    user: User,
+    ip_address: str | None,
+    user_agent: str | None,
+    *,
+    auth_method: str = "password",
+) -> None:
     write_audit_log(
         db,
         org_id=user.org_id,
@@ -130,5 +195,6 @@ def log_login(db: Session, user: User, ip_address: str | None, user_agent: str |
         entity_id=user.id,
         ip_address=ip_address,
         user_agent=user_agent,
+        after_state={"auth_method": auth_method, "phone": user.phone},
     )
     db.commit()

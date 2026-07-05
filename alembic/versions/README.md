@@ -37,6 +37,7 @@ alembic downgrade -1
 | `202506210013` | Audit/Sync | Audit indexes, sync tables, schema log |
 | `202506210014` | AI | WhatsApp, AI jobs, OCR, voice, summaries |
 | `202506210015` | Seed Data | Global permissions and per-org system roles |
+| `202506210016` | Platform | Firebase phone auth columns on users |
 
 ## Partition Maintenance
 
