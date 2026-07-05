@@ -12,7 +12,9 @@ from app.modules.auth.router import router as auth_router
 from app.modules.dashboard.router import router as dashboard_router
 from app.modules.documents.router import router as documents_router
 from app.modules.financial.router import router as financial_router
+from app.modules.farmers.router import router as farmers_router
 from app.modules.master_data.router import router as master_data_router
+from app.modules.platform.router import router as platform_router
 from app.modules.users.router import router as users_router
 
 
@@ -43,6 +45,8 @@ api_v1 = FastAPI(title=f"{settings.app_name} API v1", lifespan=lifespan)
 api_v1.include_router(auth_router)
 api_v1.include_router(users_router)
 api_v1.include_router(master_data_router)
+api_v1.include_router(platform_router)
+api_v1.include_router(farmers_router)
 api_v1.include_router(financial_router)
 api_v1.include_router(documents_router)
 api_v1.include_router(audit_router)
