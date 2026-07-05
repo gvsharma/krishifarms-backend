@@ -38,6 +38,9 @@ alembic downgrade -1
 | `202506210014` | AI | WhatsApp, AI jobs, OCR, voice, summaries |
 | `202506210015` | Seed Data | Global permissions and per-org system roles |
 | `202506210016` | Platform | Firebase phone auth columns on users |
+| `202506210017` | Platform | Entity comments/tags, accountability columns |
+| `202506210018` | Platform | Platform RBAC permissions, AGENT/DRIVER roles |
+| `202506210019` | Procurement | Extend procurement status CHECK for workflow states |
 
 ## Partition Maintenance
 

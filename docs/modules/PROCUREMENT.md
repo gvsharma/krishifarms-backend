@@ -1,6 +1,6 @@
 # Procurement Module — Spec (Phase 2b)
 
-Procurement tickets capture paddy/corn intake from farmers. **Python not implemented** — schema in migration `202506210008`, OpenAPI in `docs/api/paths/procurement.yaml`.
+Procurement tickets capture paddy/corn intake from farmers. **Implemented** in `app/modules/procurements/` — schema in migration `202506210008` (+ status workflow `019`), OpenAPI in `docs/api/paths/procurement.yaml`.
 
 ## Ticket state machine
 
@@ -60,13 +60,13 @@ Deduction lines: `procurement_deductions` (child table).
 
 ## Phase 2b implementation checklist
 
-- [ ] `app/modules/procurements/` router, service, models
-- [ ] State transition guards + permission map (`procurements:confirm`, etc.)
-- [ ] Price snapshot service reading `crop_price_rules`
-- [ ] Ledger write on confirm (immutable entries)
-- [ ] Wire `attach_entity_notes` on detail
-- [ ] Tests for state machine + RBAC
-- [ ] Update AGENT_GUIDE matrix
+- [x] `app/modules/procurements/` router, service, models
+- [x] State transition guards + permission map (`procurements:confirm`, etc.)
+- [x] Price snapshot service reading `crop_price_rules`
+- [x] Ledger write on confirm (immutable entries)
+- [x] Wire `attach_entity_notes` on detail
+- [x] Tests for state machine + RBAC
+- [x] Update AGENT_GUIDE matrix
 
 ## Related
 

@@ -1,3 +1,16 @@
+ProcurementStatus:
+  type: string
+  enum:
+    - draft
+    - pending_weighment
+    - weighed
+    - priced
+    - confirmed
+    - paid_partial
+    - paid_full
+    - cancelled
+    - reversed
+
 Procurement:
   type: object
   required: [id, procurement_number, farmer_id, crop_type_id, procurement_date, status, net_amount]
@@ -9,6 +22,7 @@ Procurement:
     crop_type_id: { $ref: 'common.yaml#/UUID' }
     crop_type_name: { type: string }
     village_id: { $ref: 'common.yaml#/UUID' }
+    village_name: { type: string }
     procurement_date: { type: string, format: date }
     bag_count: { type: integer, minimum: 0 }
     gross_weight_kg: { $ref: 'common.yaml#/Weight' }
@@ -18,11 +32,22 @@ Procurement:
     gross_amount: { $ref: 'common.yaml#/Money' }
     deduction_amount: { $ref: 'common.yaml#/Money' }
     net_amount: { $ref: 'common.yaml#/Money' }
-    status: { $ref: 'common.yaml#/StatusDraftConfirmedCancelled' }
+    status: { $ref: '#/ProcurementStatus' }
+    confirmed_at: { type: string, format: date-time }
+    confirmed_by: { $ref: 'common.yaml#/UUID' }
+    confirmed_by_name: { type: string }
+    cancelled_at: { type: string, format: date-time }
+    cancellation_reason: { type: string }
     notes: { type: string }
     deductions:
       type: array
       items: { $ref: '#/ProcurementDeduction' }
+    tags:
+      type: array
+      items: { type: string }
+    comments:
+      type: array
+      items: { $ref: 'platform.yaml#/Comment' }
     allOf:
       - $ref: 'common.yaml#/Timestamps'
 
@@ -37,27 +62,40 @@ ProcurementDeduction:
 
 ProcurementCreate:
   type: object
-  required: [farmer_id, crop_type_id, village_id, procurement_date, bag_count, gross_weight_kg, rate_per_quintal]
+  required: [farmer_id, crop_type_id, village_id, procurement_date]
   properties:
     farmer_id: { $ref: 'common.yaml#/UUID' }
     crop_type_id: { $ref: 'common.yaml#/UUID' }
     village_id: { $ref: 'common.yaml#/UUID' }
     procurement_date: { type: string, format: date }
-    bag_count: { type: integer }
+    bag_count: { type: integer, minimum: 0, default: 0 }
+    notes: { type: string }
+
+ProcurementWeighment:
+  type: object
+  required: [gross_weight_kg]
+  properties:
     gross_weight_kg: { $ref: 'common.yaml#/Weight' }
-    moisture_pct: { type: number }
-    net_weight_kg: { $ref: 'common.yaml#/Weight' }
-    rate_per_quintal: { $ref: 'common.yaml#/Money' }
-    deductions:
-      type: array
-      items:
-        type: object
-        properties:
-          deduction_type: { type: string }
-          amount: { $ref: 'common.yaml#/Money' }
+    tare_weight_kg: { $ref: 'common.yaml#/Weight', default: 0 }
+    moisture_pct: { type: number, minimum: 0, maximum: 100 }
+    bag_count: { type: integer, minimum: 0 }
+
+ProcurementDeductionCreate:
+  type: object
+  required: [deduction_type, amount]
+  properties:
+    deduction_type: { type: string }
+    deduction_type_te: { type: string }
+    amount: { $ref: 'common.yaml#/Money' }
     notes: { type: string }
 
 ProcurementCancel:
+  type: object
+  required: [reason]
+  properties:
+    reason: { type: string, minLength: 3 }
+
+ProcurementReverse:
   type: object
   required: [reason]
   properties:
