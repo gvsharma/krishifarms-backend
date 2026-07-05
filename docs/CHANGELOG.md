@@ -24,6 +24,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Fixed
 
 - Deploy: exclude macOS AppleDouble (`._*`, `__MACOSX`) from tar bundle; strip after extract — fixes Alembic `SyntaxError: source code string cannot contain null bytes`
+- Docker: copy `migration_utils.py` into API image so Alembic migrations can import shared helpers
 - Deploy: `ec2-bootstrap.sh` installs Docker Compose v2 binary when `docker-compose-plugin` is unavailable on AL2023
 - Deploy SSM: auto-create `application.env` from S3 template when bootstrap was skipped; `ssm-kickoff-deploy.sh` marks `deploy.status=failed` on early errors (no more zombie `running`); creates `krishifarms` service user if missing; workflow preflight checks Docker and clears stale deploy PID/status
 - Deploy: revert SSM status poll to 36 attempts × 10s; upload `application.env.example` to S3 for kickoff
