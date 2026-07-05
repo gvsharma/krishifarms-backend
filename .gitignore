@@ -17,3 +17,5 @@ htmlcov/
 dist/
 build/
 alembic/versions/*.pyc
+.vercel
+.env*
