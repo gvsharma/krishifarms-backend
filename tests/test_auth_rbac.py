@@ -4,6 +4,7 @@ from types import SimpleNamespace
 
 from app.modules.auth.permission_catalog import (
     EXPENSE_VIEW,
+    FARMER_CREATE,
     FARMER_VIEW,
     PROCUREMENT_VIEW,
     ROLE_MOBILE_PERMISSIONS,
@@ -60,6 +61,6 @@ def test_build_rbac_payload_shape():
 
 
 def test_all_catalog_roles_defined():
-    for role in ("OWNER", "MANAGER", "WORKER", "ACCOUNTANT"):
+    for role in ("OWNER", "MANAGER", "WORKER", "ACCOUNTANT", "AGENT", "DRIVER"):
         assert role in ROLE_MOBILE_PERMISSIONS
         assert len(ROLE_MOBILE_PERMISSIONS[role]) > 0

@@ -14,6 +14,10 @@ farmers:
       - name: status
         in: query
         schema: { type: string, enum: [active, inactive, blocked] }
+      - name: q
+        in: query
+        description: Search by name, phone, or farmer code
+        schema: { type: string, maxLength: 100 }
     responses:
       '200':
         content:
