@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **Vercel homepage redirect** — split `frontend/src/constants/routes.ts` into server-safe `routes.ts` (ROUTES, SITE_NAME) and client-only `nav-config.ts` (NAV_SECTIONS, MUI icons) so prerender no longer resolves `ROUTES.dashboard` as `undefined` and redirects to `/undefined`
 - **Migration 008** — `uq_procurements_idempotency` unique index on partitioned `procurements` now includes `procurement_date` (PostgreSQL partition-key requirement; matches `farmer_payments` idempotency index pattern)
 - **Deploy env sync** — `sync-env-from-ssm.sh` minifies `FIREBASE_SERVICE_ACCOUNT_JSON` to single-line quoted JSON; `deploy/scripts/fix-firebase-env.py` helper for EC2 repair
 

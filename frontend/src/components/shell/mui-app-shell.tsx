@@ -38,9 +38,8 @@ import {
   filterNavByRole,
   NAV_SECTIONS,
   PLACEHOLDER_USER_ROLE,
-  ROUTES,
-  SITE_NAME,
-} from "@/constants/routes";
+} from "@/constants/nav-config";
+import { ROUTES, SITE_NAME } from "@/constants/routes";
 import { DRAWER_WIDTH, DRAWER_WIDTH_COLLAPSED } from "@/theme/material-theme";
 import { useUiStore } from "@/stores/ui-store";
 
