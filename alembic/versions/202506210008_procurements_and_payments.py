@@ -200,7 +200,7 @@ def upgrade() -> None:
     op.create_index(
         "uq_procurements_idempotency",
         "procurements",
-        ["org_id", "idempotency_key"],
+        ["org_id", "idempotency_key", "procurement_date"],
         unique=True,
         postgresql_where=sa.text("idempotency_key IS NOT NULL"),
     )

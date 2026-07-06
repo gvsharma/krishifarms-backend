@@ -79,6 +79,17 @@ path.write_text(text)
 PY
 }
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+minify_firebase_json() {
+  local raw="$1"
+  FIX_FIREBASE_SCRIPT="${SCRIPT_DIR}/fix-firebase-env.py"
+  if [[ -f "$FIX_FIREBASE_SCRIPT" ]]; then
+    printf '%s' "$raw" | python3 "$FIX_FIREBASE_SCRIPT" --minify-only
+  else
+    printf '%s' "$raw" | python3 -c 'import json,sys; print(json.dumps(json.loads(sys.stdin.read()), separators=(",",":")))'
+  fi
+}
+
 fetch_param() {
   aws ssm get-parameter \
     --name "$1" \
@@ -104,7 +115,11 @@ fi
 FIREBASE_JSON="$(fetch_param "${FIREBASE_JSON_PATH}")"
 if [[ -n "${FIREBASE_JSON}" && "${FIREBASE_JSON}" != "None" ]]; then
   log "Syncing FIREBASE_SERVICE_ACCOUNT_JSON from ${FIREBASE_JSON_PATH}"
-  upsert_quoted "FIREBASE_SERVICE_ACCOUNT_JSON" "${FIREBASE_JSON}"
+  FIREBASE_JSON_MINIFIED="$(minify_firebase_json "${FIREBASE_JSON}")" || {
+    log "ERROR: FIREBASE JSON from SSM is not valid JSON — skipping"
+    exit 1
+  }
+  upsert_quoted "FIREBASE_SERVICE_ACCOUNT_JSON" "${FIREBASE_JSON_MINIFIED}"
 fi
 
 FIREBASE_PROJECT_ID="$(fetch_param "${FIREBASE_PROJECT_ID_PATH}")"
