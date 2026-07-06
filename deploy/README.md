@@ -30,6 +30,7 @@ deploy/
     ec2-bootstrap.sh                  # One-time EC2 setup (Docker, directories)
     remote-deploy.sh                  # Idempotent deploy + backup + rollback
     sync-env-from-ssm.sh              # Optional SSM secret sync
+    fix-firebase-env.py               # Minify/repair FIREBASE JSON in application.env
     ssm-kickoff-deploy.sh             # Async deploy kickoff from SSM
 
 infra/
@@ -98,7 +99,7 @@ Create in Terraform or AWS Console (SecureString). EC2 instance role needs `ssm:
 |-----------|---------------------------|
 | `/krishifarms/dev/app/secret_key` | `SECRET_KEY` |
 | `/krishifarms/dev/db/password` | `POSTGRES_PASSWORD`, `DATABASE_URL` |
-| `/krishifarms/dev/app/firebase_service_account_json` | `FIREBASE_SERVICE_ACCOUNT_JSON` (quoted in env file) |
+| `/krishifarms/dev/app/firebase_service_account_json` | `FIREBASE_SERVICE_ACCOUNT_JSON` (minified single-line JSON, double-quoted in env file) |
 | `/krishifarms/dev/app/firebase_project_id` | `FIREBASE_PROJECT_ID` (optional; default `krishifarms-prod` in template) |
 
 Gamya equivalent: `/gamya-couture/dev/db/username`, `/gamya-couture/dev/db/password`.

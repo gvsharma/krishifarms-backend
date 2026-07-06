@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Migration 008** — `uq_procurements_idempotency` unique index on partitioned `procurements` now includes `procurement_date` (PostgreSQL partition-key requirement; matches `farmer_payments` idempotency index pattern)
+- **Deploy env sync** — `sync-env-from-ssm.sh` minifies `FIREBASE_SERVICE_ACCOUNT_JSON` to single-line quoted JSON; `deploy/scripts/fix-firebase-env.py` helper for EC2 repair
+
 ### Added
 
 - **Farmers Phase 2b** — bank account + land parcel sub-resources (`/farmers/{id}/bank-accounts`, `/land-parcels`); Fernet encryption for account numbers; `outstanding_amount` on GET detail + `GET /farmers/{id}/outstanding`; tests `tests/test_farmers_subresources.py`
