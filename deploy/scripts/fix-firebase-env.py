@@ -18,23 +18,45 @@ import pathlib
 import re
 import sys
 
+ENV_KEY_PATTERN = re.compile(r"^[A-Z_][A-Z0-9_]*=")
+
 
 def minify_json(raw: str) -> str:
     """Parse and re-serialize JSON as a single-line minified string."""
     return json.dumps(json.loads(raw), separators=(",", ":"))
 
 
+def remove_env_key(text: str, key: str) -> str:
+    """Remove key=value including orphaned continuation lines from prior multiline values."""
+    prefix = f"{key}="
+    lines = text.splitlines(keepends=True)
+    out: list[str] = []
+    i = 0
+    while i < len(lines):
+        stripped = lines[i].lstrip()
+        if stripped.startswith(prefix):
+            i += 1
+            while i < len(lines) and not ENV_KEY_PATTERN.match(lines[i].lstrip()):
+                i += 1
+            continue
+        out.append(lines[i])
+        i += 1
+    return "".join(out)
+
+
+def escape_dotenv_value(value: str) -> str:
+    """Escape for docker-compose / python-dotenv double-quoted values."""
+    return value.replace("\\", "\\\\").replace('"', '\\"')
+
+
 def upsert_quoted(path: pathlib.Path, key: str, value: str) -> None:
     """Set key=\"value\" in a dotenv file, escaping embedded double quotes."""
-    line = f'{key}="{value.replace(chr(34), chr(92) + chr(34))}"'
+    line = f'{key}="{escape_dotenv_value(value)}"\n'
     text = path.read_text() if path.exists() else ""
-    pattern = re.compile(rf"^{re.escape(key)}=.*$", re.MULTILINE)
-    if pattern.search(text):
-        text = pattern.sub(line, text, count=1)
-    else:
-        if text and not text.endswith("\n"):
-            text += "\n"
-        text += line + "\n"
+    text = remove_env_key(text, key)
+    if text and not text.endswith("\n"):
+        text += "\n"
+    text += line
     path.write_text(text)
 
 

@@ -39,7 +39,13 @@ def _ensure_firebase_initialized() -> None:
         return
 
     if settings.firebase_service_account_json:
-        cred_dict = json.loads(settings.firebase_service_account_json)
+        try:
+            cred_dict = json.loads(settings.firebase_service_account_json)
+        except json.JSONDecodeError as exc:
+            raise AppError(
+                "Firebase service account JSON is malformed on this server",
+                status_code=503,
+            ) from exc
         cred = credentials.Certificate(cred_dict)
     elif settings.firebase_credentials_path:
         cred = credentials.Certificate(settings.firebase_credentials_path)
