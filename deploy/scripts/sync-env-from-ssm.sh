@@ -63,18 +63,36 @@ import os
 import pathlib
 import re
 
+ENV_KEY_PATTERN = re.compile(r"^[A-Z_][A-Z0-9_]*=")
+
+
+def remove_env_key(text: str, key: str) -> str:
+    prefix = f"{key}="
+    lines = text.splitlines(keepends=True)
+    out = []
+    i = 0
+    while i < len(lines):
+        stripped = lines[i].lstrip()
+        if stripped.startswith(prefix):
+            i += 1
+            while i < len(lines) and not ENV_KEY_PATTERN.match(lines[i].lstrip()):
+                i += 1
+            continue
+        out.append(lines[i])
+        i += 1
+    return "".join(out)
+
+
 path = pathlib.Path(os.environ["UPSERT_ENV_FILE"])
 key = os.environ["UPSERT_ENV_KEY"]
 value = os.environ["UPSERT_ENV_VALUE"]
-line = f'{key}="{value.replace(chr(34), chr(92) + chr(34))}"'
+escaped = value.replace("\\", "\\\\").replace('"', '\\"')
+line = f'{key}="{escaped}"\n'
 text = path.read_text() if path.exists() else ""
-pattern = re.compile(rf"^{re.escape(key)}=.*$", re.MULTILINE)
-if pattern.search(text):
-    text = pattern.sub(line, text, count=1)
-else:
-    if text and not text.endswith("\n"):
-        text += "\n"
-    text += line + "\n"
+text = remove_env_key(text, key)
+if text and not text.endswith("\n"):
+    text += "\n"
+text += line
 path.write_text(text)
 PY
 }

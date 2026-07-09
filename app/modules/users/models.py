@@ -55,7 +55,9 @@ class RolePermission(Base):
 
 
 Permission.roles = relationship(  # type: ignore[attr-defined]
-    secondary="role_permissions", back_populates="permissions"
+    "Role",
+    secondary="role_permissions",
+    back_populates="permissions",
 )
 
 
