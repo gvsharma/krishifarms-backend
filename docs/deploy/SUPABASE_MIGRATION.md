@@ -50,8 +50,8 @@ Transaction pooler (port **6543**): app-only — **avoid for Alembic**.
 |------|--------|
 | Prod DB | Docker `postgres:16-alpine` on EC2 `i-0426cdc00ff15bfe9` (`infra-postgres-1`, volume `infra_pgdata`) |
 | `DATABASE_URL` on EC2 | `postgresql+psycopg2://krishi:***@postgres:5432/krishifarms` |
-| Aurora | **None** — destroy skipped (nothing KrishiFarms-owned) |
-| RDS in account | `gamya-couture-dev-pg` only (tags `Project=gamya-couture`; stopped) — **do not destroy** without confirmation |
+| Aurora | **None** |
+| RDS in account | `gamya-couture-dev-pg` (Gamya Terraform) — remove via [GAMYA_RDS_REMOVAL.md](./GAMYA_RDS_REMOVAL.md) |
 | SSM DB secret | `/krishifarms/dev/db/password` → builds Docker `DATABASE_URL` |
 | SSM override (this cutover) | `/krishifarms/dev/db/database_url` → full Supabase URL when set (structure via `ensure-ssm-parameters.sh`; real value via `put-supabase-database-url-ssm.sh`) |
 | Extensions needed | `pgcrypto`, `pg_trgm` (Alembic `create_extensions()`) — both available on Supabase |
