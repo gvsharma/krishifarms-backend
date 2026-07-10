@@ -65,9 +65,10 @@ Transaction pooler (port **6543**): app-only — **avoid for Alembic**.
 ### 1. Prerequisites
 
 - [x] Supabase project created — ref `ucvwtoziiqgmcyzxkwxe`
-- [ ] This branch merged to `main` (Compose no longer hardcodes Docker `DATABASE_URL`; SSM sync supports full URL)
-- [ ] Database **password** in SSM `/krishifarms/dev/db/database_url` (not `REPLACE_ME`) — **required before GitHub deploy will pass health check**
-- [ ] Confirm **fresh Alembic + seed** (recommended) vs dump/restore from Docker
+- [x] Compose + SSM sync merged to `main`
+- [ ] **`SUPABASE_DB_PASSWORD`** GitHub secret on `krishifarms-backend` — [runbook](./SUPABASE_CUTOVER_RUNBOOK.md)
+- [ ] **IAM** `ssm:PutParameter` on deploy role — `bash deploy/scripts/attach-github-deploy-iam-supabase-policy.sh`
+- [ ] **Green deploy** — `alembic upgrade head` + seed on Supabase
 
 ### 2. Put URL in AWS SSM (automated on deploy)
 

@@ -4,6 +4,12 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: Optional note for manual Supabase cutover / redeploy
+        required: false
+        default: "manual redeploy"
 
 concurrency:
   group: deploy-backend-production
@@ -110,6 +116,18 @@ jobs:
           echo "ec2_host=${EC2_HOST}" >> "$GITHUB_OUTPUT"
           echo "ec2_name_tag=${EC2_NAME_TAG}" >> "$GITHUB_OUTPUT"
           echo "rds_instance_id=${RDS_INSTANCE_ID}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify Supabase cutover prerequisites
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${SUPABASE_DB_PASSWORD//[[:space:]]/}" ]]; then
+            echo "::error title=Missing SUPABASE_DB_PASSWORD::Add repository secret SUPABASE_DB_PASSWORD (Supabase database password) before deploy." >&2
+            echo "See docs/deploy/SUPABASE_CUTOVER_RUNBOOK.md" >&2
+            exit 1
+          fi
+          echo "SUPABASE_DB_PASSWORD is set (value not logged)."
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4

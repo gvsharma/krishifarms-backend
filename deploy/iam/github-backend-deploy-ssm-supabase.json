@@ -1,0 +1,33 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ManageKrishifarmsDeploySsmParameters",
+      "Effect": "Allow",
+      "Action": [
+        "ssm:GetParameter",
+        "ssm:PutParameter",
+        "ssm:AddTagsToResource"
+      ],
+      "Resource": "arn:aws:ssm:ap-south-1:085863558134:parameter/krishifarms/dev/*"
+    },
+    {
+      "Sid": "ConfigureSharedCostSchedulerLambda",
+      "Effect": "Allow",
+      "Action": [
+        "lambda:GetFunctionConfiguration",
+        "lambda:UpdateFunctionConfiguration"
+      ],
+      "Resource": "arn:aws:lambda:ap-south-1:085863558134:function:gamya-couture-dev-cost-scheduler"
+    },
+    {
+      "Sid": "ManageOrphanEventBridgeSchedules",
+      "Effect": "Allow",
+      "Action": [
+        "scheduler:GetSchedule",
+        "scheduler:DeleteSchedule"
+      ],
+      "Resource": "arn:aws:scheduler:ap-south-1:085863558134:schedule/*"
+    }
+  ]
+}
