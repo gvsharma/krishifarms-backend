@@ -154,7 +154,18 @@ curl -sf http://127.0.0.1:8082/api/v1/health
 # Login: owner@krishifarms.local / ChangeMe123! (or your seeded owner)
 ```
 
-### 7. Optional cleanup
+### 7. EC2 start/stop cron — keep EC2, drop RDS
+
+Daily EventBridge Scheduler jobs (06:00 / 11:00 IST) should **still start/stop EC2** `i-0426cdc00ff15bfe9` but **not** RDS `gamya-couture-dev-pg` after Supabase cutover:
+
+```bash
+bash deploy/scripts/configure-compute-scheduler-ec2-only.sh
+# Preview: bash deploy/scripts/configure-compute-scheduler-ec2-only.sh --dry-run
+```
+
+This removes `DB_INSTANCE_IDENTIFIER` from Lambda `gamya-couture-dev-cost-scheduler` and deletes the disabled orphan `shutdown-ec2` schedule.
+
+### 8. Optional cleanup (Docker Postgres on EC2)
 
 ```bash
 # Free RAM on t3.small — local DB unused after cutover
@@ -162,7 +173,7 @@ sudo docker compose -f infra/docker-compose.prod.yml stop postgres
 # Keep volume `infra_pgdata` until you are sure you will not roll back
 ```
 
-### 8. Rollback
+### 9. Rollback
 
 1. Remove or empty SSM `/krishifarms/dev/db/database_url` (or unset `DATABASE_URL` override)
 2. Re-run `sync-env-from-ssm.sh` so Docker URL is rebuilt from `/krishifarms/dev/db/password`
