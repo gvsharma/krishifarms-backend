@@ -11,7 +11,7 @@ KrishiFarms CRM is a **modular monolith** — a single FastAPI application with 
 | Attribute | Value |
 |-----------|-------|
 | Backend | Python 3.12, FastAPI, SQLAlchemy 2.x, Alembic |
-| Database | PostgreSQL 16 (Docker on EC2; RDS optional later) |
+| Database | PostgreSQL 16 (Docker on EC2 by default; Supabase or RDS via `DATABASE_URL`) |
 | Auth | JWT (access + refresh), RBAC permission codes |
 | Files | AWS S3 (`ap-south-1`), presigned upload/download |
 | Cache | Pluggable: none / in-memory / Redis |

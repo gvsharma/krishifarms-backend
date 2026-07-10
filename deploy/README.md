@@ -30,6 +30,8 @@ deploy/
     ec2-bootstrap.sh                  # One-time EC2 setup (Docker, directories)
     remote-deploy.sh                  # Idempotent deploy + backup + rollback
     sync-env-from-ssm.sh              # Optional SSM secret sync
+    ensure-ssm-parameters.sh          # Create missing /krishifarms/dev/* SSM params
+    put-supabase-database-url-ssm.sh  # Write real Supabase DATABASE_URL to SSM
     fix-firebase-env.py               # Minify/repair FIREBASE JSON in application.env
     ssm-kickoff-deploy.sh             # Async deploy kickoff from SSM
 
@@ -93,16 +95,28 @@ sudo chown root:krishifarms /opt/krishifarms/config/application.env
 
 ### SSM parameters (krishifarms-infra)
 
-Create in Terraform or AWS Console (SecureString). EC2 instance role needs `ssm:GetParameter` on these paths:
+No Terraform in this repo for SSM. Create via script (preferred), Console, or `krishifarms-infra` if present. EC2 instance role needs `ssm:GetParameter` on these paths:
 
 | Parameter | Maps to `application.env` |
 |-----------|---------------------------|
 | `/krishifarms/dev/app/secret_key` | `SECRET_KEY` |
-| `/krishifarms/dev/db/password` | `POSTGRES_PASSWORD`, `DATABASE_URL` |
+| `/krishifarms/dev/db/database_url` | `DATABASE_URL` (optional; **Supabase / external Postgres** — takes precedence) |
+| `/krishifarms/dev/db/password` | `POSTGRES_PASSWORD` + Docker `DATABASE_URL` (used only if `database_url` unset) |
 | `/krishifarms/dev/app/firebase_service_account_json` | `FIREBASE_SERVICE_ACCOUNT_JSON` (minified single-line JSON, double-quoted in env file) |
 | `/krishifarms/dev/app/firebase_project_id` | `FIREBASE_PROJECT_ID` (optional; default `krishifarms-prod` in template) |
 
+```bash
+# Create missing params only (SecureString placeholder REPLACE_ME; never overwrites)
+bash deploy/scripts/ensure-ssm-parameters.sh
+```
+
+`sync-env-from-ssm.sh` ignores `REPLACE_ME` so placeholders do not break Docker Postgres deploys.
+
 Gamya equivalent: `/gamya-couture/dev/db/username`, `/gamya-couture/dev/db/password`.
+
+**Supabase** (project `ucvwtoziiqgmcyzxkwxe`): overwrite `/krishifarms/dev/db/database_url` via `bash deploy/scripts/put-supabase-database-url-ssm.sh` (prompts for password) or `aws ssm put-parameter`. URI shape: `postgresql+psycopg2://postgres:[YOUR-PASSWORD]@db.ucvwtoziiqgmcyzxkwxe.supabase.co:5432/postgres?sslmode=require`. Full cutover: [docs/deploy/SUPABASE_MIGRATION.md](../docs/deploy/SUPABASE_MIGRATION.md).
+
+**Aurora/RDS:** KrishiFarms does **not** use Aurora. The only RDS in ap-south-1 (`gamya-couture-dev-pg`) is Gamya-owned — do not delete without explicit confirmation.
 
 ## Deployment flow (automatic on merge to main)
 

@@ -44,12 +44,23 @@ bash scripts/sync-backend-deploy-github-config.sh
 - OIDC trust is on **`gvsharma/krishifarms-backend`**, not `krishifarms-crm`.
 - EC2 must have `/opt/krishifarms` (bootstrap) and SSM Online.
 
-## SSM parameters (Terraform / Console)
+## SSM parameters (script / Console / Terraform)
+
+Bootstrap missing params (no overwrite; placeholders `REPLACE_ME`):
+
+```bash
+bash deploy/scripts/ensure-ssm-parameters.sh
+```
 
 | Parameter | Type | Purpose |
 |-----------|------|---------|
 | `/krishifarms/dev/app/secret_key` | SecureString | FastAPI JWT signing |
-| `/krishifarms/dev/db/password` | SecureString | Docker Postgres password |
+| `/krishifarms/dev/db/database_url` | SecureString | Optional full `DATABASE_URL` (Supabase; takes precedence) |
+| `/krishifarms/dev/db/password` | SecureString | Docker Postgres password (local URL if `database_url` unset) |
+| `/krishifarms/dev/app/firebase_service_account_json` | SecureString | Firebase Admin SDK JSON |
+| `/krishifarms/dev/app/firebase_project_id` | String | Firebase project id |
+
+For Supabase: `bash deploy/scripts/put-supabase-database-url-ssm.sh` (overwrites `database_url` with real URL).
 
 Grant the shared EC2 instance role `ssm:GetParameter` on `arn:aws:ssm:ap-south-1:*:parameter/krishifarms/dev/*` (mirror Gamya `/gamya-couture/dev/db/*`).
 

@@ -30,7 +30,7 @@ KrishiFarms uses the **same S3 → SSM → async kickoff → status poll** patte
 | **Status poll** | 36 × 10 s (~6 min) | 36 × 10 s (~6 min) |
 | **Public health URL** | `http://<EC2>/actuator/health` | `http://<EC2>:8082/api/v1/health` |
 | **Smoke test host** | `http://<EC2>` (port 80) | `http://<EC2>:8082` |
-| **Env sync script** | `sync-rds-env-from-ssm.sh` (RDS creds) | `sync-env-from-ssm.sh` (local Postgres + app secrets) |
+| **Env sync script** | `sync-rds-env-from-ssm.sh` (RDS creds) | `sync-env-from-ssm.sh` (Docker Postgres and/or Supabase `database_url` + app secrets) |
 | **SSM param prefix** | `/gamya-couture/dev/db/*` | `/krishifarms/dev/app/*`, `/krishifarms/dev/db/*` |
 | **Runtime deploy** | systemd JAR + host nginx | `docker compose -f infra/docker-compose.prod.yml` + Alembic |
 | **One-time bootstrap** | Manual: `ec2-bootstrap.sh` (Java 21, systemd) | Manual: `ec2-bootstrap.sh` (Docker, Compose plugin) |
@@ -68,7 +68,7 @@ flowchart TB
   EC2[EC2 t3.small]
   NGINX[nginx host :8082]
   API[FastAPI :8000]
-  PG[(PostgreSQL Docker)]
+  PG[(PostgreSQL Docker or Supabase)]
   S3[(S3 documents)]
   GHA[GitHub Actions]
   S3Deploy[S3 deploy bucket]
@@ -80,6 +80,8 @@ flowchart TB
   API --> PG
   API --> S3
 ```
+
+Database default is **Docker Postgres** on EC2. To use **Supabase**, set SSM `/krishifarms/dev/db/database_url` (see [SUPABASE_MIGRATION.md](./SUPABASE_MIGRATION.md)).
 
 ---
 
@@ -248,18 +250,19 @@ Same AWS account and patterns as Gamyaboutique (`gamya-couture-infra`):
 - [ ] **SSM agent** on EC2 (Amazon Linux 2023 default) with instance role including `AmazonSSMManagedInstanceCore`
 - [ ] **Security group:** port **8082** open for KrishiFarms nginx (Gamya uses 8080; Vercel `API_PROXY_TARGET` uses `:8082`)
 - [ ] **S3 documents bucket** (`krishifarms-documents`) with EC2 instance role `s3:PutObject` / `s3:GetObject`
-- [ ] (Optional) **SSM parameters** for secrets (create in `krishifarms-infra` Terraform or AWS Console):
+- [ ] (Optional) **SSM parameters** for secrets — create with `bash deploy/scripts/ensure-ssm-parameters.sh` (or Console / `krishifarms-infra` Terraform). Script creates missing params only; SecureString placeholders are `REPLACE_ME` (ignored by sync until overwritten).
 
 | Parameter | Purpose |
 |-----------|---------|
 | `/krishifarms/dev/app/secret_key` | FastAPI `SECRET_KEY` (SecureString) |
-| `/krishifarms/dev/db/password` | Docker Postgres `POSTGRES_PASSWORD` + `DATABASE_URL` (SecureString) |
+| `/krishifarms/dev/db/database_url` | Optional full `DATABASE_URL` for Supabase (SecureString; preferred when set; use `put-supabase-database-url-ssm.sh`) |
+| `/krishifarms/dev/db/password` | Docker Postgres `POSTGRES_PASSWORD` + local `DATABASE_URL` if `database_url` unset (SecureString) |
 | `/krishifarms/dev/app/firebase_service_account_json` | Firebase Admin SDK JSON for phone-auth token verify (SecureString) |
 | `/krishifarms/dev/app/firebase_project_id` | Optional override for `FIREBASE_PROJECT_ID` (String) |
 
 EC2 instance role needs `ssm:GetParameter` on `/krishifarms/dev/*` (mirror Gamya's `/gamya-couture/dev/db/*` grant on the shared host).
 
-You can reuse Gamyaboutique's Terraform patterns from `gamya-couture-infra` — KrishiFarms dev currently **shares** the Gamya EC2 (port 8082, `/opt/krishifarms`) with its own deploy bucket and GitHub OIDC role.
+**No KrishiFarms Aurora/RDS** in ap-south-1 (only Gamya `gamya-couture-dev-pg`). You can reuse Gamyaboutique's Terraform patterns from `gamya-couture-infra` — KrishiFarms dev currently **shares** the Gamya EC2 (port 8082, `/opt/krishifarms`) with its own deploy bucket and GitHub OIDC role.
 
 ---
 
@@ -283,8 +286,8 @@ Required values in `application.env`:
 | Key | Notes |
 |-----|-------|
 | `SECRET_KEY` | Strong random string |
-| `POSTGRES_PASSWORD` | Strong password (Docker Compose postgres) |
-| `DATABASE_URL` | Must match `POSTGRES_PASSWORD` |
+| `POSTGRES_PASSWORD` | Strong password (Docker Compose postgres; rollback) |
+| `DATABASE_URL` | Docker URL matching `POSTGRES_PASSWORD`, **or** Supabase URI with `?sslmode=require` |
 | `CORS_ORIGINS` | Include Vercel URL + localhost |
 | `DEBUG` | `false` |
 | `S3_BUCKET_NAME` | Documents bucket name |
