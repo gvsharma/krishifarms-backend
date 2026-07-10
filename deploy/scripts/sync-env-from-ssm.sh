@@ -2,6 +2,10 @@
 # Pull optional secrets from SSM and merge into EC2 application.env.
 # Requires: AWS CLI, EC2 instance role with ssm:GetParameter.
 #
+# DB precedence:
+#   1. /krishifarms/dev/db/database_url  → full DATABASE_URL (Supabase / RDS)
+#   2. /krishifarms/dev/db/password      → Docker Postgres password + local URL
+#
 # Usage (on EC2 as root):
 #   sudo bash deploy/scripts/sync-env-from-ssm.sh
 #   sudo bash deploy/scripts/sync-env-from-ssm.sh /opt/krishifarms/config/application.env
@@ -13,6 +17,8 @@ ENV_TEMPLATE="${ENV_TEMPLATE:-${APP_PATH}/scripts/application.env.example}"
 REGION="${AWS_REGION:-ap-south-1}"
 SECRET_KEY_PATH="${SSM_SECRET_KEY_PATH:-/krishifarms/dev/app/secret_key}"
 DB_PASSWORD_PATH="${SSM_DB_PASSWORD_PATH:-/krishifarms/dev/db/password}"
+# Full SQLAlchemy URL (Supabase / RDS). When set, takes precedence over Docker Postgres construction.
+DB_URL_PATH="${SSM_DB_URL_PATH:-/krishifarms/dev/db/database_url}"
 FIREBASE_JSON_PATH="${SSM_FIREBASE_JSON_PATH:-/krishifarms/dev/app/firebase_service_account_json}"
 FIREBASE_PROJECT_ID_PATH="${SSM_FIREBASE_PROJECT_ID_PATH:-/krishifarms/dev/app/firebase_project_id}"
 
@@ -123,11 +129,19 @@ if [[ -n "${SECRET_KEY}" && "${SECRET_KEY}" != "None" ]]; then
   upsert "SECRET_KEY" "${SECRET_KEY}"
 fi
 
-DB_PASSWORD="$(fetch_param "${DB_PASSWORD_PATH}")"
-if [[ -n "${DB_PASSWORD}" && "${DB_PASSWORD}" != "None" ]]; then
-  log "Syncing POSTGRES_PASSWORD from ${DB_PASSWORD_PATH}"
-  upsert "POSTGRES_PASSWORD" "${DB_PASSWORD}"
-  upsert "DATABASE_URL" "postgresql+psycopg2://krishi:${DB_PASSWORD}@postgres:5432/krishifarms"
+# Prefer full DATABASE_URL from SSM (Supabase / external Postgres). Otherwise build Docker URL.
+# Use upsert_quoted so ?sslmode=require and special chars in passwords are not mangled by sed.
+DB_URL="$(fetch_param "${DB_URL_PATH}")"
+if [[ -n "${DB_URL}" && "${DB_URL}" != "None" ]]; then
+  log "Syncing DATABASE_URL from ${DB_URL_PATH}"
+  upsert_quoted "DATABASE_URL" "${DB_URL}"
+else
+  DB_PASSWORD="$(fetch_param "${DB_PASSWORD_PATH}")"
+  if [[ -n "${DB_PASSWORD}" && "${DB_PASSWORD}" != "None" ]]; then
+    log "Syncing POSTGRES_PASSWORD from ${DB_PASSWORD_PATH} (local Docker Postgres)"
+    upsert "POSTGRES_PASSWORD" "${DB_PASSWORD}"
+    upsert_quoted "DATABASE_URL" "postgresql+psycopg2://krishi:${DB_PASSWORD}@postgres:5432/krishifarms"
+  fi
 fi
 
 FIREBASE_JSON="$(fetch_param "${FIREBASE_JSON_PATH}")"

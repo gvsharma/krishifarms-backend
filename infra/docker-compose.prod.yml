@@ -1,4 +1,11 @@
 # Production stack for EC2 — no source bind mounts; nginx host port defaults to 8082 (shared Gamya EC2).
+#
+# DATABASE_URL comes from .env (copied from application.env). Do not hardcode it under
+# `environment:` — that overrides env_file and would ignore Supabase / RDS URLs.
+#
+# Local Docker Postgres (default): DATABASE_URL host = `postgres` (Compose DNS).
+# Supabase: set DATABASE_URL in application.env with ?sslmode=require; after cutover you
+# may `docker compose -f infra/docker-compose.prod.yml stop postgres` to free RAM.
 services:
   postgres:
     image: postgres:16-alpine
@@ -23,11 +30,12 @@ services:
     env_file:
       - ../.env
     environment:
-      DATABASE_URL: postgresql+psycopg2://krishi:${POSTGRES_PASSWORD:-krishi}@postgres:5432/krishifarms
       CACHE_PROVIDER: memory
+    # DATABASE_URL: from env_file only (Compose `environment` would override .env)
     depends_on:
       postgres:
         condition: service_healthy
+        required: false
 
   nginx:
     image: nginx:alpine

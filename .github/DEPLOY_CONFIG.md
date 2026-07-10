@@ -49,7 +49,8 @@ bash scripts/sync-backend-deploy-github-config.sh
 | Parameter | Type | Purpose |
 |-----------|------|---------|
 | `/krishifarms/dev/app/secret_key` | SecureString | FastAPI JWT signing |
-| `/krishifarms/dev/db/password` | SecureString | Docker Postgres password |
+| `/krishifarms/dev/db/database_url` | SecureString | Optional full `DATABASE_URL` (Supabase/RDS; takes precedence) |
+| `/krishifarms/dev/db/password` | SecureString | Docker Postgres password (local URL if `database_url` unset) |
 
 Grant the shared EC2 instance role `ssm:GetParameter` on `arn:aws:ssm:ap-south-1:*:parameter/krishifarms/dev/*` (mirror Gamya `/gamya-couture/dev/db/*`).
 

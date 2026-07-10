@@ -98,11 +98,14 @@ Create in Terraform or AWS Console (SecureString). EC2 instance role needs `ssm:
 | Parameter | Maps to `application.env` |
 |-----------|---------------------------|
 | `/krishifarms/dev/app/secret_key` | `SECRET_KEY` |
-| `/krishifarms/dev/db/password` | `POSTGRES_PASSWORD`, `DATABASE_URL` |
+| `/krishifarms/dev/db/database_url` | `DATABASE_URL` (optional; **Supabase / external Postgres** — takes precedence) |
+| `/krishifarms/dev/db/password` | `POSTGRES_PASSWORD` + Docker `DATABASE_URL` (used only if `database_url` unset) |
 | `/krishifarms/dev/app/firebase_service_account_json` | `FIREBASE_SERVICE_ACCOUNT_JSON` (minified single-line JSON, double-quoted in env file) |
 | `/krishifarms/dev/app/firebase_project_id` | `FIREBASE_PROJECT_ID` (optional; default `krishifarms-prod` in template) |
 
 Gamya equivalent: `/gamya-couture/dev/db/username`, `/gamya-couture/dev/db/password`.
+
+**Supabase** (project `ucvwtoziiqgmcyzxkwxe`): write `/krishifarms/dev/db/database_url` via `bash deploy/scripts/put-supabase-database-url-ssm.sh` (prompts for password) or `aws ssm put-parameter`. URI shape: `postgresql+psycopg2://postgres:[YOUR-PASSWORD]@db.ucvwtoziiqgmcyzxkwxe.supabase.co:5432/postgres?sslmode=require`. Full cutover: [docs/deploy/SUPABASE_MIGRATION.md](../docs/deploy/SUPABASE_MIGRATION.md).
 
 ## Deployment flow (automatic on merge to main)
 
