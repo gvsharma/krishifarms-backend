@@ -9,6 +9,7 @@ Do not commit secrets to git. Re-sync after `terraform apply` in `krishifarms-in
 | Name | Value |
 |------|-------|
 | `AWS_BACKEND_DEPLOY_ROLE_ARN` | `arn:aws:iam::085863558134:role/krishifarms-dev-gh-be-deploy-20260621161619959700000003` |
+| `SUPABASE_DB_PASSWORD` | Supabase project `ucvwtoziiqgmcyzxkwxe` database password — **required** for deploy to write `/krishifarms/dev/db/database_url` via GitHub Actions (never commit) |
 
 ## Variables
 

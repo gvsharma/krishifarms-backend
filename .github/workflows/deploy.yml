@@ -117,6 +117,11 @@ jobs:
           role-to-assume: ${{ secrets.AWS_BACKEND_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Sync Supabase SSM and EC2-only scheduler
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: bash deploy/scripts/github-predeploy.sh
+
       - name: Prepare RDS database
         env:
           DEPLOY_BUCKET: ${{ steps.deploy_cfg.outputs.deploy_bucket }}
@@ -295,6 +300,8 @@ jobs:
           aws s3 cp deploy.tar.gz "s3://${DEPLOY_BUCKET}/${DEPLOY_OBJECT_KEY}"
           aws s3 cp deploy/scripts/remote-deploy.sh "s3://${DEPLOY_BUCKET}/${DEPLOY_SCRIPT_KEY}"
           aws s3 cp deploy/scripts/sync-env-from-ssm.sh "s3://${DEPLOY_BUCKET}/${DEPLOY_SYNC_SCRIPT_KEY}"
+          aws s3 cp deploy/scripts/fix-firebase-env.py "s3://${DEPLOY_BUCKET}/incoming/fix-firebase-env.py"
+          aws s3 cp deploy/scripts/ensure-ssm-parameters.sh "s3://${DEPLOY_BUCKET}/incoming/ensure-ssm-parameters.sh"
           aws s3 cp deploy/scripts/ssm-kickoff-deploy.sh "s3://${DEPLOY_BUCKET}/${DEPLOY_KICKOFF_SCRIPT_KEY}"
           aws s3 cp deploy/env/application.env.example "s3://${DEPLOY_BUCKET}/${DEPLOY_ENV_TEMPLATE_KEY}"
 

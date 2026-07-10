@@ -31,7 +31,8 @@ deploy/
     remote-deploy.sh                  # Idempotent deploy + backup + rollback
     sync-env-from-ssm.sh              # Optional SSM secret sync
     ensure-ssm-parameters.sh          # Create missing /krishifarms/dev/* SSM params
-    put-supabase-database-url-ssm.sh  # Write real Supabase DATABASE_URL to SSM
+    put-supabase-database-url-ssm.sh  # Manual Supabase URL → SSM (or use GitHub secret + github-predeploy.sh)
+    github-predeploy.sh               # GitHub Actions: SSM + EC2-only scheduler before deploy
     configure-compute-scheduler-ec2-only.sh  # Keep EC2 cron; stop RDS start/stop
     fix-firebase-env.py               # Minify/repair FIREBASE JSON in application.env
     ssm-kickoff-deploy.sh             # Async deploy kickoff from SSM
