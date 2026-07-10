@@ -69,29 +69,18 @@ Transaction pooler (port **6543**): app-only — **avoid for Alembic**.
 - [ ] Database **password** in SSM `/krishifarms/dev/db/database_url` (not `REPLACE_ME`) — **required before GitHub deploy will pass health check**
 - [ ] Confirm **fresh Alembic + seed** (recommended) vs dump/restore from Docker
 
-### 2. Put URL in AWS SSM (recommended)
+### 2. Put URL in AWS SSM (automated on deploy)
 
-Ensure parameter structure exists (creates missing keys with `REPLACE_ME`; safe to re-run):
+**Preferred:** add GitHub secret **`SUPABASE_DB_PASSWORD`** (repo → Settings → Secrets → Actions). Each push to `main` runs `github-predeploy.sh` which:
 
-```bash
-bash deploy/scripts/ensure-ssm-parameters.sh
-```
+1. Ensures SSM keys exist (`ensure-ssm-parameters.sh`)
+2. Writes `/krishifarms/dev/db/database_url` with `sslmode=require`
+3. Configures EC2-only cost scheduler (drops RDS from daily cron)
 
-Then write the real Supabase URL (prompts for password; URL-encodes; does not echo secrets):
-
-```bash
-bash deploy/scripts/put-supabase-database-url-ssm.sh
-```
-
-Or manually (replace `[YOUR-PASSWORD]`; URL-encode special chars):
+**Manual fallback** (local machine with AWS CLI):
 
 ```bash
-aws ssm put-parameter \
-  --region ap-south-1 \
-  --name /krishifarms/dev/db/database_url \
-  --type SecureString \
-  --value 'postgresql+psycopg2://postgres:[YOUR-PASSWORD]@db.ucvwtoziiqgmcyzxkwxe.supabase.co:5432/postgres?sslmode=require' \
-  --overwrite
+SUPABASE_DB_PASSWORD='...' bash deploy/scripts/put-supabase-database-url-ssm.sh
 ```
 
 When `/krishifarms/dev/db/database_url` is set, `sync-env-from-ssm.sh` uses it and **does not** overwrite with the Docker Postgres URL.
