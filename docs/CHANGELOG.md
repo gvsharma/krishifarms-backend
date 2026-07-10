@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - **SSM parameter bootstrap** — `deploy/scripts/ensure-ssm-parameters.sh` creates missing `/krishifarms/dev/*` SecureString/String params (placeholder `REPLACE_ME`; does not overwrite). Created `/krishifarms/dev/db/database_url` in ap-south-1 for Supabase cutover.
+- **Remove EC2/RDS cron schedules** — `deploy/scripts/delete-compute-schedules.sh` deletes EventBridge Scheduler daily start/stop jobs (Gamya compute + orphan `shutdown-ec2`) after Supabase cutover
 
 ### Changed
 

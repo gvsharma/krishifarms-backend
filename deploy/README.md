@@ -32,6 +32,7 @@ deploy/
     sync-env-from-ssm.sh              # Optional SSM secret sync
     ensure-ssm-parameters.sh          # Create missing /krishifarms/dev/* SSM params
     put-supabase-database-url-ssm.sh  # Write real Supabase DATABASE_URL to SSM
+    delete-compute-schedules.sh       # Remove EventBridge daily EC2/RDS start-stop crons
     fix-firebase-env.py               # Minify/repair FIREBASE JSON in application.env
     ssm-kickoff-deploy.sh             # Async deploy kickoff from SSM
 
