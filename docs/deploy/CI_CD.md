@@ -250,19 +250,19 @@ Same AWS account and patterns as Gamyaboutique (`gamya-couture-infra`):
 - [ ] **SSM agent** on EC2 (Amazon Linux 2023 default) with instance role including `AmazonSSMManagedInstanceCore`
 - [ ] **Security group:** port **8082** open for KrishiFarms nginx (Gamya uses 8080; Vercel `API_PROXY_TARGET` uses `:8082`)
 - [ ] **S3 documents bucket** (`krishifarms-documents`) with EC2 instance role `s3:PutObject` / `s3:GetObject`
-- [ ] (Optional) **SSM parameters** for secrets (create in `krishifarms-infra` Terraform or AWS Console):
+- [ ] (Optional) **SSM parameters** for secrets — create with `bash deploy/scripts/ensure-ssm-parameters.sh` (or Console / `krishifarms-infra` Terraform). Script creates missing params only; SecureString placeholders are `REPLACE_ME` (ignored by sync until overwritten).
 
 | Parameter | Purpose |
 |-----------|---------|
 | `/krishifarms/dev/app/secret_key` | FastAPI `SECRET_KEY` (SecureString) |
-| `/krishifarms/dev/db/database_url` | Optional full `DATABASE_URL` for Supabase/RDS (SecureString; preferred when set) |
+| `/krishifarms/dev/db/database_url` | Optional full `DATABASE_URL` for Supabase (SecureString; preferred when set; use `put-supabase-database-url-ssm.sh`) |
 | `/krishifarms/dev/db/password` | Docker Postgres `POSTGRES_PASSWORD` + local `DATABASE_URL` if `database_url` unset (SecureString) |
 | `/krishifarms/dev/app/firebase_service_account_json` | Firebase Admin SDK JSON for phone-auth token verify (SecureString) |
 | `/krishifarms/dev/app/firebase_project_id` | Optional override for `FIREBASE_PROJECT_ID` (String) |
 
 EC2 instance role needs `ssm:GetParameter` on `/krishifarms/dev/*` (mirror Gamya's `/gamya-couture/dev/db/*` grant on the shared host).
 
-You can reuse Gamyaboutique's Terraform patterns from `gamya-couture-infra` — KrishiFarms dev currently **shares** the Gamya EC2 (port 8082, `/opt/krishifarms`) with its own deploy bucket and GitHub OIDC role.
+**No KrishiFarms Aurora/RDS** in ap-south-1 (only Gamya `gamya-couture-dev-pg`). You can reuse Gamyaboutique's Terraform patterns from `gamya-couture-infra` — KrishiFarms dev currently **shares** the Gamya EC2 (port 8082, `/opt/krishifarms`) with its own deploy bucket and GitHub OIDC role.
 
 ---
 

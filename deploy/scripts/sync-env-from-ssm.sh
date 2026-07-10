@@ -123,8 +123,14 @@ fetch_param() {
     --output text 2>/dev/null || true
 }
 
+# Ignore structure placeholders from ensure-ssm-parameters.sh (not real secrets).
+is_usable_secret() {
+  local v="$1"
+  [[ -n "${v}" && "${v}" != "None" && "${v}" != "REPLACE_ME" ]]
+}
+
 SECRET_KEY="$(fetch_param "${SECRET_KEY_PATH}")"
-if [[ -n "${SECRET_KEY}" && "${SECRET_KEY}" != "None" ]]; then
+if is_usable_secret "${SECRET_KEY}"; then
   log "Syncing SECRET_KEY from ${SECRET_KEY_PATH}"
   upsert "SECRET_KEY" "${SECRET_KEY}"
 fi
@@ -132,12 +138,15 @@ fi
 # Prefer full DATABASE_URL from SSM (Supabase / external Postgres). Otherwise build Docker URL.
 # Use upsert_quoted so ?sslmode=require and special chars in passwords are not mangled by sed.
 DB_URL="$(fetch_param "${DB_URL_PATH}")"
-if [[ -n "${DB_URL}" && "${DB_URL}" != "None" ]]; then
+if is_usable_secret "${DB_URL}"; then
   log "Syncing DATABASE_URL from ${DB_URL_PATH}"
   upsert_quoted "DATABASE_URL" "${DB_URL}"
 else
+  if [[ -n "${DB_URL}" && "${DB_URL}" != "None" ]]; then
+    log "Skipping ${DB_URL_PATH} (placeholder REPLACE_ME) — using Docker password path if set"
+  fi
   DB_PASSWORD="$(fetch_param "${DB_PASSWORD_PATH}")"
-  if [[ -n "${DB_PASSWORD}" && "${DB_PASSWORD}" != "None" ]]; then
+  if is_usable_secret "${DB_PASSWORD}"; then
     log "Syncing POSTGRES_PASSWORD from ${DB_PASSWORD_PATH} (local Docker Postgres)"
     upsert "POSTGRES_PASSWORD" "${DB_PASSWORD}"
     upsert_quoted "DATABASE_URL" "postgresql+psycopg2://krishi:${DB_PASSWORD}@postgres:5432/krishifarms"
@@ -145,7 +154,7 @@ else
 fi
 
 FIREBASE_JSON="$(fetch_param "${FIREBASE_JSON_PATH}")"
-if [[ -n "${FIREBASE_JSON}" && "${FIREBASE_JSON}" != "None" ]]; then
+if is_usable_secret "${FIREBASE_JSON}"; then
   log "Syncing FIREBASE_SERVICE_ACCOUNT_JSON from ${FIREBASE_JSON_PATH}"
   FIREBASE_JSON_MINIFIED="$(minify_firebase_json "${FIREBASE_JSON}")" || {
     log "ERROR: FIREBASE JSON from SSM is not valid JSON — skipping"
@@ -155,7 +164,7 @@ if [[ -n "${FIREBASE_JSON}" && "${FIREBASE_JSON}" != "None" ]]; then
 fi
 
 FIREBASE_PROJECT_ID="$(fetch_param "${FIREBASE_PROJECT_ID_PATH}")"
-if [[ -n "${FIREBASE_PROJECT_ID}" && "${FIREBASE_PROJECT_ID}" != "None" ]]; then
+if is_usable_secret "${FIREBASE_PROJECT_ID}"; then
   log "Syncing FIREBASE_PROJECT_ID from ${FIREBASE_PROJECT_ID_PATH}"
   upsert "FIREBASE_PROJECT_ID" "${FIREBASE_PROJECT_ID}"
 fi

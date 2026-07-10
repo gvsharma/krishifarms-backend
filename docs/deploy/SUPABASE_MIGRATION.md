@@ -50,10 +50,10 @@ Transaction pooler (port **6543**): app-only — **avoid for Alembic**.
 |------|--------|
 | Prod DB | Docker `postgres:16-alpine` on EC2 `i-0426cdc00ff15bfe9` (`infra-postgres-1`, volume `infra_pgdata`) |
 | `DATABASE_URL` on EC2 | `postgresql+psycopg2://krishi:***@postgres:5432/krishifarms` |
-| Aurora | None in account for KrishiFarms |
-| RDS in account | `gamya-couture-dev-pg` only (Gamya; stopped) — unrelated |
+| Aurora | **None** — destroy skipped (nothing KrishiFarms-owned) |
+| RDS in account | `gamya-couture-dev-pg` only (tags `Project=gamya-couture`; stopped) — **do not destroy** without confirmation |
 | SSM DB secret | `/krishifarms/dev/db/password` → builds Docker `DATABASE_URL` |
-| SSM override (this cutover) | `/krishifarms/dev/db/database_url` → full Supabase URL when set |
+| SSM override (this cutover) | `/krishifarms/dev/db/database_url` → full Supabase URL when set (structure via `ensure-ssm-parameters.sh`; real value via `put-supabase-database-url-ssm.sh`) |
 | Extensions needed | `pgcrypto`, `pg_trgm` (Alembic `create_extensions()`) — both available on Supabase |
 | Partitions | Native monthly `RANGE` partitions — supported on Supabase Postgres |
 | Docker data | Often empty / re-seedable — prefer **fresh Alembic + seed** unless you confirm real data to keep |
@@ -71,7 +71,13 @@ Transaction pooler (port **6543**): app-only — **avoid for Alembic**.
 
 ### 2. Put URL in AWS SSM (recommended)
 
-Helper (prompts for password; URL-encodes; does not echo secrets):
+Ensure parameter structure exists (creates missing keys with `REPLACE_ME`; safe to re-run):
+
+```bash
+bash deploy/scripts/ensure-ssm-parameters.sh
+```
+
+Then write the real Supabase URL (prompts for password; URL-encodes; does not echo secrets):
 
 ```bash
 bash deploy/scripts/put-supabase-database-url-ssm.sh
