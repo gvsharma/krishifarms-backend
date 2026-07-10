@@ -66,7 +66,7 @@ Transaction pooler (port **6543**): app-only — **avoid for Alembic**.
 
 - [x] Supabase project created — ref `ucvwtoziiqgmcyzxkwxe`
 - [ ] This branch merged to `main` (Compose no longer hardcodes Docker `DATABASE_URL`; SSM sync supports full URL)
-- [ ] Database **password** available (paste to agent or set SSM yourself)
+- [ ] Database **password** in SSM `/krishifarms/dev/db/database_url` (not `REPLACE_ME`) — **required before GitHub deploy will pass health check**
 - [ ] Confirm **fresh Alembic + seed** (recommended) vs dump/restore from Docker
 
 ### 2. Put URL in AWS SSM (recommended)
