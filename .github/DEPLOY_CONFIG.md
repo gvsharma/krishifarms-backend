@@ -61,7 +61,9 @@ bash deploy/scripts/ensure-ssm-parameters.sh
 | `/krishifarms/dev/app/firebase_service_account_json` | SecureString | Firebase Admin SDK JSON |
 | `/krishifarms/dev/app/firebase_project_id` | String | Firebase project id |
 
-For Supabase: `bash deploy/scripts/put-supabase-database-url-ssm.sh` (overwrites `database_url` with real URL).
+For Supabase: set GitHub secret **`SUPABASE_DB_PASSWORD`** — each deploy runs `github-predeploy.sh` to write SSM `/krishifarms/dev/db/database_url`. **One-time IAM:** `bash deploy/scripts/attach-github-deploy-iam-supabase-policy.sh` (admin AWS). Full steps: [docs/deploy/SUPABASE_CUTOVER_RUNBOOK.md](../docs/deploy/SUPABASE_CUTOVER_RUNBOOK.md).
+
+Grant the deploy OIDC role (or use attach script): `ssm:PutParameter` + `ssm:GetParameter` on `/krishifarms/dev/*`; `lambda:UpdateFunctionConfiguration` + `lambda:GetFunctionConfiguration` on `gamya-couture-dev-cost-scheduler`; `scheduler:DeleteSchedule` + `scheduler:GetSchedule` for orphan `shutdown-ec2`.
 
 Grant the shared EC2 instance role `ssm:GetParameter` on `arn:aws:ssm:ap-south-1:*:parameter/krishifarms/dev/*` (mirror Gamya `/gamya-couture/dev/db/*`).
 

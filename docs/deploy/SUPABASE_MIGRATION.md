@@ -50,8 +50,8 @@ Transaction pooler (port **6543**): app-only — **avoid for Alembic**.
 |------|--------|
 | Prod DB | Docker `postgres:16-alpine` on EC2 `i-0426cdc00ff15bfe9` (`infra-postgres-1`, volume `infra_pgdata`) |
 | `DATABASE_URL` on EC2 | `postgresql+psycopg2://krishi:***@postgres:5432/krishifarms` |
-| Aurora | **None** — destroy skipped (nothing KrishiFarms-owned) |
-| RDS in account | `gamya-couture-dev-pg` only (tags `Project=gamya-couture`; stopped) — **do not destroy** without confirmation |
+| Aurora | **None** |
+| RDS in account | `gamya-couture-dev-pg` (Gamya Terraform) — remove via [GAMYA_RDS_REMOVAL.md](./GAMYA_RDS_REMOVAL.md) |
 | SSM DB secret | `/krishifarms/dev/db/password` → builds Docker `DATABASE_URL` |
 | SSM override (this cutover) | `/krishifarms/dev/db/database_url` → full Supabase URL when set (structure via `ensure-ssm-parameters.sh`; real value via `put-supabase-database-url-ssm.sh`) |
 | Extensions needed | `pgcrypto`, `pg_trgm` (Alembic `create_extensions()`) — both available on Supabase |
@@ -65,9 +65,10 @@ Transaction pooler (port **6543**): app-only — **avoid for Alembic**.
 ### 1. Prerequisites
 
 - [x] Supabase project created — ref `ucvwtoziiqgmcyzxkwxe`
-- [ ] This branch merged to `main` (Compose no longer hardcodes Docker `DATABASE_URL`; SSM sync supports full URL)
-- [ ] Database **password** in SSM `/krishifarms/dev/db/database_url` (not `REPLACE_ME`) — **required before GitHub deploy will pass health check**
-- [ ] Confirm **fresh Alembic + seed** (recommended) vs dump/restore from Docker
+- [x] Compose + SSM sync merged to `main`
+- [ ] **`SUPABASE_DB_PASSWORD`** GitHub secret on `krishifarms-backend` — [runbook](./SUPABASE_CUTOVER_RUNBOOK.md)
+- [ ] **IAM** `ssm:PutParameter` on deploy role — `bash deploy/scripts/attach-github-deploy-iam-supabase-policy.sh`
+- [ ] **Green deploy** — `alembic upgrade head` + seed on Supabase
 
 ### 2. Put URL in AWS SSM (automated on deploy)
 

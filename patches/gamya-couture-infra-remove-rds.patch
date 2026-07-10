@@ -1,0 +1,639 @@
+diff --git a/docs/COST_AND_OPS.md b/docs/COST_AND_OPS.md
+index e8dfa9a..3badcc0 100644
+--- a/docs/COST_AND_OPS.md
++++ b/docs/COST_AND_OPS.md
+@@ -6,8 +6,8 @@ All lifecycle changes go through Terraform — no routine AWS Console edits.
+ 
+ | Action | Time (IST) | Days | Resources | Implementation |
+ |--------|------------|------|-----------|----------------|
+-| **Start** | 06:00 | Mon–Fri | RDS (wait) → EC2 | EventBridge Scheduler → Lambda |
+-| **Stop** | 11:00 | Mon–Fri | EC2 → RDS | EventBridge Scheduler → Lambda |
++| **Start** | 06:00 | Mon–Fri | EC2 (RDS first only when `enable_rds = true`) | EventBridge Scheduler → Lambda |
++| **Stop** | 11:00 | Mon–Fri | EC2 (then RDS when enabled) | EventBridge Scheduler → Lambda |
+ | **Start** | 18:00 | Saturday | RDS (wait) → EC2 | EventBridge Scheduler → Lambda |
+ | **Stop** | 00:00 | Sunday (midnight) | EC2 → RDS | EventBridge Scheduler → Lambda |
+ | **Start** | 06:00 | Sunday | RDS (wait) → EC2 | EventBridge Scheduler → Lambda |
+@@ -28,8 +28,9 @@ Disable for 24/7 operation: `enable_cost_schedule = false`
+ 
+ ## Cost levers
+ 
+-1. **Scheduler** — EC2 + RDS off ~83% of the week (~29 h running of 168 h).
+-2. **Cheapest SKUs** — dev `t3.micro` EC2 + `db.t4g.micro` RDS; prod `t4g.micro` EC2.
++1. **Scheduler** — EC2 off ~83% of the week when enabled; RDS scheduling only if `enable_rds = true`.
++2. **No RDS (dev default)** — `enable_rds = false` removes `gamya-couture-dev-pg` billing.
++3. **Cheapest SKUs** — dev `t3.micro` EC2; prod `t4g.micro` EC2 when RDS disabled.
+ 3. **No NAT** — EC2 in public subnet with tight SG; RDS private, SG-to-SG only.
+ 4. **No paid RDS features** — no Multi-AZ, backups, Performance Insights, log exports.
+ 5. **gp3 minimum storage** — 20 GB RDS, 8 GB EC2 root (dev).
+@@ -60,19 +61,20 @@ Per-resource `ResourcePurpose` tags are set in modules (e.g. `compute-api-backen
+ 
+ 1. `vpc-minimal`
+ 2. `security-groups` / `security-groups-api`
+-3. `rds`
++3. `rds` (optional — `enable_rds`)
+ 4. `backend-deploy-s3` (optional)
+ 5. `product-media-cdn` (optional)
+ 6. `ec2` / `ec2-api`
+ 7. `ci-backend-deploy-iam` (optional)
+ 8. `github-backend-deploy-config` (optional)
+-9. `scheduler` (needs EC2 + RDS IDs)
++9. `scheduler` (needs EC2; RDS ID only when `enable_rds`)
+ 
+ ## Manual start (outside schedule)
+ 
+ ```bash
+ aws ec2 start-instances --instance-ids <id> --region ap-south-1
+-aws rds start-db-instance --db-instance-identifier <id> --region ap-south-1
++# RDS only when enable_rds = true:
++aws rds start-db-instance --db-instance-identifier gamya-couture-dev-pg --region ap-south-1
+ ```
+ 
+ Wait for RDS `available` before relying on the API.
+diff --git a/docs/RDS_REMOVAL.md b/docs/RDS_REMOVAL.md
+new file mode 100644
+index 0000000..f644e35
+--- /dev/null
++++ b/docs/RDS_REMOVAL.md
+@@ -0,0 +1,45 @@
++# RDS removal (dev)
++
++KrishiFarms and Gamya dev no longer use managed RDS (`gamya-couture-dev-pg`). Databases run on **Docker Postgres on the shared EC2** (KrishiFarms) or **local/external Postgres** (Gamya backend).
++
++## What changed in Terraform
++
++| Setting | Value |
++|---------|-------|
++| `enable_rds` | `false` in `environments/dev/ci.tfvars` |
++| `module.rds` | `count = var.enable_rds ? 1 : 0` — destroys RDS when false |
++| `module.scheduler` | `schedule_rds = false`, `schedule_ec2 = true` |
++| `ci-backend-deploy-iam` | No `rds:StartDBInstance` when RDS disabled |
++
++Merge to `main` runs **Terraform apply** on `environments/dev` and removes:
++
++- `aws_db_instance` `gamya-couture-dev-pg`
++- DB subnet group, SSM username/password params, RDS CloudWatch log groups
++- Lambda env `DB_INSTANCE_IDENTIFIER` (scheduler EC2-only)
++
++**EC2 daily start/stop (06:00 / 11:00 IST) is unchanged.**
++
++## Apply via CI (recommended)
++
++1. Merge PR with `enable_rds = false`.
++2. Watch **Actions → Terraform** apply on `main`.
++3. Confirm plan shows **destroy** for `module.rds[0].*` resources.
++
++## Manual fallback
++
++If state is drifted or apply cannot run:
++
++```bash
++bash scripts/destroy-rds-instance.sh --dry-run
++bash scripts/destroy-rds-instance.sh
++```
++
++KrishiFarms deploy (separate repo) also runs `configure-compute-scheduler-ec2-only.sh` to drop RDS from the shared cost Lambda.
++
++## Re-enable RDS (not recommended)
++
++Set `enable_rds = true` in tfvars and apply. A **new** instance is created; data is not restored unless you import/snapshot.
++
++## Gamya application.env
++
++After RDS removal, set JDBC URL on EC2 `/opt/gamya-couture/config/application.env` to your Postgres host (local Docker, Supabase, etc.). New EC2 bootstrap uses `db_endpoint_override` (default `127.0.0.1`) when `enable_rds = false`.
+diff --git a/environments/dev/README.md b/environments/dev/README.md
+index 596808a..3fde568 100644
+--- a/environments/dev/README.md
++++ b/environments/dev/README.md
+@@ -5,10 +5,10 @@
+ | Resource | Spec |
+ |----------|------|
+ | Naming | `gamya-couture-dev-*` |
+-| VPC | `10.50.0.0/16` (public EC2 + private RDS subnets) |
++| VPC | `10.50.0.0/16` (public EC2 + private subnets; RDS optional) |
+ | EC2 | Amazon Linux 2023, `t3.micro` |
+-| RDS | PostgreSQL 17, `db.t4g.micro`, 20 GB gp3 (private) |
+-| Scheduler | Daily 06:00–11:00 IST (EC2 + RDS stop/start) |
++| RDS | **Disabled** (`enable_rds = false`) — was PostgreSQL 17 `db.t4g.micro` `gamya-couture-dev-pg` |
++| Scheduler | Daily 06:00–11:00 IST (**EC2 only**) |
+ | Backend deploy | S3 JAR bucket + GitHub OIDC → SSM (no SSH from runners) |
+ | Product media | Private S3 `gamya-couture-dev-media` + CloudFront CDN (OAC) |
+ | Tags | `Owner=Venkat`, `CostOptimization=enabled`, `AutoShutdown=true` |
+@@ -25,7 +25,9 @@ terraform plan -var-file=ci.tfvars             # CI uses ci.tfvars
+ terraform apply -var-file=ci.tfvars
+ ```
+ 
+-Modules apply in dependency order: VPC → security groups → RDS → deploy S3 → product media CDN → EC2 → GitHub deploy IAM → scheduler.
++Modules apply in dependency order: VPC → security groups → (optional RDS) → deploy S3 → product media CDN → EC2 → GitHub deploy IAM → scheduler.
++
++See [docs/RDS_REMOVAL.md](../../docs/RDS_REMOVAL.md) for destroying `gamya-couture-dev-pg` via Terraform apply.
+ 
+ After apply, sync product image URLs:
+ 
+diff --git a/environments/dev/ci.tfvars b/environments/dev/ci.tfvars
+index 71d10b3..626bb66 100644
+--- a/environments/dev/ci.tfvars
++++ b/environments/dev/ci.tfvars
+@@ -18,6 +18,7 @@ api_port          = 8080
+ enable_backend_ssm_deploy = true
+ github_backend_repository = "gvsharma/gamyaboutique"
+ 
+-# Cost scheduler: daily 06:00 start / 11:00 stop IST (gamya-couture-dev-api + gamya-couture-dev-pg)
++# Cost scheduler: daily 06:00 start / 11:00 stop IST (EC2 only; RDS removed)
++enable_rds           = false
+ enable_cost_schedule = true
+ schedule_timezone    = "Asia/Kolkata"
+diff --git a/environments/dev/main.tf b/environments/dev/main.tf
+index f1a1443..cd5f7b8 100644
+--- a/environments/dev/main.tf
++++ b/environments/dev/main.tf
+@@ -1,9 +1,14 @@
+ # ------------------------------------------------------------------------------
+ # Dev environment — minimal API stack for Vercel frontend (ap-south-1)
+-# VPC + public subnet + private RDS subnets + EC2 (Amazon Linux 2023, t3.micro)
+-# + cheapest PostgreSQL RDS (private, EC2 SG → RDS SG only)
++# VPC + public subnet + optional private RDS subnets + EC2 (Amazon Linux 2023, t3.micro)
++# + optional PostgreSQL RDS (private, EC2 SG → RDS SG only)
+ # ------------------------------------------------------------------------------
+ 
++moved {
++  from = module.rds
++  to   = module.rds[0]
++}
++
+ module "vpc" {
+   source = "../../modules/vpc-minimal"
+ 
+@@ -21,6 +26,7 @@ module "security_groups" {
+ }
+ 
+ module "rds" {
++  count  = var.enable_rds ? 1 : 0
+   source = "../../modules/rds"
+ 
+   name_prefix            = local.name_prefix
+@@ -57,7 +63,7 @@ module "ec2" {
+   key_name            = var.ec2_key_name
+   api_port            = var.api_port
+   ssh_authorized_keys = var.ssh_authorized_keys
+-  db_endpoint         = module.rds.db_endpoint
++  db_endpoint         = var.enable_rds ? module.rds[0].db_endpoint : var.db_endpoint_override
+   db_name             = var.db_name
+   db_username         = var.db_username
+ 
+@@ -72,6 +78,9 @@ module "ec2" {
+     var.enable_product_media_cdn ? {
+       product_media_upload = module.product_media_cdn[0].ec2_upload_policy_arn
+     } : {},
++    var.enable_rds ? {
++      rds_secrets = module.rds[0].db_secrets_read_policy_arn
++    } : {},
+   )
+ }
+ 
+@@ -83,7 +92,7 @@ module "ci_backend_deploy" {
+   github_repository    = var.github_backend_repository
+   deploy_bucket_arn    = module.backend_deploy_artifacts[0].bucket_arn
+   ec2_instance_arn     = module.ec2.instance_arn
+-  rds_instance_arn     = module.rds.db_instance_arn
++  rds_instance_arn     = var.enable_rds ? module.rds[0].db_instance_arn : null
+   create_oidc_provider = false
+ 
+   allowed_ref_subjects = [
+@@ -107,9 +116,9 @@ module "scheduler" {
+   source = "../../modules/scheduler"
+ 
+   name_prefix            = local.name_prefix
+-  db_instance_identifier = local.rds_instance_identifier
++  db_instance_identifier = var.enable_rds ? local.rds_instance_identifier : ""
+   ec2_instance_id        = module.ec2.instance_id
+-  schedule_rds           = true
++  schedule_rds           = var.enable_rds
+   schedule_ec2           = true
+ 
+   timezone        = var.schedule_timezone
+diff --git a/environments/dev/outputs.tf b/environments/dev/outputs.tf
+index a2a37f8..a6a746f 100644
+--- a/environments/dev/outputs.tf
++++ b/environments/dev/outputs.tf
+@@ -124,68 +124,68 @@ output "vercel_env_hint" {
+ # ------------------------------------------------------------------------------
+ 
+ output "db_instance_id" {
+-  description = "RDS instance identifier."
+-  value       = module.rds.db_instance_id
++  description = "RDS instance identifier (null when enable_rds is false)."
++  value       = var.enable_rds ? module.rds[0].db_instance_id : null
+ }
+ 
+ output "db_instance_arn" {
+-  description = "RDS instance ARN."
+-  value       = module.rds.db_instance_arn
++  description = "RDS instance ARN (null when enable_rds is false)."
++  value       = var.enable_rds ? module.rds[0].db_instance_arn : null
+ }
+ 
+ output "db_subnet_group_name" {
+-  description = "RDS DB subnet group name."
+-  value       = module.rds.db_subnet_group_name
++  description = "RDS DB subnet group name (null when enable_rds is false)."
++  value       = var.enable_rds ? module.rds[0].db_subnet_group_name : null
+ }
+ 
+ output "db_endpoint" {
+-  description = "RDS hostname (private; reachable from API EC2 only)."
+-  value       = module.rds.db_endpoint
++  description = "RDS hostname (private; null when enable_rds is false)."
++  value       = var.enable_rds ? module.rds[0].db_endpoint : null
+ }
+ 
+ output "db_port" {
+-  description = "PostgreSQL port."
+-  value       = module.rds.db_port
++  description = "PostgreSQL port (null when enable_rds is false)."
++  value       = var.enable_rds ? module.rds[0].db_port : null
+ }
+ 
+ output "db_name" {
+   description = "PostgreSQL database name."
+-  value       = module.rds.db_name
++  value       = var.db_name
+ }
+ 
+ output "db_username" {
+-  description = "RDS master username (also in SSM)."
+-  value       = module.rds.db_username
++  description = "RDS master username (also in SSM when enable_rds is true)."
++  value       = var.db_username
+ }
+ 
+ output "jdbc_url" {
+-  description = "JDBC URL (password from SSM Parameter Store)."
+-  value       = module.rds.jdbc_url
++  description = "JDBC URL (null when enable_rds is false; password from SSM when enabled)."
++  value       = var.enable_rds ? module.rds[0].jdbc_url : null
+ }
+ 
+ output "ssm_db_username_parameter" {
+-  description = "SSM Parameter Store path for DB username."
+-  value       = module.rds.ssm_parameter_username_name
++  description = "SSM Parameter Store path for DB username (null when enable_rds is false)."
++  value       = var.enable_rds ? module.rds[0].ssm_parameter_username_name : null
+ }
+ 
+ output "ssm_db_password_parameter" {
+-  description = "SSM Parameter Store path for DB password."
+-  value       = module.rds.ssm_parameter_password_name
++  description = "SSM Parameter Store path for DB password (null when enable_rds is false)."
++  value       = var.enable_rds ? module.rds[0].ssm_parameter_password_name : null
+ }
+ 
+ output "ssm_db_username_parameter_arn" {
+-  description = "SSM parameter ARN for DB username."
+-  value       = module.rds.ssm_parameter_username_arn
++  description = "SSM parameter ARN for DB username (null when enable_rds is false)."
++  value       = var.enable_rds ? module.rds[0].ssm_parameter_username_arn : null
+ }
+ 
+ output "ssm_db_password_parameter_arn" {
+-  description = "SSM parameter ARN for DB password."
+-  value       = module.rds.ssm_parameter_password_arn
++  description = "SSM parameter ARN for DB password (null when enable_rds is false)."
++  value       = var.enable_rds ? module.rds[0].ssm_parameter_password_arn : null
+ }
+ 
+ output "db_secrets_read_policy_arn" {
+-  description = "IAM policy ARN attached to EC2 for reading DB credentials."
+-  value       = module.rds.db_secrets_read_policy_arn
++  description = "IAM policy ARN attached to EC2 for reading DB credentials (null when enable_rds is false)."
++  value       = var.enable_rds ? module.rds[0].db_secrets_read_policy_arn : null
+ }
+ 
+ # ------------------------------------------------------------------------------
+@@ -193,7 +193,7 @@ output "db_secrets_read_policy_arn" {
+ # ------------------------------------------------------------------------------
+ 
+ output "cost_schedule_enabled" {
+-  description = "Whether daily EC2+RDS stop/start is active."
++  description = "Whether daily EC2 stop/start is active (RDS only when enable_rds is true)."
+   value       = var.enable_cost_schedule
+ }
+ 
+@@ -353,18 +353,31 @@ output "provisioned_resources" {
+       health_url    = module.ec2.health_url
+     }
+ 
+-    rds = {
+-      instance_id        = module.rds.db_instance_id
+-      instance_arn       = module.rds.db_instance_arn
+-      subnet_group_name  = module.rds.db_subnet_group_name
+-      endpoint           = module.rds.db_endpoint
+-      port               = module.rds.db_port
+-      database_name      = module.rds.db_name
+-      username           = module.rds.db_username
+-      jdbc_url           = module.rds.jdbc_url
+-      ssm_username_path  = module.rds.ssm_parameter_username_name
+-      ssm_password_path  = module.rds.ssm_parameter_password_name
+-      secrets_policy_arn = module.rds.db_secrets_read_policy_arn
++    rds = var.enable_rds ? {
++      instance_id        = module.rds[0].db_instance_id
++      instance_arn       = module.rds[0].db_instance_arn
++      subnet_group_name  = module.rds[0].db_subnet_group_name
++      endpoint           = module.rds[0].db_endpoint
++      port               = module.rds[0].db_port
++      database_name      = module.rds[0].db_name
++      username           = module.rds[0].db_username
++      jdbc_url           = module.rds[0].jdbc_url
++      ssm_username_path  = module.rds[0].ssm_parameter_username_name
++      ssm_password_path  = module.rds[0].ssm_parameter_password_name
++      secrets_policy_arn = module.rds[0].db_secrets_read_policy_arn
++      } : {
++      enabled            = false
++      instance_id        = null
++      instance_arn       = null
++      subnet_group_name  = null
++      endpoint           = null
++      port               = null
++      database_name      = var.db_name
++      username           = var.db_username
++      jdbc_url           = null
++      ssm_username_path  = null
++      ssm_password_path  = null
++      secrets_policy_arn = null
+     }
+ 
+     scheduler = var.enable_cost_schedule ? {
+@@ -393,11 +406,16 @@ output "provisioned_resources" {
+       schedules_rds   = null
+     }
+ 
+-    spring_boot = {
+-      datasource_url      = module.rds.jdbc_url
+-      ssm_username_path   = module.rds.ssm_parameter_username_name
+-      ssm_password_path   = module.rds.ssm_parameter_password_name
++    spring_boot = var.enable_rds ? {
++      datasource_url      = module.rds[0].jdbc_url
++      ssm_username_path   = module.rds[0].ssm_parameter_username_name
++      ssm_password_path   = module.rds[0].ssm_parameter_password_name
+       example_application = "modules/rds/examples/application-prod.yml"
++      } : {
++      datasource_url      = "jdbc:postgresql://${var.db_endpoint_override}:5432/${var.db_name}"
++      ssm_username_path   = null
++      ssm_password_path   = null
++      example_application = "Set DB_URL in /opt/gamya-couture/config/application.env"
+     }
+   }
+ }
+diff --git a/environments/dev/terraform.tfvars.example b/environments/dev/terraform.tfvars.example
+index 3d52e96..846c3b5 100644
+--- a/environments/dev/terraform.tfvars.example
++++ b/environments/dev/terraform.tfvars.example
+@@ -26,9 +26,13 @@ github_backend_repository = "gvsharma/gamyaboutique"
+ db_name     = "gamya"
+ db_username = "gamya_admin"
+ 
+-# Cost savings: Mon–Fri 06:00–11:00; Sat 18:00–00:00; Sun 06:00–00:00 IST
++# Managed RDS removed — use local Postgres on EC2 or external DB; set host for new EC2 bootstrap only
++enable_rds             = false
++db_endpoint_override   = "127.0.0.1"
++
++# Cost savings: Mon–Fri 06:00–11:00; Sat 18:00–00:00; Sun 06:00–00:00 IST (EC2 only)
+ enable_cost_schedule = true
+ schedule_timezone  = "Asia/Kolkata"
+ 
+-# Set false to run EC2+RDS 24/7 (e.g. demo week)
++# Set false to run EC2 24/7 (e.g. demo week)
+ # enable_cost_schedule = false
+diff --git a/environments/dev/variables.tf b/environments/dev/variables.tf
+index 779ffb1..0b2bb71 100644
+--- a/environments/dev/variables.tf
++++ b/environments/dev/variables.tf
+@@ -120,13 +120,25 @@ variable "db_username" {
+   default     = "gamya_admin"
+ }
+ 
++variable "enable_rds" {
++  type        = bool
++  description = "Provision managed RDS PostgreSQL. Set false to destroy/remove RDS and keep EC2-only cost scheduler."
++  default     = false
++}
++
++variable "db_endpoint_override" {
++  type        = string
++  description = "DB host for EC2 application.env bootstrap when enable_rds is false (e.g. 127.0.0.1 for local Postgres on EC2)."
++  default     = "127.0.0.1"
++}
++
+ # ------------------------------------------------------------------------------
+-# Cost scheduler (EC2 + RDS stop/start, IST weekly windows)
++# Cost scheduler (EC2 stop/start; RDS optional when enable_rds = true)
+ # ------------------------------------------------------------------------------
+ 
+ variable "enable_cost_schedule" {
+   type        = bool
+-  description = "Enable EC2+RDS stop/start schedules (daily 06:00 start / 11:00 stop IST by default)."
++  description = "Enable EC2 stop/start schedules (daily 06:00 start / 11:00 stop IST by default). RDS included only when enable_rds is true."
+   default     = true
+ }
+ 
+diff --git a/environments/prod/ci.tfvars b/environments/prod/ci.tfvars
+index 05306fc..8b184b7 100644
+--- a/environments/prod/ci.tfvars
++++ b/environments/prod/ci.tfvars
+@@ -22,6 +22,7 @@ db_username = "gamya_admin"
+ 
+ ec2_instance_type = "t4g.micro"
+ 
+-# Cost scheduler: daily 06:00 start / 11:00 stop IST (EC2 + RDS)
++# Cost scheduler: daily 06:00 start / 11:00 stop IST (EC2 only unless enable_rds = true)
++enable_rds           = false
+ enable_cost_schedule = true
+ schedule_timezone    = "Asia/Kolkata"
+diff --git a/environments/prod/main.tf b/environments/prod/main.tf
+index fde5f65..7a21cb6 100644
+--- a/environments/prod/main.tf
++++ b/environments/prod/main.tf
+@@ -113,10 +113,16 @@ module "route53_records" {
+ }
+ 
+ # ------------------------------------------------------------------------------
+-# Database & cost scheduler
++# Database & cost scheduler (RDS optional — enable_rds = false by default)
+ # ------------------------------------------------------------------------------
+ 
++moved {
++  from = module.rds
++  to   = module.rds[0]
++}
++
+ module "rds" {
++  count  = var.enable_rds ? 1 : 0
+   source = "../../modules/rds"
+ 
+   name_prefix            = local.name_prefix
+@@ -138,7 +144,7 @@ module "ec2" {
+   key_name           = var.ec2_key_name
+ 
+   additional_iam_policy_arns = compact([
+-    module.rds.db_secrets_read_policy_arn,
++    var.enable_rds ? module.rds[0].db_secrets_read_policy_arn : null,
+     module.s3.ec2_media_upload_policy_arn,
+   ])
+ }
+@@ -148,9 +154,9 @@ module "scheduler" {
+   source = "../../modules/scheduler"
+ 
+   name_prefix            = local.name_prefix
+-  db_instance_identifier = substr(replace("${local.name_prefix}-pg", "_", "-"), 0, 63)
++  db_instance_identifier = var.enable_rds ? substr(replace("${local.name_prefix}-pg", "_", "-"), 0, 63) : ""
+   ec2_instance_id        = module.ec2.instance_id
+-  schedule_rds           = true
++  schedule_rds           = var.enable_rds
+   schedule_ec2           = true
+ 
+   timezone        = var.schedule_timezone
+diff --git a/environments/prod/outputs.tf b/environments/prod/outputs.tf
+index 9c83ba1..5cf1e61 100644
+--- a/environments/prod/outputs.tf
++++ b/environments/prod/outputs.tf
+@@ -75,41 +75,41 @@ output "ec2_private_ip" {
+ # ------------------------------------------------------------------------------
+ 
+ output "db_endpoint" {
+-  description = "RDS hostname."
+-  value       = module.rds.db_endpoint
++  description = "RDS hostname (null when enable_rds is false)."
++  value       = var.enable_rds ? module.rds[0].db_endpoint : null
+ }
+ 
+ output "db_port" {
+-  description = "RDS port."
+-  value       = module.rds.db_port
++  description = "RDS port (null when enable_rds is false)."
++  value       = var.enable_rds ? module.rds[0].db_port : null
+ }
+ 
+ output "db_name" {
+   description = "PostgreSQL database name."
+-  value       = module.rds.db_name
++  value       = var.db_name
+ }
+ 
+ output "jdbc_url" {
+-  description = "JDBC URL (credentials from SSM)."
+-  value       = module.rds.jdbc_url
++  description = "JDBC URL (null when enable_rds is false)."
++  value       = var.enable_rds ? module.rds[0].jdbc_url : null
+ }
+ 
+ output "ssm_db_username_parameter" {
+-  description = "SSM parameter name for DB username."
+-  value       = module.rds.ssm_parameter_username_name
++  description = "SSM parameter name for DB username (null when enable_rds is false)."
++  value       = var.enable_rds ? module.rds[0].ssm_parameter_username_name : null
+ }
+ 
+ output "ssm_db_password_parameter" {
+-  description = "SSM parameter name for DB password."
+-  value       = module.rds.ssm_parameter_password_name
++  description = "SSM parameter name for DB password (null when enable_rds is false)."
++  value       = var.enable_rds ? module.rds[0].ssm_parameter_password_name : null
+ }
+ 
+ # ------------------------------------------------------------------------------
+-# Cost scheduler (EC2 + RDS)
++# Cost scheduler (EC2; RDS optional)
+ # ------------------------------------------------------------------------------
+ 
+ output "cost_schedule_enabled" {
+-  description = "Whether daily EC2+RDS stop/start schedules are active."
++  description = "Whether daily EC2 stop/start schedules are active (RDS only when enable_rds is true)."
+   value       = var.enable_cost_schedule
+ }
+ 
+diff --git a/environments/prod/variables.tf b/environments/prod/variables.tf
+index ad27190..2d32b69 100644
+--- a/environments/prod/variables.tf
++++ b/environments/prod/variables.tf
+@@ -112,9 +112,15 @@ variable "db_username" {
+   default = "gamya_admin"
+ }
+ 
++variable "enable_rds" {
++  type        = bool
++  description = "Provision managed RDS PostgreSQL. Set false to omit RDS and use EC2-only cost scheduler."
++  default     = false
++}
++
+ variable "enable_cost_schedule" {
+   type        = bool
+-  description = "Enable EC2+RDS stop/start schedules (Mon–Fri 06:00–11:00; Sat 18:00–00:00; Sun 06:00–00:00 IST by default)."
++  description = "Enable EC2 stop/start schedules. RDS included only when enable_rds is true."
+   default     = true
+ }
+ 
+diff --git a/scripts/destroy-rds-instance.sh b/scripts/destroy-rds-instance.sh
+new file mode 100755
+index 0000000..6097e07
+--- /dev/null
++++ b/scripts/destroy-rds-instance.sh
+@@ -0,0 +1,60 @@
++#!/usr/bin/env bash
++# One-off: delete Gamya dev RDS if Terraform state is out of sync.
++#
++# Preferred: set enable_rds = false in environments/dev/ci.tfvars and merge to main
++# so GitHub Actions terraform apply destroys module.rds[0] resources.
++#
++# Usage:
++#   bash scripts/destroy-rds-instance.sh
++#   bash scripts/destroy-rds-instance.sh --dry-run
++#
++# Instance: gamya-couture-dev-pg (ap-south-1)
++set -euo pipefail
++
++REGION="${AWS_REGION:-ap-south-1}"
++DB_ID="${DB_INSTANCE_IDENTIFIER:-gamya-couture-dev-pg}"
++DRY_RUN=false
++
++if [[ "${1:-}" == "--dry-run" ]]; then
++  DRY_RUN=true
++fi
++
++log() { echo "[$(date -Iseconds)] $*"; }
++
++state() {
++  aws rds describe-db-instances \
++    --region "$REGION" \
++    --db-instance-identifier "$DB_ID" \
++    --query 'DBInstances[0].DBInstanceStatus' \
++    --output text 2>/dev/null || echo "missing"
++}
++
++STATUS="$(state)"
++if [[ "$STATUS" == "missing" || "$STATUS" == "None" ]]; then
++  log "RDS ${DB_ID} not found in ${REGION} — nothing to delete."
++  exit 0
++fi
++
++log "RDS ${DB_ID} status=${STATUS}"
++
++if [[ "$DRY_RUN" == true ]]; then
++  log "DRY-RUN would delete-db-instance ${DB_ID} (skip final snapshot)"
++  exit 0
++fi
++
++if [[ "$STATUS" == "stopped" ]]; then
++  log "Starting stopped instance before delete..."
++  aws rds start-db-instance --region "$REGION" --db-instance-identifier "$DB_ID" >/dev/null
++  aws rds wait db-instance-available --region "$REGION" --db-instance-identifier "$DB_ID"
++fi
++
++log "Deleting ${DB_ID} (skip final snapshot)..."
++aws rds delete-db-instance \
++  --region "$REGION" \
++  --db-instance-identifier "$DB_ID" \
++  --skip-final-snapshot \
++  --delete-automated-backups
++
++log "Waiting for deletion..."
++aws rds wait db-instance-deleted --region "$REGION" --db-instance-identifier "$DB_ID" || true
++log "Done."
