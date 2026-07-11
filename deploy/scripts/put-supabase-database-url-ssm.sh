@@ -38,9 +38,10 @@ try:
 except ImportError:
     subprocess.check_call(
         [sys.executable, "-m", "pip", "install", "psycopg2-binary", "-q"],
-        stdout=subprocess.DEVNULL,
     )
-    import psycopg2
+    import importlib
+
+    psycopg2 = importlib.import_module("psycopg2")
 
 regions = [
     "ap-south-1",
