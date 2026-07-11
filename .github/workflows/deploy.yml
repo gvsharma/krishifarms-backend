@@ -138,6 +138,7 @@ jobs:
       - name: Sync Supabase SSM and EC2-only scheduler
         env:
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SUPABASE_POOLER_HOST: ${{ vars.SUPABASE_POOLER_HOST }}
         run: bash deploy/scripts/github-predeploy.sh
 
       - name: Prepare RDS database
