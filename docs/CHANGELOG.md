@@ -23,7 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
-- **Supabase SSM URL secret-masking** — `build_and_verify_database_url` writes the URL to a temp file instead of stdout; GitHub Actions was replacing the real password with `***` in captured output and corrupting `/krishifarms/dev/db/database_url`
+- **Supabase SSM URL secret-masking** — write verified `DATABASE_URL` to SSM via Python/`aws --cli-input-json file://…` so the password never passes through bash stdout (Actions was turning it into `***` and either corrupting SSM or failing the guard)
 - **Supabase SSM password sync** — `put-supabase-database-url-ssm.sh` rejects truncated/`***` GitHub secrets before writing SSM (avoids silent bad `DATABASE_URL` from a mistyped secret)
 - **Supabase deploy auth** — `put-supabase-database-url-ssm.sh` verifies pooler connection before writing SSM, builds `DATABASE_URL` via SQLAlchemy `URL.create` (avoids manual URL-encoding mistakes); Alembic online migrations use `create_engine(settings.database_url)` directly (no ConfigParser round-trip)
 - **Alembic + Supabase pooler** — `alembic/env.py` escapes `%` in `DATABASE_URL` before `set_main_option` (URL-encoded passwords broke migrations with `invalid interpolation syntax`)

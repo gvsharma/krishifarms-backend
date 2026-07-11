@@ -80,19 +80,20 @@ sys.exit(1)
 PY
 }
 
-build_and_verify_database_url() {
-  # Writes URL to out_file — NEVER print it on stdout.
-  # GitHub Actions secret masking replaces the password with "***" in captured
-  # command output, which would otherwise corrupt DATABASE_URL written to SSM.
+build_verify_and_put_database_url() {
+  # Verify credentials and write SSM from Python — never pass the URL through
+  # bash stdout/command substitution. GitHub Actions secret masking replaces the
+  # password with "***" in captured output (and even in $(<file) in some cases).
   local password="$1"
   local host="$2"
-  local out_file="$3"
-  python3 - "$PROJECT_REF" "$password" "$host" "$CONNECTION_MODE" "$out_file" <<'PY'
+  python3 - "$PROJECT_REF" "$password" "$host" "$CONNECTION_MODE" "$REGION" "$PARAM_NAME" <<'PY'
+import json
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
-project_ref, password, host, mode, out_file = sys.argv[1:6]
+project_ref, password, host, mode, region, param_name = sys.argv[1:7]
 
 try:
     import psycopg2
@@ -107,8 +108,11 @@ except ImportError:
     URL = importlib.import_module("sqlalchemy.engine").URL
 
 password = password.strip()
-if not password:
-    sys.stderr.write("ERROR: empty password after trimming whitespace\n")
+if not password or len(password) < 8 or password == "***":
+    sys.stderr.write(
+        "ERROR: SUPABASE_DB_PASSWORD looks invalid. Re-paste the full database password "
+        "into the GitHub secret (not '***' or a truncated value).\n"
+    )
     sys.exit(1)
 
 if mode == "pooler":
@@ -153,8 +157,39 @@ database_url = str(
         query={"sslmode": "require"},
     )
 )
-Path(out_file).write_text(database_url, encoding="utf-8")
-print(f"ok user={username} host={connect_host}", flush=True)
+if ":***@" in database_url:
+    sys.stderr.write("ERROR: DATABASE_URL corrupted by secret-masking before SSM write.\n")
+    sys.exit(1)
+
+payload = {
+    "Name": param_name,
+    "Type": "SecureString",
+    "Value": database_url,
+    "Overwrite": True,
+}
+with tempfile.NamedTemporaryFile("w", encoding="utf-8", suffix=".json", delete=False) as fh:
+    json.dump(payload, fh)
+    payload_path = fh.name
+
+try:
+    subprocess.run(
+        [
+            "aws",
+            "ssm",
+            "put-parameter",
+            "--region",
+            region,
+            "--cli-input-json",
+            f"file://{payload_path}",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+finally:
+    Path(payload_path).unlink(missing_ok=True)
+
+print(f"ok user={username} host={connect_host} param={param_name}", flush=True)
 PY
 }
 
@@ -191,25 +226,7 @@ elif [[ "${CONNECTION_MODE}" == "pooler" ]]; then
   log "Using SUPABASE_POOLER_HOST=${POOLER_HOST}"
 fi
 
-URL_FILE="$(mktemp)"
-trap 'rm -f "${URL_FILE}"' EXIT
-
-log "Verifying Supabase credentials before writing SSM…"
-build_and_verify_database_url "${PASSWORD}" "${POOLER_HOST}" "${URL_FILE}"
-DATABASE_URL="$(<"${URL_FILE}")"
-
-if [[ -z "${DATABASE_URL}" || "${DATABASE_URL}" == *":***@"* ]]; then
-  echo "ERROR: DATABASE_URL missing or corrupted (secret-masking?). Refusing to write SSM." >&2
-  exit 1
-fi
-
-log "Writing SecureString ${PARAM_NAME} (region ${REGION}, mode=${CONNECTION_MODE})…"
-
-aws ssm put-parameter \
-  --region "${REGION}" \
-  --name "${PARAM_NAME}" \
-  --type SecureString \
-  --value "${DATABASE_URL}" \
-  --overwrite >/dev/null
+log "Verifying Supabase credentials and writing SSM ${PARAM_NAME}…"
+build_verify_and_put_database_url "${PASSWORD}" "${POOLER_HOST}"
 
 log "Done. Re-run Deploy workflow on main."
