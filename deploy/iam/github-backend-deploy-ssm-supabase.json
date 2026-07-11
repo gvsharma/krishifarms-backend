@@ -25,9 +25,20 @@
       "Effect": "Allow",
       "Action": [
         "scheduler:GetSchedule",
+        "scheduler:UpdateSchedule",
         "scheduler:DeleteSchedule"
       ],
       "Resource": "arn:aws:scheduler:ap-south-1:085863558134:schedule/*"
+    },
+    {
+      "Sid": "WakeSharedEc2ForMobileApi",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DescribeInstances",
+        "ec2:DescribeInstanceStatus",
+        "ec2:StartInstances"
+      ],
+      "Resource": "arn:aws:ec2:ap-south-1:085863558134:instance/i-0426cdc00ff15bfe9"
     }
   ]
 }

@@ -19,7 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Supabase DB cutover prep** — project `ucvwtoziiqgmcyzxkwxe`; `docker-compose.prod.yml` no longer hardcodes Docker `DATABASE_URL` (env_file wins); `depends_on.postgres.required: false`; `sync-env-from-ssm.sh` prefers SSM `/krishifarms/dev/db/database_url` and ignores `REPLACE_ME` placeholders; helpers `ensure-ssm-parameters.sh` + `put-supabase-database-url-ssm.sh`; cutover guide [docs/deploy/SUPABASE_MIGRATION.md](./deploy/SUPABASE_MIGRATION.md)
 - **EC2-only cost scheduler** — `deploy/scripts/configure-compute-scheduler-ec2-only.sh` removes RDS from daily Lambda cron while keeping EC2 start/stop
 - **Gamya RDS removal patch** — `patches/gamya-couture-infra-remove-rds.patch` + [docs/deploy/GAMYA_RDS_REMOVAL.md](./deploy/GAMYA_RDS_REMOVAL.md): apply in `gvsharma/gamya-couture-infra` to destroy `gamya-couture-dev-pg` via Terraform (`enable_rds = false`)
-- **Aurora** — none in account; Gamya dev used RDS PostgreSQL `gamya-couture-dev-pg` (not Aurora)
+- **Mobile API timeout (firebase-login)** — shared EC2 auto-stops at **11:00 IST**; Vercel proxies to offline host → 30s `SocketTimeoutException`. Added `wake-ec2.yml` workflow, `start-shared-ec2.sh`, `extend-ec2-stop-schedule.sh` (stop → 23:00 IST)
 
 ### Fixed
 

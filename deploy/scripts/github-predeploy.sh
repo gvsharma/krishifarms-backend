@@ -37,4 +37,8 @@ if ! bash "${SCRIPT_DIR}/configure-compute-scheduler-ec2-only.sh"; then
   log "::warning::EC2-only scheduler update failed — attach Lambda/scheduler IAM on deploy role (see deploy/iam/)"
 fi
 
+if ! bash "${SCRIPT_DIR}/extend-ec2-stop-schedule.sh"; then
+  log "::warning::Could not extend EC2 stop schedule to 23:00 IST — mobile may timeout after 11:00 IST until wake-ec2 workflow runs"
+fi
+
 log "GitHub pre-deploy complete"

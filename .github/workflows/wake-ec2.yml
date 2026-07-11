@@ -1,0 +1,72 @@
+name: Wake shared EC2
+
+# Keeps KrishiFarms API reachable when the cost scheduler has stopped EC2 (default stop 11:00 IST).
+# Vercel proxies to http://13.232.200.243:8082 — if EC2 is stopped, mobile firebase-login times out.
+
+on:
+  workflow_dispatch:
+    description: Start shared EC2 now (i-0426cdc00ff15bfe9)
+  schedule:
+    # Every 30 min, 05:35–17:35 UTC ≈ 11:05–23:05 IST — restart after 11:00 IST auto-stop
+    - cron: "5,35 5-17 * * *"
+
+concurrency:
+  group: wake-shared-ec2
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ap-south-1
+  EC2_INSTANCE_ID: i-0426cdc00ff15bfe9
+
+jobs:
+  wake:
+    name: Start EC2 if stopped
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_BACKEND_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Start instance when stopped
+        run: |
+          set -euo pipefail
+          ID="${EC2_INSTANCE_ID}"
+          STATE="$(aws ec2 describe-instances \
+            --region "${AWS_REGION}" \
+            --instance-ids "${ID}" \
+            --query 'Reservations[0].Instances[0].State.Name' \
+            --output text)"
+          echo "EC2 ${ID} state=${STATE}"
+          if [[ "${STATE}" == "running" ]]; then
+            echo "Already running — no action"
+            exit 0
+          fi
+          if [[ "${STATE}" != "stopped" ]]; then
+            echo "::warning::Unexpected state ${STATE} — skipping start"
+            exit 0
+          fi
+          echo "Starting ${ID}…"
+          aws ec2 start-instances --region "${AWS_REGION}" --instance-ids "${ID}" >/dev/null
+          aws ec2 wait instance-running --region "${AWS_REGION}" --instance-ids "${ID}"
+          aws ec2 wait instance-status-ok --region "${AWS_REGION}" --instance-ids "${ID}"
+          echo "EC2 running"
+
+      - name: Verify API health
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 24); do
+            if curl -sf --max-time 10 "http://13.232.200.243:8082/api/v1/health" >/dev/null; then
+              echo "Health check passed (attempt ${attempt})"
+              exit 0
+            fi
+            echo "Waiting for docker/nginx (attempt ${attempt}/24)…"
+            sleep 10
+          done
+          echo "::warning::EC2 is up but /api/v1/health not ready yet — docker may still be starting"
