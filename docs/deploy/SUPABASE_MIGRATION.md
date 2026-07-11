@@ -26,13 +26,19 @@ Direct (recommended for Alembic + app):
 postgresql://postgres:[YOUR-PASSWORD]@db.ucvwtoziiqgmcyzxkwxe.supabase.co:5432/postgres
 ```
 
-App / SQLAlchemy form (always add SSL):
+Direct (laptop / IPv6-capable networks only):
 
 ```text
 postgresql+psycopg2://postgres:[YOUR-PASSWORD]@db.ucvwtoziiqgmcyzxkwxe.supabase.co:5432/postgres?sslmode=require
 ```
 
-Session pooler (also fine for Alembic; replace `<REGION>` e.g. `ap-south-1`):
+**EC2 / Docker (recommended — IPv4 session pooler):** default in `put-supabase-database-url-ssm.sh`
+
+```text
+postgresql+psycopg2://postgres.ucvwtoziiqgmcyzxkwxe:[YOUR-PASSWORD]@aws-0-ap-south-1.pooler.supabase.com:5432/postgres?sslmode=require
+```
+
+Legacy pooler template (replace `<REGION>` e.g. `ap-south-1`):
 
 ```text
 postgresql+psycopg2://postgres.ucvwtoziiqgmcyzxkwxe:[YOUR-PASSWORD]@aws-0-<REGION>.pooler.supabase.com:5432/postgres?sslmode=require
