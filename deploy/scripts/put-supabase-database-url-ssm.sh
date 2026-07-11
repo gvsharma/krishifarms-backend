@@ -44,6 +44,7 @@ except ImportError:
     psycopg2 = importlib.import_module("psycopg2")
 
 regions = [
+    "ap-northeast-1",
     "ap-south-1",
     "ap-southeast-1",
     "ap-southeast-2",

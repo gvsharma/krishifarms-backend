@@ -35,7 +35,7 @@ postgresql+psycopg2://postgres:[YOUR-PASSWORD]@db.ucvwtoziiqgmcyzxkwxe.supabase.
 **EC2 / Docker (recommended — IPv4 session pooler):** default in `put-supabase-database-url-ssm.sh`
 
 ```text
-postgresql+psycopg2://postgres.ucvwtoziiqgmcyzxkwxe:[YOUR-PASSWORD]@aws-0-ap-south-1.pooler.supabase.com:5432/postgres?sslmode=require
+postgresql+psycopg2://postgres.ucvwtoziiqgmcyzxkwxe:[YOUR-PASSWORD]@aws-0-ap-northeast-1.pooler.supabase.com:5432/postgres?sslmode=require
 ```
 
 Legacy pooler template (replace `<REGION>` e.g. `ap-south-1`):

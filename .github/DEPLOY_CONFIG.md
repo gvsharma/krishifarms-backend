@@ -10,7 +10,7 @@ Do not commit secrets to git. Re-sync after `terraform apply` in `krishifarms-in
 |------|-------|
 | `AWS_BACKEND_DEPLOY_ROLE_ARN` | `arn:aws:iam::085863558134:role/krishifarms-dev-gh-be-deploy-20260621161619959700000003` |
 | `SUPABASE_DB_PASSWORD` | Supabase project `ucvwtoziiqgmcyzxkwxe` database password — **required** for deploy to write `/krishifarms/dev/db/database_url` via GitHub Actions (never commit) |
-| `SUPABASE_POOLER_HOST` | Optional GitHub **variable** — session pooler hostname from Dashboard → Database → Connection string (e.g. `aws-1-ap-southeast-1.pooler.supabase.com`). Auto-discovered on deploy if unset. |
+| `SUPABASE_POOLER_HOST` | `aws-0-ap-northeast-1.pooler.supabase.com` (session pooler from Dashboard; project ref `ucvwtoziiqgmcyzxkwxe`) |
 
 ## Variables
 
