@@ -111,8 +111,16 @@ else
   echo
 fi
 
+# Trim accidental whitespace/newlines from GitHub secrets paste
+PASSWORD="$(printf '%s' "${PASSWORD}" | tr -d '\r\n')"
+
 if [[ -z "${PASSWORD}" ]]; then
   echo "ERROR: empty password" >&2
+  exit 1
+fi
+
+if [[ "${#PASSWORD}" -lt 8 || "${PASSWORD}" == "***" ]]; then
+  echo "ERROR: SUPABASE_DB_PASSWORD looks invalid (len=${#PASSWORD}). Re-paste the full database password into the GitHub secret (not '***' or a truncated value)." >&2
   exit 1
 fi
 
@@ -123,6 +131,31 @@ if [[ "${CONNECTION_MODE}" == "pooler" && -z "${POOLER_HOST}" ]]; then
   log "Discovered pooler host: ${POOLER_HOST}"
 elif [[ "${CONNECTION_MODE}" == "pooler" ]]; then
   log "Using SUPABASE_POOLER_HOST=${POOLER_HOST}"
+  log "Verifying password against ${POOLER_HOST}:5432…"
+  python3 - "$PROJECT_REF" "$PASSWORD" "$POOLER_HOST" <<'PY'
+import sys
+import psycopg2
+
+project_ref, password, host = sys.argv[1], sys.argv[2], sys.argv[3]
+try:
+    conn = psycopg2.connect(
+        host=host,
+        port=5432,
+        dbname="postgres",
+        user=f"postgres.{project_ref}",
+        password=password,
+        sslmode="require",
+        connect_timeout=12,
+    )
+    conn.close()
+except Exception as exc:
+    sys.stderr.write(
+        f"ERROR: password rejected by pooler {host}: {exc}\n"
+        "Fix GitHub secret SUPABASE_DB_PASSWORD (full DB password, no quotes) and retry.\n"
+    )
+    sys.exit(1)
+print("ok")
+PY
 fi
 
 ENCODED="$(urlencode "${PASSWORD}")"
