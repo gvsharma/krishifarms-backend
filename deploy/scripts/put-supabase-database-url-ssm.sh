@@ -14,7 +14,27 @@ set -euo pipefail
 REGION="${AWS_REGION:-ap-south-1}"
 PARAM_NAME="${SSM_DB_URL_PATH:-/krishifarms/dev/db/database_url}"
 PROJECT_REF="${SUPABASE_PROJECT_REF:-ucvwtoziiqgmcyzxkwxe}"
-HOST="db.${PROJECT_REF}.supabase.co"
+# EC2 has no IPv6 route; db.<ref>.supabase.co resolves to IPv6 → "Cannot assign requested address".
+# Session pooler uses IPv4-friendly host (works for app + alembic on EC2).
+CONNECTION_MODE="${SUPABASE_CONNECTION_MODE:-pooler}"
+POOLER_REGION="${SUPABASE_POOLER_REGION:-ap-south-1}"
+
+build_database_url() {
+  local encoded="$1"
+  case "${CONNECTION_MODE}" in
+    pooler)
+      local host="aws-0-${POOLER_REGION}.pooler.supabase.com"
+      echo "postgresql+psycopg2://postgres.${PROJECT_REF}:${encoded}@${host}:5432/postgres?sslmode=require"
+      ;;
+    direct)
+      echo "postgresql+psycopg2://postgres:${encoded}@db.${PROJECT_REF}.supabase.co:5432/postgres?sslmode=require"
+      ;;
+    *)
+      echo "ERROR: SUPABASE_CONNECTION_MODE must be pooler or direct" >&2
+      exit 1
+      ;;
+  esac
+}
 
 urlencode() {
   # Minimal encode for password special chars in URI userinfo
@@ -38,10 +58,10 @@ if [[ -z "${PASSWORD}" ]]; then
 fi
 
 ENCODED="$(urlencode "${PASSWORD}")"
-DATABASE_URL="postgresql+psycopg2://postgres:${ENCODED}@${HOST}:5432/postgres?sslmode=require"
+DATABASE_URL="$(build_database_url "${ENCODED}")"
 
 echo "Writing SecureString ${PARAM_NAME} (region ${REGION})…"
-echo "Host: ${HOST} (password redacted)"
+echo "Connection mode: ${CONNECTION_MODE} (password redacted)"
 
 aws ssm put-parameter \
   --region "${REGION}" \
