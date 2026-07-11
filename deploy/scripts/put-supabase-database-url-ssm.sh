@@ -81,13 +81,18 @@ PY
 }
 
 build_and_verify_database_url() {
+  # Writes URL to out_file — NEVER print it on stdout.
+  # GitHub Actions secret masking replaces the password with "***" in captured
+  # command output, which would otherwise corrupt DATABASE_URL written to SSM.
   local password="$1"
   local host="$2"
-  python3 - "$PROJECT_REF" "$password" "$host" "$CONNECTION_MODE" <<'PY'
+  local out_file="$3"
+  python3 - "$PROJECT_REF" "$password" "$host" "$CONNECTION_MODE" "$out_file" <<'PY'
 import subprocess
 import sys
+from pathlib import Path
 
-project_ref, password, host, mode = sys.argv[1:5]
+project_ref, password, host, mode, out_file = sys.argv[1:6]
 
 try:
     import psycopg2
@@ -148,7 +153,8 @@ database_url = str(
         query={"sslmode": "require"},
     )
 )
-print(database_url)
+Path(out_file).write_text(database_url, encoding="utf-8")
+print(f"ok user={username} host={connect_host}", flush=True)
 PY
 }
 
@@ -185,8 +191,17 @@ elif [[ "${CONNECTION_MODE}" == "pooler" ]]; then
   log "Using SUPABASE_POOLER_HOST=${POOLER_HOST}"
 fi
 
+URL_FILE="$(mktemp)"
+trap 'rm -f "${URL_FILE}"' EXIT
+
 log "Verifying Supabase credentials before writing SSM…"
-DATABASE_URL="$(build_and_verify_database_url "${PASSWORD}" "${POOLER_HOST}")"
+build_and_verify_database_url "${PASSWORD}" "${POOLER_HOST}" "${URL_FILE}"
+DATABASE_URL="$(<"${URL_FILE}")"
+
+if [[ -z "${DATABASE_URL}" || "${DATABASE_URL}" == *":***@"* ]]; then
+  echo "ERROR: DATABASE_URL missing or corrupted (secret-masking?). Refusing to write SSM." >&2
+  exit 1
+fi
 
 log "Writing SecureString ${PARAM_NAME} (region ${REGION}, mode=${CONNECTION_MODE})…"
 
