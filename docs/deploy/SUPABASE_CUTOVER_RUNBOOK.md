@@ -11,6 +11,8 @@ Production is still on **Docker Postgres** until all three steps below succeed a
 |------|--------|
 | `SUPABASE_DB_PASSWORD` | Supabase project `ucvwtoziiqgmcyzxkwxe` database password |
 
+Use the **raw database password** from Dashboard → Project Settings → Database — not API keys, not a URL-encoded copy. Pre-deploy verifies the password against the pooler before writing SSM; deploy fails early with a clear error if auth fails.
+
 Deploy will **fail fast** with a clear error if this secret is missing.
 
 **Optional (Terraform):** add the same secret on `gvsharma/krishifarms-infra` and apply the IAM patch — Terraform can sync it to the backend repo automatically.

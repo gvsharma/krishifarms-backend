@@ -23,7 +23,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
-- **Supabase SSM password sync** — `put-supabase-database-url-ssm.sh` rejects truncated/`***` GitHub secrets and verifies the password against the pooler host before writing `/krishifarms/dev/db/database_url` (avoids silent bad `DATABASE_URL` when `SUPABASE_POOLER_HOST` is set)
+- **Supabase SSM password sync** — `put-supabase-database-url-ssm.sh` rejects truncated/`***` GitHub secrets before writing SSM (avoids silent bad `DATABASE_URL` from a mistyped secret)
+- **Supabase deploy auth** — `put-supabase-database-url-ssm.sh` verifies pooler connection before writing SSM, builds `DATABASE_URL` via SQLAlchemy `URL.create` (avoids manual URL-encoding mistakes); Alembic online migrations use `create_engine(settings.database_url)` directly (no ConfigParser round-trip)
+- **Alembic + Supabase pooler** — `alembic/env.py` escapes `%` in `DATABASE_URL` before `set_main_option` (URL-encoded passwords broke migrations with `invalid interpolation syntax`)
 - **Firebase login 500** — EC2 `FIREBASE_SERVICE_ACCOUNT_JSON` was multiline in `application.env`; env upsert only replaced the first line, leaving orphan private-key lines that broke `json.loads` and docker-compose parsing. `fix-firebase-env.py` and `sync-env-from-ssm.sh` now remove full multiline values before upsert and double-escape backslashes so docker-compose does not turn JSON `\\n` into real newlines; `firebase.py` returns 503 on malformed JSON instead of 500
 - **Seed** — `Permission.roles` relationship missing `Role` target class (SQLAlchemy `ArgumentError` on `scripts/seed.py`)
 - **Migration 008** — `uq_procurements_idempotency` unique index on partitioned `procurements` now includes `procurement_date` (PostgreSQL partition-key requirement; matches `farmer_payments` idempotency index pattern)

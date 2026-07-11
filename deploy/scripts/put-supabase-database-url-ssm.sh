@@ -21,10 +21,6 @@ CONNECTION_MODE="${SUPABASE_CONNECTION_MODE:-pooler}"
 
 log() { echo "[put-supabase] $*"; }
 
-urlencode() {
-  python3 -c 'import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1], safe=""))' "$1"
-}
-
 discover_pooler_host() {
   local password="$1"
   python3 - "$PROJECT_REF" "$password" <<'PY'
@@ -44,6 +40,7 @@ except ImportError:
     psycopg2 = importlib.import_module("psycopg2")
 
 regions = [
+    "ap-northeast-1",
     "ap-south-1",
     "ap-southeast-1",
     "ap-southeast-2",
@@ -83,21 +80,76 @@ sys.exit(1)
 PY
 }
 
-build_database_url() {
-  local encoded="$1"
+build_and_verify_database_url() {
+  local password="$1"
   local host="$2"
-  case "${CONNECTION_MODE}" in
-    pooler)
-      echo "postgresql+psycopg2://postgres.${PROJECT_REF}:${encoded}@${host}:5432/postgres?sslmode=require"
-      ;;
-    direct)
-      echo "postgresql+psycopg2://postgres:${encoded}@db.${PROJECT_REF}.supabase.co:5432/postgres?sslmode=require"
-      ;;
-    *)
-      echo "ERROR: SUPABASE_CONNECTION_MODE must be pooler or direct" >&2
-      exit 1
-      ;;
-  esac
+  python3 - "$PROJECT_REF" "$password" "$host" "$CONNECTION_MODE" <<'PY'
+import subprocess
+import sys
+
+project_ref, password, host, mode = sys.argv[1:5]
+
+try:
+    import psycopg2
+    from sqlalchemy.engine import URL
+except ImportError:
+    subprocess.check_call(
+        [sys.executable, "-m", "pip", "install", "psycopg2-binary", "sqlalchemy", "-q"],
+    )
+    import importlib
+
+    psycopg2 = importlib.import_module("psycopg2")
+    URL = importlib.import_module("sqlalchemy.engine").URL
+
+password = password.strip()
+if not password:
+    sys.stderr.write("ERROR: empty password after trimming whitespace\n")
+    sys.exit(1)
+
+if mode == "pooler":
+    username = f"postgres.{project_ref}"
+    connect_host = host
+elif mode == "direct":
+    username = "postgres"
+    connect_host = f"db.{project_ref}.supabase.co"
+else:
+    sys.stderr.write("ERROR: SUPABASE_CONNECTION_MODE must be pooler or direct\n")
+    sys.exit(1)
+
+try:
+    conn = psycopg2.connect(
+        host=connect_host,
+        port=5432,
+        dbname="postgres",
+        user=username,
+        password=password,
+        sslmode="require",
+        connect_timeout=15,
+    )
+    conn.close()
+except Exception as exc:
+    sys.stderr.write(
+        f"ERROR: Supabase connection failed for user {username} @ {connect_host}: {exc}\n"
+    )
+    sys.stderr.write(
+        "Check SUPABASE_DB_PASSWORD is the raw database password from "
+        "Dashboard → Project Settings → Database (not API keys, not URL-encoded).\n"
+    )
+    sys.exit(1)
+
+database_url = str(
+    URL.create(
+        drivername="postgresql+psycopg2",
+        username=username,
+        password=password,
+        host=connect_host,
+        port=5432,
+        database="postgres",
+        query={"sslmode": "require"},
+    )
+)
+print(database_url)
+PY
 }
 
 if [[ -n "${SUPABASE_DB_PASSWORD:-}" ]]; then
@@ -131,35 +183,10 @@ if [[ "${CONNECTION_MODE}" == "pooler" && -z "${POOLER_HOST}" ]]; then
   log "Discovered pooler host: ${POOLER_HOST}"
 elif [[ "${CONNECTION_MODE}" == "pooler" ]]; then
   log "Using SUPABASE_POOLER_HOST=${POOLER_HOST}"
-  log "Verifying password against ${POOLER_HOST}:5432…"
-  python3 - "$PROJECT_REF" "$PASSWORD" "$POOLER_HOST" <<'PY'
-import sys
-import psycopg2
-
-project_ref, password, host = sys.argv[1], sys.argv[2], sys.argv[3]
-try:
-    conn = psycopg2.connect(
-        host=host,
-        port=5432,
-        dbname="postgres",
-        user=f"postgres.{project_ref}",
-        password=password,
-        sslmode="require",
-        connect_timeout=12,
-    )
-    conn.close()
-except Exception as exc:
-    sys.stderr.write(
-        f"ERROR: password rejected by pooler {host}: {exc}\n"
-        "Fix GitHub secret SUPABASE_DB_PASSWORD (full DB password, no quotes) and retry.\n"
-    )
-    sys.exit(1)
-print("ok")
-PY
 fi
 
-ENCODED="$(urlencode "${PASSWORD}")"
-DATABASE_URL="$(build_database_url "${ENCODED}" "${POOLER_HOST}")"
+log "Verifying Supabase credentials before writing SSM…"
+DATABASE_URL="$(build_and_verify_database_url "${PASSWORD}" "${POOLER_HOST}")"
 
 log "Writing SecureString ${PARAM_NAME} (region ${REGION}, mode=${CONNECTION_MODE})…"
 
