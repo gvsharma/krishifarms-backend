@@ -28,6 +28,7 @@ Backend API for Indian farm operations: procurement, farmer ledger, workforce, f
 | [docs/reporting/REPORTING_ARCHITECTURE.md](./docs/reporting/REPORTING_ARCHITECTURE.md) | Dashboard SQL |
 | [docs/deploy/CI_CD.md](./docs/deploy/CI_CD.md) | CI/CD pipeline |
 | [docs/deploy/SUPABASE_MIGRATION.md](./docs/deploy/SUPABASE_MIGRATION.md) | Cutover Docker Postgres → Supabase |
+| [docs/DEMO_DATA.md](./docs/DEMO_DATA.md) | Temporary demo seed/purge for live modules (Android + CRM) |
 | [docs/ui/README.md](./docs/ui/README.md) | Next.js UI/UX design system (IA, tokens, components, wireframes) |
 
 ---

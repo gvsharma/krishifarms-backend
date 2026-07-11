@@ -150,6 +150,15 @@ curl -sf http://127.0.0.1:8082/api/v1/health
 # Login: owner@krishifarms.local / ChangeMe123! (or your seeded owner)
 ```
 
+### 6b. Optional temporary demo data (Android + CRM)
+
+After schema + bootstrap seed, load the live-module demo pack (farmers, procurements, platform). See **[docs/DEMO_DATA.md](../DEMO_DATA.md)** — purge before production.
+
+```bash
+sudo docker compose -f infra/docker-compose.prod.yml exec -T api python scripts/seed_demo_data.py
+# Purge: python scripts/purge_demo_data.py
+```
+
 ### 7. EC2 start/stop cron — keep EC2, drop RDS
 
 Daily EventBridge Scheduler jobs (06:00 / 11:00 IST) should **still start/stop EC2** `i-0426cdc00ff15bfe9` but **not** RDS `gamya-couture-dev-pg` after Supabase cutover:
