@@ -8,7 +8,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Temporary demo data pack** — `scripts/seed_demo_data.py` + `scripts/purge_demo_data.py` for live modules (farmers, procurements, platform); markers `[DEMO]` / `@demo.krishifarms.local`; runbook + inventory in [docs/DEMO_DATA.md](./DEMO_DATA.md)
 - **GitHub deploy automation** — `deploy/scripts/github-predeploy.sh` runs on each `main` deploy: writes Supabase `DATABASE_URL` to SSM from `SUPABASE_DB_PASSWORD` secret, runs EC2-only cost scheduler config; remote deploy seeds DB if empty
+
+### Fixed
+
+- **Audit helpers** — `write_audit_log` / `write_activity_feed` accept `device_id` and `client_type` (callers already passed them; previously TypeError)
+- **Auth login** — accept seeded `*.local` emails (EmailStr rejected special-use domains)
+- **bcrypt pin** — constrain `bcrypt>=4.0.1,<4.1` (bcrypt 5.x breaks passlib verify / login)
+- **ORM workers stub** — register migration-only `workers` table in metadata so `users.worker_id` FK flush works (login/refresh tokens)
 
 ### Changed
 

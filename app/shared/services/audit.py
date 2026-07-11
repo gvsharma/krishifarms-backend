@@ -18,6 +18,8 @@ def write_audit_log(
     ip_address: str | None = None,
     user_agent: str | None = None,
     request_id: str | None = None,
+    device_id: str | None = None,
+    client_type: str | None = None,
 ) -> AuditLog:
     entry = AuditLog(
         org_id=org_id,
@@ -30,6 +32,8 @@ def write_audit_log(
         ip_address=ip_address,
         user_agent=user_agent,
         request_id=request_id,
+        device_id=device_id,
+        client_type=client_type,
     )
     db.add(entry)
     return entry
@@ -44,6 +48,8 @@ def write_activity_feed(
     entity_type: str,
     entity_id: UUID | None = None,
     visibility: str = "org",
+    device_id: str | None = None,
+    client_type: str | None = None,
 ) -> ActivityFeed:
     entry = ActivityFeed(
         org_id=org_id,
@@ -52,6 +58,8 @@ def write_activity_feed(
         entity_type=entity_type,
         entity_id=entity_id,
         visibility=visibility,
+        device_id=device_id,
+        client_type=client_type,
     )
     db.add(entry)
     return entry
