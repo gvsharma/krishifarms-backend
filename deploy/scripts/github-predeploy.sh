@@ -26,6 +26,7 @@ if [[ -z "${SUPABASE_DB_PASSWORD:-}" ]]; then
 fi
 
 log "Syncing Supabase DATABASE_URL to SSM from SUPABASE_DB_PASSWORD secret"
+python3 -m pip install --quiet psycopg2-binary
 bash "${SCRIPT_DIR}/put-supabase-database-url-ssm.sh"
 
 # Best-effort bootstrap for missing params (non-fatal if deploy role lacks PutParameter on new keys).
