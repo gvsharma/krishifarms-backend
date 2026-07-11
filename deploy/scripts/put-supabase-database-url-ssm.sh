@@ -2,11 +2,14 @@
 # Prompt for Supabase DB password and write SecureString SSM parameter
 # /krishifarms/dev/db/database_url for project ucvwtoziiqgmcyzxkwxe.
 #
-# Does NOT print the password. Does NOT commit anything.
+# EC2 cannot use direct db.<ref>.supabase.co (IPv6-only on free tier).
+# Uses session pooler (IPv4). Pooler host varies (aws-0/aws-1 + region) — copy from
+# Dashboard → Project Settings → Database → Connection string, or set SUPABASE_POOLER_HOST.
 #
 # Usage:
 #   bash deploy/scripts/put-supabase-database-url-ssm.sh
-#   SUPABASE_DB_PASSWORD='...' bash deploy/scripts/put-supabase-database-url-ssm.sh  # non-interactive
+#   SUPABASE_DB_PASSWORD='...' bash deploy/scripts/put-supabase-database-url-ssm.sh
+#   SUPABASE_POOLER_HOST='aws-1-ap-southeast-1.pooler.supabase.com' SUPABASE_DB_PASSWORD='...' bash ...
 #
 # Requires: aws CLI, permission ssm:PutParameter on /krishifarms/dev/db/*
 set -euo pipefail
@@ -14,16 +17,76 @@ set -euo pipefail
 REGION="${AWS_REGION:-ap-south-1}"
 PARAM_NAME="${SSM_DB_URL_PATH:-/krishifarms/dev/db/database_url}"
 PROJECT_REF="${SUPABASE_PROJECT_REF:-ucvwtoziiqgmcyzxkwxe}"
-# EC2 has no IPv6 route; db.<ref>.supabase.co resolves to IPv6 → "Cannot assign requested address".
-# Session pooler uses IPv4-friendly host (works for app + alembic on EC2).
 CONNECTION_MODE="${SUPABASE_CONNECTION_MODE:-pooler}"
-POOLER_REGION="${SUPABASE_POOLER_REGION:-ap-south-1}"
+
+log() { echo "[put-supabase] $*"; }
+
+urlencode() {
+  python3 -c 'import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1], safe=""))' "$1"
+}
+
+discover_pooler_host() {
+  local password="$1"
+  python3 - "$PROJECT_REF" "$password" <<'PY'
+import subprocess
+import sys
+
+project_ref, password = sys.argv[1], sys.argv[2]
+
+try:
+    import psycopg2
+except ImportError:
+    subprocess.check_call(
+        [sys.executable, "-m", "pip", "install", "psycopg2-binary", "-q"],
+        stdout=subprocess.DEVNULL,
+    )
+    import psycopg2
+
+regions = [
+    "ap-south-1",
+    "ap-southeast-1",
+    "ap-southeast-2",
+    "us-east-1",
+    "us-east-2",
+    "us-west-1",
+    "eu-west-1",
+    "eu-central-1",
+]
+prefixes = ["aws-0", "aws-1", "aws-2"]
+user = f"postgres.{project_ref}"
+
+for prefix in prefixes:
+    for region in regions:
+        host = f"{prefix}-{region}.pooler.supabase.com"
+        try:
+            conn = psycopg2.connect(
+                host=host,
+                port=5432,
+                dbname="postgres",
+                user=user,
+                password=password,
+                sslmode="require",
+                connect_timeout=8,
+            )
+            conn.close()
+            print(host)
+            sys.exit(0)
+        except Exception:
+            continue
+
+sys.stderr.write(
+    "ERROR: Could not find working pooler host. Set SUPABASE_POOLER_HOST from "
+    "Supabase Dashboard → Settings → Database → Connection string (Session pooler).\n"
+)
+sys.exit(1)
+PY
+}
 
 build_database_url() {
   local encoded="$1"
+  local host="$2"
   case "${CONNECTION_MODE}" in
     pooler)
-      local host="aws-0-${POOLER_REGION}.pooler.supabase.com"
       echo "postgresql+psycopg2://postgres.${PROJECT_REF}:${encoded}@${host}:5432/postgres?sslmode=require"
       ;;
     direct)
@@ -34,11 +97,6 @@ build_database_url() {
       exit 1
       ;;
   esac
-}
-
-urlencode() {
-  # Minimal encode for password special chars in URI userinfo
-  python3 -c 'import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1], safe=""))' "$1"
 }
 
 if [[ -n "${SUPABASE_DB_PASSWORD:-}" ]]; then
@@ -57,11 +115,19 @@ if [[ -z "${PASSWORD}" ]]; then
   exit 1
 fi
 
-ENCODED="$(urlencode "${PASSWORD}")"
-DATABASE_URL="$(build_database_url "${ENCODED}")"
+POOLER_HOST="${SUPABASE_POOLER_HOST:-}"
+if [[ "${CONNECTION_MODE}" == "pooler" && -z "${POOLER_HOST}" ]]; then
+  log "Discovering session pooler host for project ${PROJECT_REF}…"
+  POOLER_HOST="$(discover_pooler_host "${PASSWORD}")"
+  log "Discovered pooler host: ${POOLER_HOST}"
+elif [[ "${CONNECTION_MODE}" == "pooler" ]]; then
+  log "Using SUPABASE_POOLER_HOST=${POOLER_HOST}"
+fi
 
-echo "Writing SecureString ${PARAM_NAME} (region ${REGION})…"
-echo "Connection mode: ${CONNECTION_MODE} (password redacted)"
+ENCODED="$(urlencode "${PASSWORD}")"
+DATABASE_URL="$(build_database_url "${ENCODED}" "${POOLER_HOST}")"
+
+log "Writing SecureString ${PARAM_NAME} (region ${REGION}, mode=${CONNECTION_MODE})…"
 
 aws ssm put-parameter \
   --region "${REGION}" \
@@ -70,8 +136,4 @@ aws ssm put-parameter \
   --value "${DATABASE_URL}" \
   --overwrite >/dev/null
 
-echo "Done. Next:"
-echo "  1. Merge chore/supabase-db-migration → main (or deploy Compose/SSM script changes)"
-echo "  2. On EC2: sudo APP_PATH=/opt/krishifarms bash /opt/krishifarms/scripts/sync-env-from-ssm.sh"
-echo "  3. alembic upgrade head && python scripts/seed.py (local or on EC2 api container)"
-echo "See docs/deploy/SUPABASE_MIGRATION.md"
+log "Done. Re-run Deploy workflow on main."

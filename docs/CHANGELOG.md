@@ -19,7 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Supabase DB cutover prep** — project `ucvwtoziiqgmcyzxkwxe`; `docker-compose.prod.yml` no longer hardcodes Docker `DATABASE_URL` (env_file wins); `depends_on.postgres.required: false`; `sync-env-from-ssm.sh` prefers SSM `/krishifarms/dev/db/database_url` and ignores `REPLACE_ME` placeholders; helpers `ensure-ssm-parameters.sh` + `put-supabase-database-url-ssm.sh`; cutover guide [docs/deploy/SUPABASE_MIGRATION.md](./deploy/SUPABASE_MIGRATION.md)
 - **EC2-only cost scheduler** — `deploy/scripts/configure-compute-scheduler-ec2-only.sh` removes RDS from daily Lambda cron while keeping EC2 start/stop
 - **Gamya RDS removal patch** — `patches/gamya-couture-infra-remove-rds.patch` + [docs/deploy/GAMYA_RDS_REMOVAL.md](./deploy/GAMYA_RDS_REMOVAL.md): apply in `gvsharma/gamya-couture-infra` to destroy `gamya-couture-dev-pg` via Terraform (`enable_rds = false`)
-- **Supabase EC2 IPv6 fix** — `put-supabase-database-url-ssm.sh` defaults to session pooler (`aws-0-ap-south-1.pooler.supabase.com`) because direct `db.*.supabase.co` resolves to IPv6 and EC2 cannot connect
+- **Supabase pooler discovery** — `put-supabase-database-url-ssm.sh` probes `aws-0/1/2` pooler hosts or uses `SUPABASE_POOLER_HOST` GitHub variable (fixes `Tenant not found` + EC2 IPv6 errors)
 
 ### Fixed
 
