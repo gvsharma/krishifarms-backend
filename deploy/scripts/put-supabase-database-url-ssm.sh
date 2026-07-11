@@ -163,8 +163,16 @@ else
   echo
 fi
 
+# Trim accidental whitespace/newlines from GitHub secrets paste
+PASSWORD="$(printf '%s' "${PASSWORD}" | tr -d '\r\n')"
+
 if [[ -z "${PASSWORD}" ]]; then
   echo "ERROR: empty password" >&2
+  exit 1
+fi
+
+if [[ "${#PASSWORD}" -lt 8 || "${PASSWORD}" == "***" ]]; then
+  echo "ERROR: SUPABASE_DB_PASSWORD looks invalid (len=${#PASSWORD}). Re-paste the full database password into the GitHub secret (not '***' or a truncated value)." >&2
   exit 1
 fi
 
