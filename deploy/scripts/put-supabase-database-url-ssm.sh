@@ -81,9 +81,8 @@ PY
 }
 
 build_verify_and_put_database_url() {
-  # Verify credentials and write SSM from Python — never pass the URL through
-  # bash stdout/command substitution. GitHub Actions secret masking replaces the
-  # password with "***" in captured output (and even in $(<file) in some cases).
+  # Verify credentials and put SSM from Python. Use URL.render_as_string(hide_password=False):
+  # SQLAlchemy 2.x str(URL) replaces the password with "***", which previously corrupted SSM.
   local password="$1"
   local host="$2"
   python3 - "$PROJECT_REF" "$password" "$host" "$CONNECTION_MODE" "$REGION" "$PARAM_NAME" <<'PY'
@@ -146,19 +145,21 @@ except Exception as exc:
     )
     sys.exit(1)
 
-database_url = str(
-    URL.create(
-        drivername="postgresql+psycopg2",
-        username=username,
-        password=password,
-        host=connect_host,
-        port=5432,
-        database="postgres",
-        query={"sslmode": "require"},
+database_url = URL.create(
+    drivername="postgresql+psycopg2",
+    username=username,
+    password=password,
+    host=connect_host,
+    port=5432,
+    database="postgres",
+    query={"sslmode": "require"},
+).render_as_string(hide_password=False)
+# NOTE: str(URL) hides passwords as "***" in SQLAlchemy 2.x — never use str(url) for SSM.
+if ":***@" in database_url or database_url.count("@") != 1:
+    sys.stderr.write(
+        "ERROR: refusing to write masked/invalid DATABASE_URL "
+        "(use URL.render_as_string(hide_password=False)).\n"
     )
-)
-if ":***@" in database_url:
-    sys.stderr.write("ERROR: DATABASE_URL corrupted by secret-masking before SSM write.\n")
     sys.exit(1)
 
 payload = {
