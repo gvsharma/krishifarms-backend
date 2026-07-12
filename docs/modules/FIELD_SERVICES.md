@@ -90,7 +90,7 @@ Seeded catalogs:
 - Work orders integration for paid labour vs farmer-facing services
 - Crop price rules per new crop types (user updates rates)
 - Reporting SQL dashboards for service revenue / pending collections
-- Web UI: create/edit forms per category (list placeholder exists at `/field-services`)
+- ~~Web UI: create/edit forms per category (list placeholder exists at `/field-services`)~~ — ✅ web list + `/field-services/new` + `/field-services/[id]` (category-specific forms)
 
 ---
 

@@ -1,8 +1,10 @@
 "use client";
 
+import { Add } from "@mui/icons-material";
 import {
   Alert,
   Box,
+  Button,
   Card,
   Chip,
   CircularProgress,
@@ -16,26 +18,14 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { MuiPageShell } from "@/components/shell/mui-page-shell";
 import { fetchFieldServices } from "@/features/field-services/api";
+import { SERVICE_CATEGORIES, categoryLabel } from "@/features/field-services/constants";
 
-const CATEGORIES = [
-  { value: "", label: "All categories" },
-  { value: "field_service", label: "Field services" },
-  { value: "tractor_work", label: "Tractor work" },
-  { value: "transport", label: "Transport" },
-  { value: "fertiliser", label: "Fertiliser" },
-  { value: "seeds", label: "Seeds" },
-  { value: "agri_finance", label: "Agri-finance" },
-  { value: "vehicle_ops", label: "Vehicle ops" },
-  { value: "godown", label: "Godown" },
-] as const;
-
-function formatCategory(value: string) {
-  return value.replace(/_/g, " ");
-}
+const CATEGORIES = [{ value: "", label: "All categories" }, ...SERVICE_CATEGORIES] as const;
 
 export default function FieldServicesPage() {
   const [category, setCategory] = useState("");
@@ -53,6 +43,11 @@ export default function FieldServicesPage() {
     <MuiPageShell
       title="Field services"
       description="Operational services — tractor work, transport, fertiliser, seeds, agri-finance, vehicle and godown ops."
+      actions={
+        <Button component={Link} href="/field-services/new" variant="contained" startIcon={<Add />}>
+          New service
+        </Button>
+      }
     >
       <Card sx={{ mb: 2, p: 2 }}>
         <TextField
@@ -109,16 +104,31 @@ export default function FieldServicesPage() {
                     <TableRow>
                       <TableCell colSpan={7}>
                         <Typography variant="body2" color="text.secondary" sx={{ py: 3, textAlign: "center" }}>
-                          No records yet. Create via API or Android app (Phase 2 forms).
+                          No records yet.{" "}
+                          <Typography
+                            component={Link}
+                            href="/field-services/new"
+                            variant="body2"
+                            color="primary"
+                            sx={{ textDecoration: "underline" }}
+                          >
+                            Create your first service record
+                          </Typography>
                         </Typography>
                       </TableCell>
                     </TableRow>
                   ) : (
                     data.items.map((row) => (
-                      <TableRow key={row.id} hover>
+                      <TableRow
+                        key={row.id}
+                        hover
+                        component={Link}
+                        href={`/field-services/${row.id}`}
+                        sx={{ cursor: "pointer", textDecoration: "none" }}
+                      >
                         <TableCell>{row.record_number}</TableCell>
                         <TableCell sx={{ textTransform: "capitalize" }}>
-                          {formatCategory(row.service_category)}
+                          {categoryLabel(row.service_category)}
                         </TableCell>
                         <TableCell>{row.service_date}</TableCell>
                         <TableCell>
