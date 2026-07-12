@@ -25,6 +25,7 @@ import {
   Field,
   Input,
   PREMIUM_SCOPE,
+  Scope,
   Textarea,
 } from "@/components/ui/premium";
 import { controlBase, controlHeight, controlPadding } from "@/components/ui/premium/styles";
@@ -299,7 +300,7 @@ export function CatalogAdminPage<T extends { id: string }>({
           {editing ? `Edit ${entityLabel}` : `Add ${entityLabel}`}
         </PremiumDialogTitle>
         <PremiumDialogContent sx={{ overflow: "visible", pt: 0.5 }}>
-          <div className={cn(PREMIUM_SCOPE, "flex flex-col gap-4 bg-transparent")}>
+          <Scope className="flex flex-col gap-4 bg-transparent">
             {dialogFields.map((field) => {
               if (field.type === "boolean") {
                 return (
@@ -349,7 +350,7 @@ export function CatalogAdminPage<T extends { id: string }>({
 
               if (MULTILINE_KEYS.test(field.key)) {
                 return (
-                  <Field key={field.key} label={field.label} required={field.required} optional={!field.required}>
+                  <Field key={field.key} label={field.label} required={field.required}>
                     <Textarea
                       autoFocus={field === firstFocusable}
                       required={field.required}
@@ -365,12 +366,7 @@ export function CatalogAdminPage<T extends { id: string }>({
               }
 
               return (
-                <Field
-                  key={field.key}
-                  label={field.label}
-                  required={field.required}
-                  optional={!field.required}
-                >
+                <Field key={field.key} label={field.label} required={field.required}>
                   <Input
                     autoFocus={field === firstFocusable}
                     required={field.required}
@@ -391,7 +387,7 @@ export function CatalogAdminPage<T extends { id: string }>({
                 {saveMutation.error instanceof Error ? saveMutation.error.message : "Save failed"}
               </SoftAlert>
             )}
-          </div>
+          </Scope>
         </PremiumDialogContent>
         <PremiumDialogActions className={PREMIUM_SCOPE}>
           <PremiumButton variant="secondary" size="sm" onClick={() => setDialogOpen(false)}>
