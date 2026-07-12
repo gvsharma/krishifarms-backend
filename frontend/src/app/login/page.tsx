@@ -1,16 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Alert,
   Box,
   Button,
   CircularProgress,
-  IconButton,
-  InputAdornment,
   Stack,
-  TextField,
   Typography,
 } from "@mui/material";
 import Visibility from "@mui/icons-material/Visibility";
@@ -19,26 +16,27 @@ import { loginWithPassword } from "@/features/auth/api";
 import { clearSignedOutFlag, wasExplicitlySignedOut } from "@/features/auth/session";
 import { getAccessToken } from "@/lib/api/client";
 import { ROUTES, SITE_NAME } from "@/constants/routes";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
-const fieldSx = {
-  "& .MuiInputBase-root": {
-    minHeight: 56,
-    transition: "none",
-  },
-  "& .MuiOutlinedInput-input": {
-    py: 1.75,
-  },
-  "& .MuiInputLabel-root": {
-    transition: "none",
-  },
-  "& .MuiOutlinedInput-notchedOutline": {
-    transition: "none",
-  },
-} as const;
+/** Login field: 54px / 16px radius, soft border + clear focus — no Material motion. */
+const loginFieldClassName = cn(
+  "h-[54px] rounded-2xl border border-[#E5E7EB] bg-white px-4 py-3.5 text-base leading-normal text-[#111827] shadow-none",
+  "placeholder:text-[#9CA3AF]",
+  "transition-none",
+  "hover:border-[#D1D5DB]",
+  "focus-visible:border-[#111827] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#111827]/12 focus-visible:ring-offset-0",
+  "disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:border-[#E5E7EB]",
+);
+
+const fieldLabelClassName = "mb-2 block text-sm font-medium leading-none text-[#374151]";
 
 /** Simple Google-style email + password sign-in. */
 export default function LoginPage() {
   const router = useRouter();
+  const emailId = useId();
+  const passwordId = useId();
+  const errorId = useId();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -111,10 +109,11 @@ export default function LoginPage() {
               fontWeight: 700,
               fontSize: 14,
             }}
+            aria-hidden
           >
             KF
           </Box>
-          <Typography variant="h5" fontWeight={400}>
+          <Typography variant="h5" fontWeight={400} component="h1">
             Sign in
           </Typography>
           <Typography variant="body2" color="text.secondary">
@@ -124,49 +123,66 @@ export default function LoginPage() {
 
         <Box component="form" onSubmit={(e) => void handleSubmit(e)} noValidate>
           <Stack spacing={2.5}>
-            {error && <Alert severity="error">{error}</Alert>}
+            {error && (
+              <Alert severity="error" id={errorId} role="alert">
+                {error}
+              </Alert>
+            )}
 
-            <TextField
-              label="Email"
-              type="email"
-              autoComplete="email"
-              autoFocus
-              required
-              fullWidth
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={submitting}
-              sx={fieldSx}
-            />
+            <div>
+              <label htmlFor={emailId} className={fieldLabelClassName}>
+                Email
+              </label>
+              <Input
+                id={emailId}
+                name="email"
+                type="email"
+                autoComplete="email"
+                autoFocus
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={submitting}
+                aria-invalid={error ? true : undefined}
+                aria-describedby={error ? errorId : undefined}
+                className={loginFieldClassName}
+              />
+            </div>
 
-            <TextField
-              label="Password"
-              type={showPassword ? "text" : "password"}
-              autoComplete="current-password"
-              required
-              fullWidth
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={submitting}
-              sx={fieldSx}
-              slotProps={{
-                input: {
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton
-                        aria-label={showPassword ? "Hide password" : "Show password"}
-                        onClick={() => setShowPassword((v) => !v)}
-                        edge="end"
-                        size="small"
-                        disabled={submitting}
-                      >
-                        {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                },
-              }}
-            />
+            <div>
+              <label htmlFor={passwordId} className={fieldLabelClassName}>
+                Password
+              </label>
+              <div className="relative">
+                <Input
+                  id={passwordId}
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={submitting}
+                  aria-invalid={error ? true : undefined}
+                  aria-describedby={error ? errorId : undefined}
+                  className={cn(loginFieldClassName, "pr-12")}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  disabled={submitting}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-pressed={showPassword}
+                  className="absolute right-1.5 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-xl text-[#6B7280] transition-none hover:bg-[#F3F4F6] hover:text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#111827]/20 disabled:opacity-50"
+                >
+                  {showPassword ? (
+                    <VisibilityOff fontSize="small" aria-hidden />
+                  ) : (
+                    <Visibility fontSize="small" aria-hidden />
+                  )}
+                </button>
+              </div>
+            </div>
 
             <Box sx={{ display: "flex", justifyContent: "flex-end", pt: 1 }}>
               <Button
