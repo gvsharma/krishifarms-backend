@@ -1,6 +1,7 @@
 export const SITE_NAME = "KrishiFarms";
 
 export const ROUTES = {
+  login: "/login",
   dashboard: "/dashboard",
   farmers: "/farmers",
   farms: "/farms",
