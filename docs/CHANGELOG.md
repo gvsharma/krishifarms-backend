@@ -33,7 +33,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
-- **Web login UI** — Dribbble-inspired split-screen sign-in (`/login`): Canopia brand plane + refined email/password form, show/hide password, Fraunces display type; no purple/cream chrome
+- **Web login UI** — Dribbble-inspired split-screen sign-in (`/login`): Canopia brand plane + refined email/password form (external labels, taller fields, pill CTA), show/hide password, Fraunces display type; no purple/cream chrome
 - **Supabase cutover runbook** — [docs/deploy/SUPABASE_CUTOVER_RUNBOOK.md](./deploy/SUPABASE_CUTOVER_RUNBOOK.md): GitHub secret + IAM attach script + deploy verify steps
 - **Deploy IAM policy** — `deploy/iam/github-backend-deploy-ssm-supabase.json` + `attach-github-deploy-iam-supabase-policy.sh` for one-time admin attach
 - **Deploy workflow** — fails fast if `SUPABASE_DB_PASSWORD` missing; `workflow_dispatch` for manual redeploy; `github-predeploy` writes Supabase URL first

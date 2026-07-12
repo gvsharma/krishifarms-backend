@@ -226,61 +226,84 @@ export default function LoginPage() {
           </Stack>
 
           <Box component="form" onSubmit={(e) => void handleSubmit(e)} noValidate>
-            <Stack spacing={2.5}>
+            <Stack spacing={2.75}>
               {error && (
                 <Alert
                   severity="error"
                   sx={{
-                    borderRadius: 2,
+                    borderRadius: 2.5,
                     bgcolor: "rgba(186, 26, 26, 0.06)",
-                    border: "1px solid rgba(186, 26, 26, 0.2)",
+                    border: "1px solid rgba(186, 26, 26, 0.18)",
                   }}
                 >
                   {error}
                 </Alert>
               )}
 
-              <TextField
-                label="Email"
-                type="email"
-                autoComplete="email"
-                autoFocus
-                required
-                fullWidth
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={submitting}
-                placeholder="you@krishifarms.com"
-                sx={fieldSx}
-              />
+              <Stack spacing={1}>
+                <Typography
+                  component="label"
+                  htmlFor="login-email"
+                  sx={{ fontSize: 13, fontWeight: 600, color: "#1B4332", letterSpacing: "0.01em" }}
+                >
+                  Email
+                </Typography>
+                <TextField
+                  id="login-email"
+                  type="email"
+                  autoComplete="email"
+                  autoFocus
+                  required
+                  fullWidth
+                  hiddenLabel
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={submitting}
+                  placeholder="you@company.com"
+                  sx={fieldSx}
+                />
+              </Stack>
 
-              <TextField
-                label="Password"
-                type={showPassword ? "text" : "password"}
-                autoComplete="current-password"
-                required
-                fullWidth
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={submitting}
-                placeholder="Enter your password"
-                sx={fieldSx}
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton
-                        aria-label={showPassword ? "Hide password" : "Show password"}
-                        onClick={() => setShowPassword((v) => !v)}
-                        edge="end"
-                        disabled={submitting}
-                        size="small"
-                      >
-                        {showPassword ? <VisibilityOff /> : <Visibility />}
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-              />
+              <Stack spacing={1}>
+                <Typography
+                  component="label"
+                  htmlFor="login-password"
+                  sx={{ fontSize: 13, fontWeight: 600, color: "#1B4332", letterSpacing: "0.01em" }}
+                >
+                  Password
+                </Typography>
+                <TextField
+                  id="login-password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  required
+                  fullWidth
+                  hiddenLabel
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={submitting}
+                  placeholder="••••••••"
+                  sx={fieldSx}
+                  slotProps={{
+                    input: {
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton
+                            aria-label={showPassword ? "Hide password" : "Show password"}
+                            onClick={() => setShowPassword((v) => !v)}
+                            edge="end"
+                            disabled={submitting}
+                            size="small"
+                            sx={{ color: "#5C6B5E", mr: 0.5 }}
+                          >
+                            {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    },
+                  }}
+                />
+              </Stack>
 
               <Button
                 type="submit"
@@ -289,18 +312,19 @@ export default function LoginPage() {
                 fullWidth
                 disabled={submitting || !email.trim() || !password}
                 sx={{
-                  mt: 1,
-                  py: 1.5,
-                  borderRadius: 2.5,
+                  mt: 0.5,
+                  height: 52,
+                  borderRadius: 999,
                   fontWeight: 600,
-                  fontSize: "1rem",
+                  fontSize: "0.98rem",
                   textTransform: "none",
+                  letterSpacing: "0.01em",
                   bgcolor: "#1B4332",
-                  boxShadow: "0 10px 28px rgba(27, 67, 50, 0.28)",
+                  boxShadow: "0 12px 28px rgba(27, 67, 50, 0.25)",
                   transition: "transform 180ms ease, box-shadow 180ms ease, background-color 180ms ease",
                   "&:hover": {
                     bgcolor: "#2D6A4F",
-                    boxShadow: "0 14px 32px rgba(27, 67, 50, 0.34)",
+                    boxShadow: "0 16px 34px rgba(27, 67, 50, 0.32)",
                     transform: "translateY(-1px)",
                   },
                   "&:active": {
@@ -338,24 +362,37 @@ export default function LoginPage() {
 
 const fieldSx = {
   "& .MuiOutlinedInput-root": {
-    borderRadius: 2.5,
+    minHeight: 52,
+    borderRadius: 3,
     bgcolor: "#FFFFFF",
-    transition: "box-shadow 180ms ease, border-color 180ms ease",
+    transition: "box-shadow 180ms ease, border-color 180ms ease, background-color 180ms ease",
     "& fieldset": {
-      borderColor: "rgba(184, 196, 184, 0.9)",
+      borderColor: "rgba(27, 67, 50, 0.14)",
+      borderWidth: 1.5,
     },
-    "&:hover fieldset": {
-      borderColor: "#40916C",
+    "&:hover": {
+      bgcolor: "#FBFDFA",
+      "& fieldset": {
+        borderColor: "rgba(45, 106, 79, 0.45)",
+      },
     },
     "&.Mui-focused": {
-      boxShadow: "0 0 0 4px rgba(45, 106, 79, 0.12)",
+      bgcolor: "#FFFFFF",
+      boxShadow: "0 0 0 4px rgba(45, 106, 79, 0.14)",
       "& fieldset": {
         borderColor: "#2D6A4F",
         borderWidth: 1.5,
       },
     },
   },
-  "& .MuiInputLabel-root.Mui-focused": {
-    color: "#2D6A4F",
+  "& .MuiOutlinedInput-input": {
+    py: 1.6,
+    px: 1.75,
+    fontSize: "0.98rem",
+    color: "#1A1F16",
+    "&::placeholder": {
+      color: "#8A978C",
+      opacity: 1,
+    },
   },
 } as const;
