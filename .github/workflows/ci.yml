@@ -5,6 +5,10 @@ on:
     branches: [main]
   push:
     branches: [main]
+  schedule:
+    # Nightly full E2E suite (02:30 UTC)
+    - cron: "30 2 * * *"
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -13,3 +17,9 @@ concurrency:
 jobs:
   validate:
     uses: ./.github/workflows/validate.yml
+
+  e2e:
+    name: E2E (Playwright)
+    needs: validate
+    uses: ./.github/workflows/e2e.yml
+    secrets: inherit

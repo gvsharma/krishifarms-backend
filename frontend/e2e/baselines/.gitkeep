@@ -1,0 +1,7 @@
+# Visual regression baselines are stored by Playwright snapshotPathTemplate:
+# e2e/baselines/{projectName}/{testFile}/{snapshot}.png
+#
+# Update baselines after intentional UI changes:
+#   npx playwright test tests/visual --update-snapshots
+#
+# Do not hand-edit PNGs; regenerate from CI or local runs.
