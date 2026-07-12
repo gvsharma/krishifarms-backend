@@ -12,6 +12,7 @@ import {
 } from "@mui/material";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
+import { useT } from "@/i18n/use-t";
 import { loginWithPassword } from "@/features/auth/api";
 import { clearSignedOutFlag, wasExplicitlySignedOut } from "@/features/auth/session";
 import { getAccessToken } from "@/lib/api/client";
@@ -33,6 +34,7 @@ const fieldLabelClassName = "mb-2 block text-sm font-medium leading-none text-[#
 
 /** Simple Google-style email + password sign-in. */
 export default function LoginPage() {
+  const t = useT();
   const router = useRouter();
   const emailId = useId();
   const passwordId = useId();
@@ -61,7 +63,7 @@ export default function LoginPage() {
       await loginWithPassword(email.trim(), password);
       router.replace(ROUTES.dashboard);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
+      setError(err instanceof Error ? err.message : t("login.loginFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -114,10 +116,10 @@ export default function LoginPage() {
             KF
           </Box>
           <Typography variant="h5" fontWeight={400} component="h1">
-            Sign in
+            {t("login.signIn")}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            to continue to {SITE_NAME}
+            {t("login.continueTo", { siteName: SITE_NAME })}
           </Typography>
         </Stack>
 
@@ -131,7 +133,7 @@ export default function LoginPage() {
 
             <div>
               <label htmlFor={emailId} className={fieldLabelClassName}>
-                Email
+                {t("login.email")}
               </label>
               <Input
                 id={emailId}
@@ -151,7 +153,7 @@ export default function LoginPage() {
 
             <div>
               <label htmlFor={passwordId} className={fieldLabelClassName}>
-                Password
+                {t("login.password")}
               </label>
               <div className="relative">
                 <Input
@@ -171,7 +173,7 @@ export default function LoginPage() {
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
                   disabled={submitting}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-label={showPassword ? t("login.hidePassword") : t("login.showPassword")}
                   aria-pressed={showPassword}
                   className="absolute right-1.5 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-xl text-[#6B7280] transition-none hover:bg-[#F3F4F6] hover:text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#111827]/20 disabled:opacity-50"
                 >
@@ -198,7 +200,7 @@ export default function LoginPage() {
                   transition: "none",
                 }}
               >
-                {submitting ? <CircularProgress size={18} color="inherit" /> : "Next"}
+                {submitting ? <CircularProgress size={18} color="inherit" /> : t("common.next")}
               </Button>
             </Box>
           </Stack>

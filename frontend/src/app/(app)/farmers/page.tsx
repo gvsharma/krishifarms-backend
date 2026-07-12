@@ -22,8 +22,10 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { MuiPageShell } from "@/components/shell/mui-page-shell";
 import { fetchFarmers } from "@/features/farmers/api";
+import { useTranslations } from "@/i18n/use-translations";
 
 export default function FarmersPage() {
+  const { t } = useTranslations();
   const [search, setSearch] = useState("");
   const [query, setQuery] = useState("");
 
@@ -34,11 +36,11 @@ export default function FarmersPage() {
 
   return (
     <MuiPageShell
-      title="Farmers"
-      description="Farmer registry with village assignments and outstanding balances."
+      title={t("operations.farmers.title")}
+      description={t("operations.farmers.description")}
       actions={
         <Button component={Link} href="/farmers/new" variant="contained" startIcon={<Add />}>
-          Add farmer
+          {t("operations.farmers.addFarmer")}
         </Button>
       }
     >
@@ -46,14 +48,14 @@ export default function FarmersPage() {
         <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
           <TextField
             size="small"
-            placeholder="Search name, phone, or code…"
+            placeholder={t("operations.farmers.searchPlaceholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && setQuery(search.trim())}
             sx={{ flex: 1, maxWidth: 420 }}
           />
           <Button variant="outlined" startIcon={<Search />} onClick={() => setQuery(search.trim())}>
-            Search
+            {t("common.search")}
           </Button>
         </Box>
       </Card>
@@ -67,7 +69,7 @@ export default function FarmersPage() {
 
         {isError && (
           <Alert severity="warning" sx={{ m: 2 }}>
-            {error instanceof Error ? error.message : "Could not load farmers"}
+            {error instanceof Error ? error.message : t("operations.farmers.loadError")}
           </Alert>
         )}
 
@@ -76,12 +78,12 @@ export default function FarmersPage() {
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell>Code</TableCell>
-                  <TableCell>Name</TableCell>
-                  <TableCell>Phone</TableCell>
-                  <TableCell>Village</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Tags</TableCell>
+                  <TableCell>{t("operations.farmers.table.code")}</TableCell>
+                  <TableCell>{t("operations.farmers.table.name")}</TableCell>
+                  <TableCell>{t("operations.farmers.table.phone")}</TableCell>
+                  <TableCell>{t("operations.farmers.table.village")}</TableCell>
+                  <TableCell>{t("operations.farmers.table.status")}</TableCell>
+                  <TableCell>{t("operations.farmers.table.tags")}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -99,7 +101,7 @@ export default function FarmersPage() {
                       )}
                     </TableCell>
                     <TableCell>{farmer.phone_primary}</TableCell>
-                    <TableCell>{farmer.village_name ?? "—"}</TableCell>
+                    <TableCell>{farmer.village_name ?? t("common.dash")}</TableCell>
                     <TableCell>{farmer.status}</TableCell>
                     <TableCell>
                       {farmer.tags.map((tag) => (
@@ -112,7 +114,7 @@ export default function FarmersPage() {
                   <TableRow>
                     <TableCell colSpan={6} align="center">
                       <Typography variant="body2" color="text.secondary" sx={{ py: 3 }}>
-                        No farmers found
+                        {t("operations.farmers.empty")}
                       </Typography>
                     </TableCell>
                   </TableRow>

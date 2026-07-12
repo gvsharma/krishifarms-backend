@@ -7,28 +7,31 @@ import {
   fetchActivityTypes,
   updateActivityType,
 } from "@/features/master-data/api";
+import { useTranslations } from "@/i18n/use-translations";
 
 export default function ActivityTypesPage() {
+  const { t } = useTranslations();
+
   return (
     <CatalogAdminPage
-      title="Activity types"
-      description="Service / labour activity catalog for work orders."
+      title={t("catalog.activityTypes")}
+      description={t("catalog.activityTypesDesc")}
       queryKey="activity-types-admin"
       fields={[
-        { key: "name", label: "Name", required: true },
-        { key: "code", label: "Code", required: true, createOnly: true },
-        { key: "name_te", label: "Name (Telugu)", table: false },
+        { key: "name", label: t("catalog.fields.name"), required: true },
+        { key: "code", label: t("catalog.fields.code"), required: true, createOnly: true },
+        { key: "name_te", label: t("catalog.fields.nameTe"), table: false },
         {
           key: "default_rate_type",
-          label: "Default rate type",
+          label: t("catalog.fields.defaultRateType"),
           type: "select",
           options: [
-            { value: "hourly", label: "Hourly" },
-            { value: "daily", label: "Daily" },
-            { value: "fixed", label: "Fixed" },
+            { value: "hourly", label: t("catalog.fields.hourly") },
+            { value: "daily", label: t("catalog.fields.daily") },
+            { value: "fixed", label: t("catalog.fields.fixed") },
           ],
         },
-        { key: "is_active", label: "Active", type: "boolean" },
+        { key: "is_active", label: t("common.active"), type: "boolean" },
       ]}
       list={() => fetchActivityTypes(1, 100)}
       create={createActivityType}

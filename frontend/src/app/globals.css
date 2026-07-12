@@ -125,4 +125,8 @@
   .surface-card {
     @apply rounded-2xl border border-border/60 bg-card shadow-card;
   }
+
+  body.locale-te {
+    font-family: var(--font-noto-telugu), "Noto Sans", system-ui, sans-serif;
+  }
 }

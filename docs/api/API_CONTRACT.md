@@ -85,7 +85,7 @@ Paginated `data`:
 | Header | Required | Purpose |
 |--------|----------|---------|
 | `Authorization` | Yes (except login/refresh) | `Bearer <access_token>` |
-| `Accept-Language` | No | `en` or `te` |
+| `Accept-Language` | No | `en` or `te` — frontend sends from locale store; entity `*_te` fields and bilingual activity summaries follow this header where implemented |
 | `Idempotency-Key` | Financial POST | Prevent duplicate payments/procurement |
 | `X-Request-ID` | No | Correlation ID echoed in `meta` |
 | `X-Device-Id` | Recommended (mobile/web) | Stable client device UUID for audit + sessions + FCM |

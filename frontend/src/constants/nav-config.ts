@@ -18,65 +18,75 @@ export type NavRole = "OWNER" | "MANAGER" | "SUPERVISOR" | "AGENT" | "DRIVER" | 
 
 export interface NavItem {
   href: string;
-  label: string;
+  /** next-intl message key under `nav.items`. */
+  labelKey:
+    | "dashboard"
+    | "farmers"
+    | "procurement"
+    | "services"
+    | "finance"
+    | "users"
+    | "masterData"
+    | "settings";
   icon: SvgIconComponent;
   /** Empty = visible to all authenticated roles. */
   roles?: NavRole[];
 }
 
 export interface NavSection {
-  title: string;
+  /** next-intl message key under `nav.sections`. */
+  titleKey: "overview" | "operations" | "finance" | "system";
   items: NavItem[];
 }
 
 /** Role-aware nav matching backend module groups (W1 placeholders). */
 export const NAV_SECTIONS: NavSection[] = [
   {
-    title: "Overview",
-    items: [{ href: ROUTES.dashboard, label: "Dashboard", icon: Dashboard }],
+    titleKey: "overview",
+    items: [{ href: ROUTES.dashboard, labelKey: "dashboard", icon: Dashboard }],
   },
   {
-    title: "Operations",
+    titleKey: "operations",
     items: [
-      { href: ROUTES.farmers, label: "Farmers", icon: Agriculture },
-      { href: ROUTES.procurement, label: "Procurement", icon: Spa },
+      { href: ROUTES.farmers, labelKey: "farmers", icon: Agriculture },
+      { href: ROUTES.procurement, labelKey: "procurement", icon: Spa },
       {
         href: ROUTES.services,
-        label: "Services",
+        labelKey: "services",
         icon: Handshake,
         roles: ["OWNER", "MANAGER", "AGENT"],
       },
     ],
   },
   {
-    title: "Finance",
+    titleKey: "finance",
     items: [
       {
         href: ROUTES.payments,
-        label: "Finance",
+        labelKey: "finance",
         icon: AccountBalance,
         roles: ["OWNER", "MANAGER", "ACCOUNTANT"],
       },
     ],
   },
   {
-    title: "System",
+    titleKey: "system",
     items: [
       {
         href: ROUTES.settingsUsers,
-        label: "Users",
+        labelKey: "users",
         icon: People,
         roles: ["OWNER", "MANAGER"],
       },
       {
         href: ROUTES.settingsMasterData,
-        label: "Master data",
+        labelKey: "masterData",
         icon: Dataset,
         roles: ["OWNER", "MANAGER"],
       },
       {
         href: ROUTES.settings,
-        label: "Settings",
+        labelKey: "settings",
         icon: Settings,
         roles: ["OWNER", "MANAGER"],
       },

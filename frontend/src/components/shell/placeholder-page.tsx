@@ -1,6 +1,9 @@
+"use client";
+
 import type { LucideIcon } from "lucide-react";
 import { PageShell } from "@/components/shell/page-shell";
 import { EmptyState } from "@/components/shell/empty-state";
+import { useTranslations } from "@/i18n/use-translations";
 
 interface PlaceholderPageProps {
   title: string;
@@ -9,12 +12,14 @@ interface PlaceholderPageProps {
 }
 
 export function PlaceholderPage({ title, description, icon }: PlaceholderPageProps) {
+  const { t } = useTranslations();
+
   return (
     <PageShell title={title} description={description}>
       <EmptyState
         icon={icon}
-        title={`${title} — coming soon`}
-        description="This module will connect to Phase 2+ API endpoints. The app shell, navigation, and design system are ready."
+        title={t("common.comingSoonTitle", { title })}
+        description={t("common.comingSoonDescription")}
       />
     </PageShell>
   );

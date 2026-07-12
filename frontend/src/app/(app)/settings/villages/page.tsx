@@ -7,19 +7,22 @@ import {
   fetchVillages,
   updateVillage,
 } from "@/features/master-data/api";
+import { useTranslations } from "@/i18n/use-translations";
 
 export default function SettingsVillagesPage() {
+  const { t } = useTranslations();
+
   return (
     <CatalogAdminPage
-      title="Villages"
-      description="Geography master for farmers, agents, and procurements."
+      title={t("catalog.villages")}
+      description={t("catalog.villagesDesc")}
       queryKey="villages"
       fields={[
-        { key: "name", label: "Name", required: true },
-        { key: "mandal", label: "Mandal" },
-        { key: "district", label: "District" },
-        { key: "state", label: "State" },
-        { key: "pincode", label: "Pincode", table: false },
+        { key: "name", label: t("catalog.fields.name"), required: true },
+        { key: "mandal", label: t("catalog.fields.mandal") },
+        { key: "district", label: t("catalog.fields.district") },
+        { key: "state", label: t("catalog.fields.state") },
+        { key: "pincode", label: t("catalog.fields.pincode"), table: false },
       ]}
       list={() => fetchVillages(1, 100)}
       create={(p) => createVillage(p as { name: string })}

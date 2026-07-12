@@ -25,6 +25,7 @@ import {
   ChevronLeft,
   ChevronRight,
   DarkMode,
+  Language,
   LightMode,
   Logout,
   Menu as MenuIcon,
@@ -34,6 +35,7 @@ import {
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useTheme as useNextTheme } from "next-themes";
+import { useT } from "@/i18n/use-t";
 import { useEffect, useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -42,9 +44,10 @@ import {
   type NavRole,
 } from "@/constants/nav-config";
 import { ROUTES, SITE_NAME } from "@/constants/routes";
-import { signOut } from "@/features/auth/api";
+import { signOut, updateMyProfile } from "@/features/auth/api";
 import { useAuth } from "@/hooks/use-auth";
 import { DRAWER_WIDTH, DRAWER_WIDTH_COLLAPSED } from "@/theme/material-theme";
+import { type AppLocale, useLocaleStore } from "@/stores/locale-store";
 import { useUiStore } from "@/stores/ui-store";
 
 interface MuiAppShellProps {
@@ -52,6 +55,7 @@ interface MuiAppShellProps {
 }
 
 export function MuiAppShell({ children }: MuiAppShellProps) {
+  const t = useT();
   const pathname = usePathname();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -68,7 +72,18 @@ export function MuiAppShell({ children }: MuiAppShellProps) {
 
   const drawerWidth = collapsed && !isMobile ? DRAWER_WIDTH_COLLAPSED : DRAWER_WIDTH;
   const { user, role } = useAuth();
+  const locale = useLocaleStore((s) => s.locale);
+  const setLocale = useLocaleStore((s) => s.setLocale);
   const navSections = filterNavByRole(NAV_SECTIONS, (role ?? "OWNER") as NavRole);
+
+  const handleLocaleChange = (next: AppLocale) => {
+    if (next === locale) return;
+    setUserMenuAnchor(null);
+    setLocale(next);
+    void updateMyProfile({ preferred_locale: next }).then(() => {
+      queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
+    });
+  };
 
   const handleSignOut = async () => {
     setUserMenuAnchor(null);
@@ -104,7 +119,7 @@ export function MuiAppShell({ children }: MuiAppShellProps) {
               {SITE_NAME}
             </Typography>
             <Typography variant="caption" color="text.secondary" noWrap>
-              Bhairkhanpally
+              {t("shell.location")}
             </Typography>
           </Box>
         )}
@@ -114,7 +129,7 @@ export function MuiAppShell({ children }: MuiAppShellProps) {
 
       <Box sx={{ flex: 1, overflowY: "auto", py: 1 }}>
         {navSections.map((section) => (
-          <Box key={section.title} sx={{ mb: 1.5 }}>
+          <Box key={section.titleKey} sx={{ mb: 1.5 }}>
             {(!collapsed || isMobile) && (
               <Typography
                 variant="caption"
@@ -128,7 +143,7 @@ export function MuiAppShell({ children }: MuiAppShellProps) {
                   textTransform: "uppercase",
                 }}
               >
-                {section.title}
+                {t(`nav.sections.${section.titleKey}`)}
               </Typography>
             )}
             <List dense disablePadding>
@@ -160,7 +175,7 @@ export function MuiAppShell({ children }: MuiAppShellProps) {
                       </ListItemIcon>
                       {(!collapsed || isMobile) && (
                         <ListItemText
-                          primary={item.label}
+                          primary={t(`nav.items.${item.labelKey}`)}
                           primaryTypographyProps={{
                             fontSize: 14,
                             fontWeight: active ? 600 : 500,
@@ -180,7 +195,11 @@ export function MuiAppShell({ children }: MuiAppShellProps) {
         <>
           <Divider />
           <Box sx={{ p: 1 }}>
-            <Tooltip title={collapsed ? "Expand sidebar" : "Collapse sidebar"}>
+            <Tooltip
+              title={
+                collapsed ? t("shell.expandSidebar") : t("shell.collapseSidebar")
+              }
+            >
               <IconButton onClick={toggleSidebar} sx={{ width: "100%", borderRadius: 2 }}>
                 {collapsed ? <ChevronRight /> : <ChevronLeft />}
               </IconButton>
@@ -204,7 +223,11 @@ export function MuiAppShell({ children }: MuiAppShellProps) {
       >
         <Toolbar sx={{ gap: 1, minHeight: 64 }}>
           {isMobile && (
-            <IconButton edge="start" onClick={() => setMobileOpen(true)} aria-label="Open menu">
+            <IconButton
+              edge="start"
+              onClick={() => setMobileOpen(true)}
+              aria-label={t("shell.openMenu")}
+            >
               <MenuIcon />
             </IconButton>
           )}
@@ -224,17 +247,17 @@ export function MuiAppShell({ children }: MuiAppShellProps) {
           >
             <Search fontSize="small" color="action" />
             <Typography variant="body2" color="text.secondary">
-              Search farmers, procurements…
+              {t("shell.searchPlaceholder")}
             </Typography>
           </Box>
 
           <Stack direction="row" spacing={0.5} sx={{ ml: "auto" }}>
-            <IconButton aria-label="Notifications">
+            <IconButton aria-label={t("shell.notifications")}>
               <NotificationsNone />
             </IconButton>
             {mounted && (
               <IconButton
-                aria-label="Toggle theme"
+                aria-label={t("shell.toggleTheme")}
                 onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
               >
                 {resolvedTheme === "dark" ? <LightMode /> : <DarkMode />}
@@ -257,7 +280,7 @@ export function MuiAppShell({ children }: MuiAppShellProps) {
         <MenuItem disabled>
           <Stack>
             <Typography variant="body2" fontWeight={600}>
-              {user?.name ?? "User"}
+              {user?.name ?? t("common.user")}
             </Typography>
             <Typography variant="caption" color="text.secondary">
               {user?.email ?? user?.mobile ?? role ?? ""}
@@ -265,14 +288,32 @@ export function MuiAppShell({ children }: MuiAppShellProps) {
           </Stack>
         </MenuItem>
         <Divider />
+        <MenuItem disabled sx={{ opacity: 1 }}>
+          <Typography variant="caption" color="text.secondary" fontWeight={600}>
+            {t("profile.language")}
+          </Typography>
+        </MenuItem>
+        <MenuItem onClick={() => handleLocaleChange("en")} selected={locale === "en"}>
+          <ListItemIcon sx={{ minWidth: 36 }}>
+            <Language fontSize="small" />
+          </ListItemIcon>
+          {t("profile.english")}
+        </MenuItem>
+        <MenuItem onClick={() => handleLocaleChange("te")} selected={locale === "te"}>
+          <ListItemIcon sx={{ minWidth: 36 }}>
+            <Language fontSize="small" />
+          </ListItemIcon>
+          {t("profile.telugu")}
+        </MenuItem>
+        <Divider />
         <MenuItem component={Link} href={ROUTES.settings} onClick={() => setUserMenuAnchor(null)}>
-          Settings
+          {t("profile.settings")}
         </MenuItem>
         <MenuItem onClick={() => void handleSignOut()}>
           <ListItemIcon sx={{ minWidth: 36 }}>
             <Logout fontSize="small" />
           </ListItemIcon>
-          Sign out
+          {t("profile.signOut")}
         </MenuItem>
       </Menu>
 

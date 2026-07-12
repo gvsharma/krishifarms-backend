@@ -1,0 +1,514 @@
+{
+  "common": {
+    "add": "Add",
+    "save": "Save",
+    "delete": "Delete",
+    "actions": "Actions",
+    "cancel": "Cancel",
+    "search": "Search",
+    "next": "Next",
+    "loading": "Loading…",
+    "saving": "Saving…",
+    "deleting": "Deleting…",
+    "posting": "Posting…",
+    "back": "Back",
+    "edit": "Edit",
+    "notes": "Notes",
+    "status": "Status",
+    "farmer": "Farmer",
+    "village": "Village",
+    "date": "Date",
+    "amount": "Amount",
+    "type": "Type",
+    "comments": "Comments",
+    "user": "User",
+    "yes": "Yes",
+    "no": "No",
+    "none": "None",
+    "name": "Name",
+    "code": "Code",
+    "phone": "Phone",
+    "email": "Email",
+    "password": "Password",
+    "role": "Role",
+    "locale": "Locale",
+    "category": "Category",
+    "active": "Active",
+    "inactive": "Inactive",
+    "never": "Never",
+    "unknown": "Unknown",
+    "dash": "—",
+    "backToList": "Back to list",
+    "loadFailed": "Could not load {title}",
+    "noRecords": "No records found",
+    "saveFailed": "Failed to save",
+    "deleteRecord": "Delete record?",
+    "softDeleteNamed": "Soft-delete {name}?",
+    "softDeleteDefault": "Soft-delete this record?",
+    "deleteFailed": "Failed to delete",
+    "comingSoonTitle": "{title} — coming soon",
+    "comingSoonDescription": "This module will connect to Phase 2+ API endpoints. The app shell, navigation, and design system are ready.",
+    "recordCount": "{count} records",
+    "selectCategory": "Select category…"
+  },
+  "nav": {
+    "sections": {
+      "overview": "Overview",
+      "operations": "Operations",
+      "finance": "Finance",
+      "system": "System"
+    },
+    "items": {
+      "dashboard": "Dashboard",
+      "farmers": "Farmers",
+      "procurement": "Procurement",
+      "services": "Services",
+      "finance": "Finance",
+      "users": "Users",
+      "masterData": "Master data",
+      "settings": "Settings"
+    }
+  },
+  "shell": {
+    "location": "Bhairkhanpally",
+    "searchPlaceholder": "Search farmers, procurements…",
+    "expandSidebar": "Expand sidebar",
+    "collapseSidebar": "Collapse sidebar",
+    "openMenu": "Open menu",
+    "notifications": "Notifications",
+    "toggleTheme": "Toggle theme"
+  },
+  "profile": {
+    "settings": "Settings",
+    "signOut": "Sign out",
+    "language": "Language",
+    "english": "English",
+    "telugu": "తెలుగు"
+  },
+  "login": {
+    "signIn": "Sign in",
+    "continueTo": "to continue to {siteName}",
+    "email": "Email",
+    "password": "Password",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "loginFailed": "Login failed"
+  },
+  "errors": {
+    "loadFailed": "Could not load {resource}",
+    "saveFailed": "Failed to save",
+    "deleteFailed": "Failed to delete",
+    "createFailed": "Could not create {resource}",
+    "sessionLoadFailed": "Could not load your session. Sign in again if pages look empty.",
+    "usersLoadFailed": "Could not load users. Sign in or check API connectivity.",
+    "commentsLoadFailed": "Could not load comments",
+    "commentPostFailed": "Failed to post comment",
+    "selectCategory": "Select a service category",
+    "deleteNotSupported": "Delete not supported",
+    "requestFailed": "Request failed ({status})"
+  },
+  "status": {
+    "loadingSession": "Loading session…",
+    "sessionUnavailable": "Session unavailable",
+    "signedInAs": "Signed in as {role}",
+    "welcome": "Welcome{suffix}",
+    "welcomeSuffix": ", {name}",
+    "justNow": "Just now",
+    "minutesAgo": "{count}m ago",
+    "hoursAgo": "{count}h ago",
+    "daysAgo": "{count}d ago"
+  },
+  "format": {
+    "vsLastMonth": "vs last month",
+    "quintal": "quintal",
+    "quintals": "quintals",
+    "kg": "kg",
+    "bags": "bags",
+    "rupees": "₹",
+    "recordCount": "{count} record",
+    "recordCountPlural": "{count} records",
+    "inrLabel": "INR",
+    "dateDisplay": "dd MMM yyyy"
+  },
+  "dialog": {
+    "addUser": "Add user",
+    "editUser": "Edit user",
+    "editUserAria": "Edit user",
+    "deleteRecord": "Delete record?",
+    "deleteRecordSoft": "This will soft-delete the record. It will no longer appear in lists.",
+    "deleteRecordNamed": "Soft-delete {name}?",
+    "addItem": "Add {item}",
+    "editItem": "Edit {item}"
+  },
+  "dashboard": {
+    "title": "Home",
+    "descriptionAdmin": "Farm operations overview and administration shortcuts.",
+    "descriptionUser": "Farm operations overview for Bhairkhanpally.",
+    "welcome": "Welcome{commaName}",
+    "welcomeCommaName": ", {name}",
+    "loadingSession": "Loading session…",
+    "signedInAs": "Signed in as {role}",
+    "sessionUnavailable": "Session unavailable",
+    "sidebarHint": "— use the sidebar for farmers, procurement, and field services.",
+    "sessionError": "Could not load your session. Sign in again if pages look empty.",
+    "administration": "Administration",
+    "adminLinks": {
+      "usersRoles": {
+        "title": "Users & roles",
+        "description": "Add and edit organization members"
+      },
+      "masterDataHub": {
+        "title": "Master data hub",
+        "description": "All catalogs in one place"
+      },
+      "cropTypes": {
+        "title": "Crop types",
+        "description": "Paddy, corn, seasonal crops"
+      },
+      "vehicleTypes": {
+        "title": "Vehicle types",
+        "description": "Fleet categories for trips"
+      },
+      "activityTypes": {
+        "title": "Activity types",
+        "description": "Field service and work types"
+      },
+      "buyers": {
+        "title": "Buyers",
+        "description": "Mills and traders"
+      },
+      "fieldAgents": {
+        "title": "Field agents",
+        "description": "Collection agent roster"
+      },
+      "villages": {
+        "title": "Villages",
+        "description": "Geography master (read/create/edit)"
+      }
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "description": "Organization, users, roles, master data, and locale preferences.",
+    "cards": {
+      "usersRoles": {
+        "title": "Users & roles",
+        "description": "Members, RBAC roles, and access control"
+      },
+      "villages": {
+        "title": "Villages",
+        "description": "Geography master for farmers and trips"
+      },
+      "masterData": {
+        "title": "Master data",
+        "description": "Crops, buyers, agents, and catalogs"
+      }
+    },
+    "usersPage": {
+      "title": "Users",
+      "description": "Organization members, roles, and access. Requires users:read permission.",
+      "addUser": "Add user",
+      "editUser": "Edit user",
+      "fullName": "Full name",
+      "newPassword": "New password (optional)",
+      "emailHelper": "Required with password for web login; leave empty for phone-only field staff",
+      "passwordHelper": "Required when email is set (min 8 chars)",
+      "lastLogin": "Last login",
+      "emailPhone": "Email / Phone",
+      "noUsers": "No users found",
+      "userCount": "{count} users",
+      "userCountOne": "{count} user"
+    },
+    "masterDataHub": {
+      "title": "Master data",
+      "description": "Admin catalogs shared by the CRM web app and Android field app."
+    }
+  },
+  "roles": {
+    "OWNER": "Owner",
+    "MANAGER": "Manager",
+    "SUPERVISOR": "Supervisor",
+    "AGENT": "Agent",
+    "DRIVER": "Driver",
+    "WORKER": "Worker",
+    "ACCOUNTANT": "Accountant"
+  },
+  "catalog": {
+    "cropTypes": "Crop types",
+    "cropTypesDesc": "Paddy, corn, and seasonal crop catalog used by procurement.",
+    "cropPrices": "Crop price rules",
+    "cropPricesDesc": "Effective rates per quintal used when pricing procurements.",
+    "buyers": "Buyers",
+    "buyersDesc": "Mills and traders used in procurement sales.",
+    "agents": "Field agents",
+    "agentsDesc": "Collection and village agent roster.",
+    "vehicleTypes": "Vehicle types",
+    "vehicleTypesDesc": "Fleet categories (tractor, tipper, etc.) shared with mobile.",
+    "activityTypes": "Activity types",
+    "activityTypesDesc": "Service / labour activity catalog for work orders.",
+    "expenseCategories": "Expense categories",
+    "expenseCategoriesDesc": "Categories for operational expenses (fuel, labour, repairs, etc.).",
+    "paymentModes": "Payment modes",
+    "paymentModesDesc": "Cash, UPI, bank transfer, and other settlement modes.",
+    "villages": "Villages",
+    "villagesDesc": "Geography master for farmers, agents, and procurements.",
+    "fields": {
+      "name": "Name",
+      "nameTe": "Name (Telugu)",
+      "code": "Code",
+      "defaultMoisturePct": "Default moisture %",
+      "cropType": "Crop",
+      "effectiveFrom": "Effective from",
+      "effectiveTo": "Effective to",
+      "ratePerQuintal": "Rate / quintal (₹)",
+      "phone": "Phone",
+      "gstin": "GSTIN",
+      "contactPerson": "Contact person",
+      "address": "Address",
+      "commissionPct": "Commission %",
+      "capacityQuintals": "Capacity (qtl)",
+      "fuelType": "Fuel type",
+      "defaultRateType": "Default rate type",
+      "mandal": "Mandal",
+      "district": "District",
+      "state": "State",
+      "pincode": "Pincode",
+      "expense": "Expense",
+      "income": "Income",
+      "hourly": "Hourly",
+      "daily": "Daily",
+      "fixed": "Fixed"
+    }
+  },
+  "comments": {
+    "title": "Comments",
+    "placeholder": "Add a comment…",
+    "post": "Post comment",
+    "empty": "No comments yet. Add the first note below."
+  },
+  "audit": {
+    "createdBy": "Created by",
+    "updatedBy": "Updated by",
+    "lastModified": "Last modified",
+    "activityFeed": "Activity feed"
+  },
+  "reports": {
+    "title": "Reports",
+    "description": "Executive reports, P&L, and village-level analytics."
+  },
+  "operations": {
+    "farmers": {
+      "title": "Farmers",
+      "description": "Farmer registry with village assignments and outstanding balances.",
+      "addFarmer": "Add farmer",
+      "searchPlaceholder": "Search name, phone, or code…",
+      "empty": "No farmers found",
+      "loadError": "Could not load farmers",
+      "new": {
+        "title": "Add farmer",
+        "description": "Register a farmer for procurement and ledger tracking.",
+        "fullName": "Full name",
+        "fullNameTe": "Full name (Telugu)",
+        "primaryPhone": "Primary phone",
+        "phoneHelper": "10–20 digits",
+        "createError": "Failed to create farmer",
+        "createFarmer": "Create farmer"
+      },
+      "detail": {
+        "title": "Farmer detail",
+        "profile": "Profile",
+        "phone": "Phone",
+        "secondary": "Secondary",
+        "address": "Address",
+        "outstanding": "Outstanding",
+        "bankAccounts": "Bank accounts",
+        "noBankAccounts": "No bank accounts on file",
+        "holder": "Holder",
+        "bank": "Bank",
+        "ifsc": "IFSC",
+        "account": "Account",
+        "primary": "Primary",
+        "landParcels": "Land parcels",
+        "noLandParcels": "No land parcels recorded",
+        "surveyNumber": "Survey #",
+        "acres": "Acres",
+        "gps": "GPS",
+        "loadError": "Could not load farmer"
+      },
+      "table": {
+        "code": "Code",
+        "name": "Name",
+        "phone": "Phone",
+        "village": "Village",
+        "status": "Status",
+        "tags": "Tags"
+      }
+    },
+    "procurement": {
+      "title": "Procurement",
+      "description": "Intake tickets from draft through confirmation.",
+      "newProcurement": "New procurement",
+      "statusFilter": "Status filter",
+      "allStatuses": "All statuses",
+      "empty": "No procurements yet — create a draft to get started",
+      "loadError": "Could not load procurements",
+      "new": {
+        "title": "New procurement",
+        "description": "Create a draft ticket — weighment and pricing happen in later workflow steps.",
+        "step1": "Step 1 of 3 — Capture basics",
+        "cropType": "Crop type",
+        "bagCount": "Bag count",
+        "saveDraft": "Save draft",
+        "createError": "Could not create procurement"
+      },
+      "detail": {
+        "title": "Procurement detail",
+        "backToBoard": "Back to board",
+        "crop": "Crop",
+        "bags": "Bags",
+        "grossWeightKg": "Gross weight (kg)",
+        "netWeightKg": "Net weight (kg)",
+        "ratePerQuintal": "Rate / quintal",
+        "netAmount": "Net amount",
+        "loadError": "Could not load procurement"
+      },
+      "table": {
+        "ticket": "Ticket",
+        "date": "Date",
+        "farmer": "Farmer",
+        "crop": "Crop",
+        "netKg": "Net (kg)",
+        "amount": "Amount",
+        "status": "Status"
+      },
+      "status": {
+        "draft": "Draft",
+        "pending_weighment": "Pending weighment",
+        "weighed": "Weighed",
+        "priced": "Priced",
+        "confirmed": "Confirmed",
+        "paid_partial": "Partially paid",
+        "paid_full": "Paid in full",
+        "cancelled": "Cancelled",
+        "reversed": "Reversed"
+      }
+    },
+    "fieldServices": {
+      "title": "Field services",
+      "description": "Operational services — tractor work, transport, fertiliser, seeds, agri-finance, vehicle and godown ops.",
+      "newService": "New service",
+      "category": "Category",
+      "allCategories": "All categories",
+      "empty": "No records yet.",
+      "emptyAction": "Create your first service record",
+      "loadError": "Could not load field services",
+      "new": {
+        "title": "New field service",
+        "description": "Record operational work — choose a category, then fill the fields relevant to that service.",
+        "serviceCategory": "Service category",
+        "categoryHelper": "Fields below change based on category",
+        "pickCategory": "Pick a category to show the operational form (hours, bags, amounts, equipment, etc.).",
+        "selectCategoryError": "Select a service category",
+        "createRecord": "Create service record",
+        "createError": "Failed to create record"
+      },
+      "detail": {
+        "title": "Field service",
+        "backToList": "Back to list",
+        "saveChanges": "Save changes",
+        "cancelEdit": "Cancel edit",
+        "updateError": "Failed to update record",
+        "loadError": "Could not load field service",
+        "serviceDate": "Service date",
+        "activityType": "Activity type",
+        "vehicleEquipment": "Vehicle / equipment",
+        "location": "Location",
+        "hours": "Hours",
+        "bagCount": "Bag count",
+        "quantity": "Quantity",
+        "ratePerUnit": "Rate per unit",
+        "diesel": "Diesel",
+        "amountGiven": "Amount given",
+        "advance": "Advance",
+        "total": "Total",
+        "pending": "Pending",
+        "cleaningStatus": "Cleaning status",
+        "facilityStatus": "Facility status"
+      },
+      "table": {
+        "number": "Number",
+        "category": "Category",
+        "date": "Date",
+        "farmer": "Farmer",
+        "totalInr": "Total (₹)",
+        "pendingInr": "Pending (₹)",
+        "status": "Status"
+      },
+      "categories": {
+        "field_service": "Field service",
+        "tractor_work": "Tractor work",
+        "transport": "Transport",
+        "fertiliser": "Fertiliser",
+        "seeds": "Seeds",
+        "agri_finance": "Agri-finance",
+        "vehicle_ops": "Vehicle ops",
+        "godown": "Godown"
+      },
+      "statusOptions": {
+        "open": "Open",
+        "completed": "Completed",
+        "cancelled": "Cancelled"
+      },
+      "cleaningStatus": {
+        "pending": "Pending",
+        "done": "Done",
+        "not_required": "Not required"
+      },
+      "facilityStatus": {
+        "active": "Active",
+        "repair": "Repair",
+        "maintenance": "Maintenance",
+        "cleaning": "Cleaning"
+      },
+      "form": {
+        "serviceDate": "Service date",
+        "activityEquipmentType": "Activity / equipment type",
+        "vehicleEquipmentType": "Vehicle / equipment type",
+        "quantityUnit": "Quantity unit",
+        "quantityUnitPlaceholder": "kg, quintal, bags…",
+        "ratePerUnitInr": "Rate per unit (₹)",
+        "dieselAmountInr": "Diesel amount (₹)",
+        "amountGivenInr": "Amount given (₹)",
+        "advanceInr": "Advance (₹)",
+        "totalInr": "Total (₹)",
+        "pendingInr": "Pending (₹)"
+      }
+    },
+    "placeholders": {
+      "farms": {
+        "title": "Farms",
+        "description": "Land parcels, crop history, and acreage across villages."
+      },
+      "vehicles": {
+        "title": "Vehicles",
+        "description": "Fleet assets, trips, fuel efficiency, and maintenance."
+      },
+      "workers": {
+        "title": "Workers",
+        "description": "Workforce roster, attendance, and wage tracking."
+      },
+      "expenses": {
+        "title": "Expenses",
+        "description": "Operational expenses, categories, and approval workflow."
+      },
+      "payments": {
+        "title": "Payments",
+        "description": "Farmer payments, allocation, and settlement queue."
+      },
+      "collections": {
+        "title": "Collections",
+        "description": "Daily collection entries, weighment, and quality checks."
+      }
+    }
+  }
+}

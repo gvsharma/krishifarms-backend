@@ -1,0 +1,514 @@
+{
+  "common": {
+    "add": "జోడించు",
+    "save": "సేవ్ చేయి",
+    "delete": "తొలగించు",
+    "actions": "చర్యలు",
+    "cancel": "రద్దు",
+    "search": "వెతకండి",
+    "next": "తర్వాత",
+    "loading": "లోడ్ అవుతోంది…",
+    "saving": "సేవ్ అవుతోంది…",
+    "deleting": "తొలగిస్తోంది…",
+    "posting": "పోస్ట్ అవుతోంది…",
+    "back": "వెనక్కి",
+    "edit": "సవరించు",
+    "notes": "గమనికలు",
+    "status": "స్థితి",
+    "farmer": "రైతు",
+    "village": "గ్రామం",
+    "date": "తేదీ",
+    "amount": "మొత్తం",
+    "type": "రకం",
+    "comments": "వ్యాఖ్యలు",
+    "user": "వినియోగదారు",
+    "yes": "అవును",
+    "no": "కాదు",
+    "none": "ఏదీ లేదు",
+    "name": "పేరు",
+    "code": "కోడ్",
+    "phone": "ఫోన్",
+    "email": "ఇమెయిల్",
+    "password": "పాస్‌వర్డ్",
+    "role": "పాత్ర",
+    "locale": "భాష",
+    "category": "వర్గం",
+    "active": "సక్రియం",
+    "inactive": "నిష్క్రియం",
+    "never": "ఎప్పుడూ లేదు",
+    "unknown": "తెలియదు",
+    "dash": "—",
+    "backToList": "జాబితాకు వెనక్కి",
+    "loadFailed": "{title} లోడ్ చేయలేకపోయాం",
+    "noRecords": "ఇంకా రికార్డులు లేవు",
+    "saveFailed": "సేవ్ విఫలమైంది",
+    "deleteRecord": "రికార్డు తొలగించాలా?",
+    "softDeleteNamed": "{name} ను మృదువుగా తొలగించాలా?",
+    "softDeleteDefault": "ఈ రికార్డును మృదువుగా తొలగించాలా?",
+    "deleteFailed": "తొలగింపు విఫలమైంది",
+    "comingSoonTitle": "{title} — త్వరలో వస్తుంది",
+    "comingSoonDescription": "ఈ మాడ్యూల్ Phase 2+ API ఎండ్‌పాయింట్‌లకు కనెక్ట్ అవుతుంది. యాప్ షెల్, నావిగేషన్ మరియు డిజైన్ సిస్టమ్ సిద్ధంగా ఉన్నాయి.",
+    "recordCount": "{count} రికార్డులు",
+    "selectCategory": "వర్గం ఎంచుకోండి…"
+  },
+  "nav": {
+    "sections": {
+      "overview": "అవలోకనం",
+      "operations": "కార్యకలాపాలు",
+      "finance": "ఆర్థికం",
+      "system": "వ్యవస్థ"
+    },
+    "items": {
+      "dashboard": "డాష్‌బోర్డ్",
+      "farmers": "రైతులు",
+      "procurement": "సేకరణ",
+      "services": "సేవలు",
+      "finance": "ఆర్థికం",
+      "users": "వినియోగదారులు",
+      "masterData": "మాస్టర్ డేటా",
+      "settings": "సెట్టింగ్‌లు"
+    }
+  },
+  "shell": {
+    "location": "భైర్‌ఖాన్‌పల్లి",
+    "searchPlaceholder": "రైతులు, సేకరణలు వెతకండి…",
+    "expandSidebar": "సైడ్‌బార్ విస్తరించు",
+    "collapseSidebar": "సైడ్‌బార్ కుదించు",
+    "openMenu": "మెనూ తెరవండి",
+    "notifications": "నోటిఫికేషన్లు",
+    "toggleTheme": "థీమ్ మార్చు"
+  },
+  "profile": {
+    "settings": "సెట్టింగ్‌లు",
+    "signOut": "సైన్ అవుట్",
+    "language": "భాష",
+    "english": "English",
+    "telugu": "తెలుగు"
+  },
+  "login": {
+    "signIn": "సైన్ ఇన్",
+    "continueTo": "{siteName} కు కొనసాగించండి",
+    "email": "ఇమెయిల్",
+    "password": "పాస్‌వర్డ్",
+    "showPassword": "పాస్‌వర్డ్ చూపించు",
+    "hidePassword": "పాస్‌వర్డ్ దాచు",
+    "loginFailed": "లాగిన్ విఫలమైంది"
+  },
+  "errors": {
+    "loadFailed": "{resource} లోడ్ చేయలేకపోయాం",
+    "saveFailed": "సేవ్ విఫలమైంది",
+    "deleteFailed": "తొలగింపు విఫలమైంది",
+    "createFailed": "{resource} సృష్టించలేకపోయాం",
+    "sessionLoadFailed": "మీ సెషన్ లోడ్ చేయలేకపోయాం. పేజీలు ఖాళీగా ఉంటే మళ్లీ సైన్ ఇన్ చేయండి.",
+    "usersLoadFailed": "వినియోగదారులు లోడ్ చేయలేకపోయాం. సైన్ ఇన్ చేయండి లేదా API కనెక్టివిటీ తనిఖీ చేయండి.",
+    "commentsLoadFailed": "వ్యాఖ్యలు లోడ్ చేయలేకపోయాం",
+    "commentPostFailed": "వ్యాఖ్య పోస్ట్ విఫలమైంది",
+    "selectCategory": "సేవా వర్గం ఎంచుకోండి",
+    "deleteNotSupported": "తొలగింపు మద్దతు లేదు",
+    "requestFailed": "అభ్యర్థన విఫలమైంది ({status})"
+  },
+  "status": {
+    "loadingSession": "సెషన్ లోడ్ అవుతోంది…",
+    "sessionUnavailable": "సెషన్ అందుబాటులో లేదు",
+    "signedInAs": "{role} గా సైన్ ఇన్",
+    "welcome": "స్వాగతం{suffix}",
+    "welcomeSuffix": ", {name}",
+    "justNow": "ఇప్పుడే",
+    "minutesAgo": "{count} నిమి క్రితం",
+    "hoursAgo": "{count} గం క్రితం",
+    "daysAgo": "{count} రోజు క్రితం"
+  },
+  "format": {
+    "vsLastMonth": "గత నెలతో పోలిస్తే",
+    "quintal": "క్వింటాల్",
+    "quintals": "క్వింటాల్స్",
+    "kg": "కిలో",
+    "bags": "సంచులు",
+    "rupees": "₹",
+    "recordCount": "{count} రికార్డు",
+    "recordCountPlural": "{count} రికార్డులు",
+    "inrLabel": "INR",
+    "dateDisplay": "dd MMM yyyy"
+  },
+  "dialog": {
+    "addUser": "వినియోగదారుని జోడించు",
+    "editUser": "వినియోగదారుని సవరించు",
+    "editUserAria": "వినియోగదారుని సవరించు",
+    "deleteRecord": "రికార్డు తొలగించాలా?",
+    "deleteRecordSoft": "ఇది మృదువుగా తొలగిస్తుంది. జాబితాలలో కనిపించదు.",
+    "deleteRecordNamed": "{name} ను మృదువుగా తొలగించాలా?",
+    "addItem": "{item} జోడించు",
+    "editItem": "{item} సవరించు"
+  },
+  "dashboard": {
+    "title": "హోమ్",
+    "descriptionAdmin": "వ్యవసాయ కార్యకలాపాల అవలోకనం మరియు నిర్వహణ షార్ట్‌కట్‌లు.",
+    "descriptionUser": "భైర్‌ఖాన్‌పల్లి కోసం వ్యవసాయ కార్యకలాపాల అవలోకనం.",
+    "welcome": "స్వాగతం{commaName}",
+    "welcomeCommaName": ", {name}",
+    "loadingSession": "సెషన్ లోడ్ అవుతోంది…",
+    "signedInAs": "{role} గా సైన్ ఇన్",
+    "sessionUnavailable": "సెషన్ అందుబాటులో లేదు",
+    "sidebarHint": "— రైతులు, సేకరణ, ఫీల్డ్ సేవల కోసం సైడ్‌బార్ ఉపయోగించండి.",
+    "sessionError": "మీ సెషన్ లోడ్ చేయలేకపోయాం. పేజీలు ఖాళీగా ఉంటే మళ్లీ సైన్ ఇన్ చేయండి.",
+    "administration": "నిర్వహణ",
+    "adminLinks": {
+      "usersRoles": {
+        "title": "వినియోగదారులు & పాత్రలు",
+        "description": "సంస్థ సభ్యులను జోడించండి మరియు సవరించండి"
+      },
+      "masterDataHub": {
+        "title": "మాస్టర్ డేటా హబ్",
+        "description": "అన్ని కేటలాగ్‌లు ఒకే చోట"
+      },
+      "cropTypes": {
+        "title": "పంట రకాలు",
+        "description": "వరి, మొక్కజొన్న, ఋతు పంటలు"
+      },
+      "vehicleTypes": {
+        "title": "వాహన రకాలు",
+        "description": "ప్రయాణాల కోసం ఫ్లీట్ వర్గాలు"
+      },
+      "activityTypes": {
+        "title": "కార్యకలాప రకాలు",
+        "description": "ఫీల్డ్ సేవ మరియు పని రకాలు"
+      },
+      "buyers": {
+        "title": "కొనుగోలుదారులు",
+        "description": "మిల్లులు మరియు వ్యాపారులు"
+      },
+      "fieldAgents": {
+        "title": "ఫీల్డ్ ఏజెంట్లు",
+        "description": "సేకరణ ఏజెంట్ జాబితా"
+      },
+      "villages": {
+        "title": "గ్రామాలు",
+        "description": "భౌగోళిక మాస్టర్ (చదవండి/సృష్టించండి/సవరించండి)"
+      }
+    }
+  },
+  "settings": {
+    "title": "సెట్టింగ్‌లు",
+    "description": "సంస్థ, వినియోగదారులు, పాత్రలు, మాస్టర్ డేటా మరియు భాష ప్రాధాన్యతలు.",
+    "cards": {
+      "usersRoles": {
+        "title": "వినియోగదారులు & పాత్రలు",
+        "description": "సభ్యులు, RBAC పాత్రలు మరియు యాక్సెస్ నియంత్రణ"
+      },
+      "villages": {
+        "title": "గ్రామాలు",
+        "description": "రైతులు మరియు ప్రయాణాల కోసం భౌగోళిక మాస్టర్"
+      },
+      "masterData": {
+        "title": "మాస్టర్ డేటా",
+        "description": "పంటలు, కొనుగోలుదారులు, ఏజెంట్లు మరియు కేటలాగ్‌లు"
+      }
+    },
+    "usersPage": {
+      "title": "వినియోగదారులు",
+      "description": "సంస్థ సభ్యులు, పాత్రలు మరియు యాక్సెస్. users:read అనుమతి అవసరం.",
+      "addUser": "వినియోగదారుని జోడించు",
+      "editUser": "వినియోగదారుని సవరించు",
+      "fullName": "పూర్తి పేరు",
+      "newPassword": "కొత్త పాస్‌వర్డ్ (ఐచ్ఛికం)",
+      "emailHelper": "వెబ్ లాగిన్‌కు పాస్‌వర్డ్‌తో అవసరం; ఫోన్-మాత్రమే ఫీల్డ్ స్టాఫ్‌కు ఖాళీగా ఉంచండి",
+      "passwordHelper": "ఇమెయిల్ ఉన్నప్పుడు అవసరం (కనీసం 8 అక్షరాలు)",
+      "lastLogin": "చివరి లాగిన్",
+      "emailPhone": "ఇమెయిల్ / ఫోన్",
+      "noUsers": "వినియోగదారులు కనుగొనబడలేదు",
+      "userCount": "{count} వినియోగదారులు",
+      "userCountOne": "{count} వినియోగదారు"
+    },
+    "masterDataHub": {
+      "title": "మాస్టర్ డేటా",
+      "description": "CRM వెబ్ యాప్ మరియు Android ఫీల్డ్ యాప్ పంచుకునే అడ్మిన్ కేటలాగ్‌లు."
+    }
+  },
+  "roles": {
+    "OWNER": "యజమాని",
+    "MANAGER": "మేనేజర్",
+    "SUPERVISOR": "సూపర్‌వైజర్",
+    "AGENT": "ఏజెంట్",
+    "DRIVER": "డ్రైవర్",
+    "WORKER": "కార్మికుడు",
+    "ACCOUNTANT": "అకౌంటెంట్"
+  },
+  "catalog": {
+    "cropTypes": "పంట రకాలు",
+    "cropTypesDesc": "సేకరణలో ఉపయోగించే వరి, మొక్కజొన్న మరియు ఋతు పంట కేటలాగ్.",
+    "cropPrices": "పంట ధర నియమాలు",
+    "cropPricesDesc": "సేకరణ ధర నిర్ణయంలో ఉపయోగించే క్వింటాల్‌కు సమర్థవంతమైన రేట్లు.",
+    "buyers": "కొనుగోలుదారులు",
+    "buyersDesc": "సేకరణ అమ్మకాలలో ఉపయోగించే మిల్లు మరియు వ్యాపారులు.",
+    "agents": "ఫీల్డ్ ఏజెంట్లు",
+    "agentsDesc": "సేకరణ మరియు గ్రామ ఏజెంట్ జాబితా.",
+    "vehicleTypes": "వాహన రకాలు",
+    "vehicleTypesDesc": "మొబైల్ యాప్‌తో పంచుకునే ఫ్లీట్ వర్గాలు (ట్రాక్టర్, టిప్పర్, మొదలైనవి).",
+    "activityTypes": "కార్యకలాప రకాలు",
+    "activityTypesDesc": "వర్క్ ఆర్డర్‌ల కోసం సేవా / కార్మిక కార్యకలాప కేటలాగ్.",
+    "expenseCategories": "ఖర్చు వర్గాలు",
+    "expenseCategoriesDesc": "కార్యకలాప ఖర్చుల కోసం వర్గాలు (ఇంధనం, కార్మికులు, మరమ్మతులు, మొదలైనవి).",
+    "paymentModes": "చెల్లింపు విధానాలు",
+    "paymentModesDesc": "నగదు, UPI, బ్యాంక్ బదిలీ మరియు ఇతర సెటిల్‌మెంట్ విధానాలు.",
+    "villages": "గ్రామాలు",
+    "villagesDesc": "రైతులు, ఏజెంట్లు మరియు సేకరణల కోసం భౌగోళిక మాస్టర్.",
+    "fields": {
+      "name": "పేరు",
+      "nameTe": "పేరు (తెలుగు)",
+      "code": "కోడ్",
+      "defaultMoisturePct": "డిఫాల్ట్ తేమ %",
+      "cropType": "పంట",
+      "effectiveFrom": "అమలు ప్రారంభం",
+      "effectiveTo": "అమలు ముగింపు",
+      "ratePerQuintal": "రేటు / క్వింటాల్ (₹)",
+      "phone": "ఫోన్",
+      "gstin": "GSTIN",
+      "contactPerson": "సంప్రదింపు వ్యక్తి",
+      "address": "చిరునామా",
+      "commissionPct": "కమిషన్ %",
+      "capacityQuintals": "సామర్థ్యం (క్వింటాల్)",
+      "fuelType": "ఇంధన రకం",
+      "defaultRateType": "డిఫాల్ట్ రేటు రకం",
+      "mandal": "మండలం",
+      "district": "జిల్లా",
+      "state": "రాష్ట్రం",
+      "pincode": "పిన్‌కోడ్",
+      "expense": "ఖర్చు",
+      "income": "ఆదాయం",
+      "hourly": "గంటవారీ",
+      "daily": "రోజువారీ",
+      "fixed": "స్థిరం"
+    }
+  },
+  "comments": {
+    "title": "వ్యాఖ్యలు",
+    "placeholder": "వ్యాఖ్య జోడించండి…",
+    "post": "వ్యాఖ్య పోస్ట్ చేయి",
+    "empty": "ఇంకా వ్యాఖ్యలు లేవు. క్రింద మొదటి గమనికను జోడించండి."
+  },
+  "audit": {
+    "createdBy": "సృష్టించినవారు",
+    "updatedBy": "నవీకరించినవారు",
+    "lastModified": "చివరి మార్పు",
+    "activityFeed": "కార్యకలాప ఫీడ్"
+  },
+  "reports": {
+    "title": "నివేదికలు",
+    "description": "కార్యకలాప మరియు ఆర్థిక నివేదికలు."
+  },
+  "operations": {
+    "farmers": {
+      "title": "రైతులు",
+      "description": "గ్రామం కేటాయింపులు మరియు బకాయిలతో రైతు రిజిస్ట్రీ.",
+      "addFarmer": "రైతుని జోడించు",
+      "searchPlaceholder": "పేరు, ఫోన్ లేదా కోడ్ వెతకండి…",
+      "empty": "రైతులు కనుగొనబడలేదు",
+      "loadError": "రైతులు లోడ్ చేయలేకపోయాం",
+      "new": {
+        "title": "రైతుని జోడించు",
+        "description": "సేకరణ మరియు లెడ్జర్ ట్రాకింగ్ కోసం రైతును నమోదు చేయండి.",
+        "fullName": "పూర్తి పేరు",
+        "fullNameTe": "పూర్తి పేరు (తెలుగు)",
+        "primaryPhone": "ప్రాథమిక ఫోన్",
+        "phoneHelper": "10–20 అంకెలు",
+        "createError": "రైతును సృష్టించలేకపోయాం",
+        "createFarmer": "రైతుని సృష్టించు"
+      },
+      "detail": {
+        "title": "రైతు వివరాలు",
+        "profile": "ప్రొఫైల్",
+        "phone": "ఫోన్",
+        "secondary": "ద్వితీయ",
+        "address": "చిరునామా",
+        "outstanding": "బకాయి",
+        "bankAccounts": "బ్యాంక్ ఖాతాలు",
+        "noBankAccounts": "బ్యాంక్ ఖాతాలు లేవు",
+        "holder": "ఖాతాదారు",
+        "bank": "బ్యాంక్",
+        "ifsc": "IFSC",
+        "account": "ఖాతా",
+        "primary": "ప్రాథమిక",
+        "landParcels": "భూమి పార్సెల్‌లు",
+        "noLandParcels": "భూమి పార్సెల్‌లు నమోదు చేయలేదు",
+        "surveyNumber": "సర్వే #",
+        "acres": "ఎకరాలు",
+        "gps": "GPS",
+        "loadError": "రైతును లోడ్ చేయలేకపోయాం"
+      },
+      "table": {
+        "code": "కోడ్",
+        "name": "పేరు",
+        "phone": "ఫోన్",
+        "village": "గ్రామం",
+        "status": "స్థితి",
+        "tags": "ట్యాగ్‌లు"
+      }
+    },
+    "procurement": {
+      "title": "సేకరణ",
+      "description": "డ్రాఫ్ట్ నుండి నిర్ధారణ వరకు ఇన్‌టేక్ టికెట్లు.",
+      "newProcurement": "కొత్త సేకరణ",
+      "statusFilter": "స్థితి ఫిల్టర్",
+      "allStatuses": "అన్ని స్థితులు",
+      "empty": "ఇంకా సేకరణలు లేవు — ప్రారంభించడానికి డ్రాఫ్ట్ సృష్టించండి",
+      "loadError": "సేకరణలు లోడ్ చేయలేకపోయాం",
+      "new": {
+        "title": "కొత్త సేకరణ",
+        "description": "డ్రాఫ్ట్ టికెట్ సృష్టించండి — బరువు మరియు ధర తర్వాతి దశలలో.",
+        "step1": "3లో 1వ దశ — ప్రాథమిక వివరాలు",
+        "cropType": "పంట రకం",
+        "bagCount": "సంచుల సంఖ్య",
+        "saveDraft": "డ్రాఫ్ట్ సేవ్",
+        "createError": "సేకరణ సృష్టించలేకపోయాం"
+      },
+      "detail": {
+        "title": "సేకరణ వివరాలు",
+        "backToBoard": "బోర్డ్‌కు వెనక్కి",
+        "crop": "పంట",
+        "bags": "సంచులు",
+        "grossWeightKg": "మొత్తం బరువు (కిలో)",
+        "netWeightKg": "నికర బరువు (కిలో)",
+        "ratePerQuintal": "రేటు / క్వింటాల్",
+        "netAmount": "నికర మొత్తం",
+        "loadError": "సేకరణ లోడ్ చేయలేకపోయాం"
+      },
+      "table": {
+        "ticket": "టికెట్",
+        "date": "తేదీ",
+        "farmer": "రైతు",
+        "crop": "పంట",
+        "netKg": "నికర (కిలో)",
+        "amount": "మొత్తం",
+        "status": "స్థితి"
+      },
+      "status": {
+        "draft": "డ్రాఫ్ట్",
+        "pending_weighment": "బరువు కొలత పెండింగ్",
+        "weighed": "బరువు కొలిచారు",
+        "priced": "ధర నిర్ణయించారు",
+        "confirmed": "నిర్ధారించారు",
+        "paid_partial": "పాక్షికంగా చెల్లించారు",
+        "paid_full": "పూర్తిగా చెల్లించారు",
+        "cancelled": "రద్దు",
+        "reversed": "రివర్స్"
+      }
+    },
+    "fieldServices": {
+      "title": "ఫీల్డ్ సేవలు",
+      "description": "ట్రాక్టర్ పని, రవాణా, ఎరువులు, విత్తనాలు, వ్యవసాయ ఫైనాన్స్, వాహన మరియు గోడౌన్ కార్యకలాపాలు.",
+      "newService": "కొత్త సేవ",
+      "category": "వర్గం",
+      "allCategories": "అన్ని వర్గాలు",
+      "empty": "ఇంకా రికార్డులు లేవు.",
+      "emptyAction": "మీ మొదటి సేవా రికార్డు సృష్టించండి",
+      "loadError": "ఫీల్డ్ సేవలు లోడ్ చేయలేకపోయాం",
+      "new": {
+        "title": "కొత్త ఫీల్డ్ సేవ",
+        "description": "కార్యకలాప పనిని నమోదు చేయండి — వర్గం ఎంచుకోండి, తర్వాత సంబంధిత ఫీల్డ్‌లు నింపండి.",
+        "serviceCategory": "సేవా వర్గం",
+        "categoryHelper": "క్రింది ఫీల్డ్‌లు వర్గం ఆధారంగా మారుతాయి",
+        "pickCategory": "గంటలు, సంచులు, మొత్తాలు, పరికరాలు మొదలైన ఆపరేషనల్ ఫారమ్ చూడడానికి వర్గం ఎంచుకోండి.",
+        "selectCategoryError": "సేవా వర్గం ఎంచుకోండి",
+        "createRecord": "సేవా రికార్డు సృష్టించు",
+        "createError": "రికార్డు సృష్టించలేకపోయాం"
+      },
+      "detail": {
+        "title": "ఫీల్డ్ సేవ",
+        "backToList": "జాబితాకు వెనక్కి",
+        "saveChanges": "మార్పులు సేవ్ చేయి",
+        "cancelEdit": "సవరణ రద్దు",
+        "updateError": "రికార్డు నవీకరించలేకపోయాం",
+        "loadError": "ఫీల్డ్ సేవ లోడ్ చేయలేకపోయాం",
+        "serviceDate": "సేవా తేదీ",
+        "activityType": "కార్యకలాప రకం",
+        "vehicleEquipment": "వాహన / పరికరం",
+        "location": "స్థానం",
+        "hours": "గంటలు",
+        "bagCount": "సంచుల సంఖ్య",
+        "quantity": "పరిమాణం",
+        "ratePerUnit": "యూనిట్‌కు రేటు",
+        "diesel": "డీజిల్",
+        "amountGiven": "ఇచ్చిన మొత్తం",
+        "advance": "అడ్వాన్స్",
+        "total": "మొత్తం",
+        "pending": "బకాయి",
+        "cleaningStatus": "శుభ్రత స్థితి",
+        "facilityStatus": "సౌకర్య స్థితి"
+      },
+      "table": {
+        "number": "సంఖ్య",
+        "category": "వర్గం",
+        "date": "తేదీ",
+        "farmer": "రైతు",
+        "totalInr": "మొత్తం (₹)",
+        "pendingInr": "బకాయి (₹)",
+        "status": "స్థితి"
+      },
+      "categories": {
+        "field_service": "ఫీల్డ్ సేవ",
+        "tractor_work": "ట్రాక్టర్ పని",
+        "transport": "రవాణా",
+        "fertiliser": "ఎరువులు",
+        "seeds": "విత్తనాలు",
+        "agri_finance": "వ్యవసాయ ఫైనాన్స్",
+        "vehicle_ops": "వాహన కార్యకలాపాలు",
+        "godown": "గోడౌన్"
+      },
+      "statusOptions": {
+        "open": "తెరిచి",
+        "completed": "పూర్తి",
+        "cancelled": "రద్దు"
+      },
+      "cleaningStatus": {
+        "pending": "పెండింగ్",
+        "done": "పూర్తి",
+        "not_required": "అవసరం లేదు"
+      },
+      "facilityStatus": {
+        "active": "సక్రియం",
+        "repair": "మరమ్మతు",
+        "maintenance": "నిర్వహణ",
+        "cleaning": "శుభ్రత"
+      },
+      "form": {
+        "serviceDate": "సేవా తేదీ",
+        "activityEquipmentType": "కార్యకలాప / పరికర రకం",
+        "vehicleEquipmentType": "వాహన / పరికర రకం",
+        "quantityUnit": "పరిమాణ యూనిట్",
+        "quantityUnitPlaceholder": "కిలో, క్వింటాల్, సంచులు…",
+        "ratePerUnitInr": "యూనిట్‌కు రేటు (₹)",
+        "dieselAmountInr": "డీజిల్ మొత్తం (₹)",
+        "amountGivenInr": "ఇచ్చిన మొత్తం (₹)",
+        "advanceInr": "అడ్వాన్స్ (₹)",
+        "totalInr": "మొత్తం (₹)",
+        "pendingInr": "బకాయి (₹)"
+      }
+    },
+    "placeholders": {
+      "farms": {
+        "title": "పొలాలు",
+        "description": "భూమి పార్సెల్‌లు, పంట చరిత్ర మరియు గ్రామాల వ్యాప్తిలో ఎకరాలు."
+      },
+      "vehicles": {
+        "title": "వాహనాలు",
+        "description": "ఫ్లీట్ ఆస్తులు, ప్రయాణాలు, ఇంధన సామర్థ్యం మరియు నిర్వహణ."
+      },
+      "workers": {
+        "title": "కార్మికులు",
+        "description": "కార్యబల జాబితా, హాజరు మరియు వేతన ట్రాకింగ్."
+      },
+      "expenses": {
+        "title": "ఖర్చులు",
+        "description": "కార్యకలాప ఖర్చులు, వర్గాలు మరియు ఆమోద వర్క్‌ఫ్లో."
+      },
+      "payments": {
+        "title": "చెల్లింపులు",
+        "description": "రైతు చెల్లింపులు, కేటాయింపు మరియు సెటిల్‌మెంట్ క్యూ."
+      },
+      "collections": {
+        "title": "సేకరణలు",
+        "description": "రోజువారీ సేకరణ ఎంట్రీలు, బరువు మరియు నాణ్యత తనిఖీలు."
+      }
+    }
+  }
+}

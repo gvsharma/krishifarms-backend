@@ -1,14 +1,7 @@
-import { CreditCard } from "lucide-react";
-import { PlaceholderPage } from "@/components/shell/placeholder-page";
+import { OperationsPlaceholder } from "@/components/shell/operations-placeholder";
 
 export const metadata = { title: "Payments" };
 
 export default function PaymentsPage() {
-  return (
-    <PlaceholderPage
-      title="Payments"
-      description="Farmer payments, allocation, and settlement queue."
-      icon={CreditCard}
-    />
-  );
+  return <OperationsPlaceholder placeholderKey="payments" />;
 }

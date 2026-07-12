@@ -31,6 +31,17 @@ export function fetchAuthMe(): Promise<AuthMe> {
   return fetchApi<AuthMe>("/auth/me", { method: "GET", clientHeaders: false });
 }
 
+export function updateMyProfile(payload: {
+  preferred_locale?: string;
+  full_name?: string;
+}): Promise<{ id: string; preferred_locale: string; full_name: string }> {
+  return fetchApi("/users/me", {
+    method: "PATCH",
+    body: payload,
+    clientHeaders: true,
+  });
+}
+
 /** Best-effort server logout when a refresh token is available. */
 export async function logoutFromServer(): Promise<void> {
   const refreshToken = getRefreshToken();

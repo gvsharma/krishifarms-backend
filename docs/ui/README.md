@@ -56,7 +56,7 @@ A Field Officer lands on **Collection Entry**; an Accountant on **Payments & Out
 
 ### 3. Bilingual by design
 
-Primary UI strings via `next-intl` message files (`messages/en.json`, `messages/te.json`). Entity display names prefer `Accept-Language`: show `full_name_te` when locale is Telugu and field is populated. Numbers always use **Indian grouping** (₹12,34,567.00). Weights show **quintals** in labels with kg in detail (`45 qtl · 4,500 kg`).
+Primary UI strings via `frontend/messages/{en,te}.json` and `useT()` / `useTranslations()`. Entity display names prefer `Accept-Language`: show `full_name_te` when locale is Telugu and field is populated. API error `detail` / `error.message` may remain English until backend adds `message_te` pairs. Numbers always use **Indian grouping** (₹12,34,567.00). Weights show **quintals** in labels with kg in detail (`45 qtl · 4,500 kg`).
 
 ### 4. Money and ledger integrity
 

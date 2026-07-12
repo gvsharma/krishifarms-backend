@@ -4,19 +4,10 @@ from app.core.config import settings
 from app.core.database import SessionLocal
 from app.core.security import hash_password
 from app.modules.financial.models import ExpenseCategory
-from app.modules.master_data.models import CropType, Village
+from app.modules.master_data.models import CropType
 from app.modules.users.models import Organization, Permission, Role, User
 from app.shared.permissions import ROLE_DEFINITIONS, ROLE_PERMISSIONS, SYSTEM_PERMISSIONS
 
-
-DEFAULT_VILLAGES = [
-    {
-        "name": "Bhairkhanpally",
-        "mandal": "Nizamabad",
-        "district": "Nizamabad",
-        "state": "Telangana",
-    },
-]
 
 DEFAULT_CROP_TYPES = [
     {"name": "Paddy", "code": "PADDY", "default_moisture_pct": 17.0},
@@ -78,9 +69,6 @@ def seed_database(db: Session) -> None:
     db.add(owner)
     db.flush()
 
-    for village_data in DEFAULT_VILLAGES:
-        db.add(Village(org_id=org.id, created_by=owner.id, updated_by=owner.id, **village_data))
-
     for crop_data in DEFAULT_CROP_TYPES:
         db.add(CropType(org_id=org.id, created_by=owner.id, updated_by=owner.id, is_active=True, **crop_data))
 
@@ -93,6 +81,17 @@ def seed_database(db: Session) -> None:
                 **category_data,
             )
         )
+
+    try:
+        from scripts.seed_service_area_villages import seed_service_area_villages_for_org
+
+        village_stats = seed_service_area_villages_for_org(db, org, owner, commit=False)
+        print(
+            "Service-area villages seeded: "
+            f"created={village_stats['created']} updated={village_stats['updated']}"
+        )
+    except Exception as exc:
+        print(f"Service-area village seed skipped: {exc}")
 
     db.commit()
     print("Seed completed successfully")

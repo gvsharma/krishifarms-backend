@@ -1,5 +1,8 @@
+"use client";
+
 import { cn, formatPercent } from "@/lib/utils";
 import { TrendingDown, TrendingUp, type LucideIcon } from "lucide-react";
+import { useTranslations } from "@/i18n/use-translations";
 
 interface KpiCardProps {
   label: string;
@@ -16,12 +19,14 @@ export function KpiCard({
   label,
   value,
   delta,
-  deltaLabel = "vs last month",
+  deltaLabel,
   icon: Icon,
   iconClassName,
   className,
   delay = 0,
 }: KpiCardProps) {
+  const { t } = useTranslations();
+  const resolvedDeltaLabel = deltaLabel ?? t("format.vsLastMonth");
   const positive = delta !== undefined && delta >= 0;
 
   return (
@@ -66,7 +71,7 @@ export function KpiCard({
         </p>
         <p className="kpi-value mt-1 text-foreground">{value}</p>
         {delta !== undefined && (
-          <p className="mt-1 text-xs text-muted-foreground">{deltaLabel}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{resolvedDeltaLabel}</p>
         )}
       </div>
     </article>

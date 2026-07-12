@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { CatalogAdminPage } from "@/components/admin/catalog-admin-page";
 import {
@@ -9,35 +10,45 @@ import {
   fetchCropTypes,
   updateCropPrice,
 } from "@/features/master-data/api";
+import { useTranslations } from "@/i18n/use-translations";
 
 export default function CropPricesPage() {
+  const { t } = useTranslations();
   const cropsQuery = useQuery({
     queryKey: ["crop-types-lookup"],
     queryFn: () => fetchCropTypes(1, 100),
   });
 
-  const cropOptions =
-    cropsQuery.data?.items.map((c) => ({ value: c.id, label: `${c.name} (${c.code})` })) ?? [];
+  const cropNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const crop of cropsQuery.data?.items ?? []) {
+      map.set(crop.id, crop.name);
+    }
+    return map;
+  }, [cropsQuery.data?.items]);
+
+  const cropOptions = cropsQuery.data?.items.map((c) => ({ value: c.id, label: c.name })) ?? [];
 
   return (
     <CatalogAdminPage
-      title="Crop price rules"
-      description="Effective rates per quintal used when pricing procurements."
+      title={t("catalog.cropPrices")}
+      description={t("catalog.cropPricesDesc")}
       queryKey="crop-prices-admin"
       fields={[
         {
           key: "crop_type_id",
-          label: "Crop type",
+          label: t("catalog.fields.cropType"),
           type: "select",
           required: true,
           createOnly: true,
           options: cropOptions,
+          formatTable: (value) => cropNameById.get(String(value)) ?? t("common.dash"),
         },
-        { key: "effective_from", label: "Effective from", type: "date", required: true },
-        { key: "effective_to", label: "Effective to", type: "date" },
-        { key: "rate_per_quintal", label: "Rate / quintal (₹)", type: "number", required: true },
-        { key: "notes", label: "Notes", table: false },
-        { key: "is_active", label: "Active", type: "boolean" },
+        { key: "effective_from", label: t("catalog.fields.effectiveFrom"), type: "date", required: true },
+        { key: "effective_to", label: t("catalog.fields.effectiveTo"), type: "date" },
+        { key: "rate_per_quintal", label: t("catalog.fields.ratePerQuintal"), type: "number", required: true },
+        { key: "notes", label: t("common.notes"), table: false },
+        { key: "is_active", label: t("common.active"), type: "boolean" },
       ]}
       list={() => fetchCropPrices(1, 100)}
       create={createCropPrice}

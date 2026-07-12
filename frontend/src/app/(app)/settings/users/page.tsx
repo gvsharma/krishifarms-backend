@@ -30,6 +30,7 @@ import { useState } from "react";
 import { MuiPageShell } from "@/components/shell/mui-page-shell";
 import { useAuth } from "@/hooks/use-auth";
 import { createUser, fetchRoles, fetchUsers, updateUser, type User } from "@/features/settings/api";
+import { useTranslations } from "@/i18n/use-translations";
 
 type FormState = {
   full_name: string;
@@ -52,6 +53,7 @@ const emptyForm = (): FormState => ({
 });
 
 export default function SettingsUsersPage() {
+  const { t } = useTranslations();
   const queryClient = useQueryClient();
   const { canManageUsers } = useAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -118,14 +120,19 @@ export default function SettingsUsersPage() {
       : Boolean(form.email.trim() || form.phone.trim()) &&
         (!form.email.trim() || form.password.trim().length >= 8));
 
+  const userCountLabel =
+    usersQuery.data?.total === 1
+      ? t("settings.usersPage.userCountOne", { count: usersQuery.data.total })
+      : t("settings.usersPage.userCount", { count: usersQuery.data?.total ?? 0 });
+
   return (
     <MuiPageShell
-      title="Users"
-      description="Organization members, roles, and access. Requires users:read permission."
+      title={t("settings.usersPage.title")}
+      description={t("settings.usersPage.description")}
       actions={
         canManageUsers ? (
           <Button variant="contained" startIcon={<Add />} onClick={openCreate}>
-            Add user
+            {t("settings.usersPage.addUser")}
           </Button>
         ) : undefined
       }
@@ -141,7 +148,7 @@ export default function SettingsUsersPage() {
           <Alert severity="warning" sx={{ m: 2 }}>
             {usersQuery.error instanceof Error
               ? usersQuery.error.message
-              : "Could not load users. Sign in or check API connectivity."}
+              : t("errors.usersLoadFailed")}
           </Alert>
         )}
 
@@ -149,19 +156,19 @@ export default function SettingsUsersPage() {
           <>
             <Box sx={{ px: 2, py: 1.5, borderBottom: 1, borderColor: "divider" }}>
               <Typography variant="body2" color="text.secondary">
-                {usersQuery.data.total} user{usersQuery.data.total === 1 ? "" : "s"}
+                {userCountLabel}
               </Typography>
             </Box>
             <TableContainer>
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell>Name</TableCell>
-                    <TableCell>Email / Phone</TableCell>
-                    <TableCell>Role</TableCell>
-                    <TableCell>Status</TableCell>
-                    <TableCell>Last login</TableCell>
-                    <TableCell align="right">Actions</TableCell>
+                    <TableCell>{t("common.name")}</TableCell>
+                    <TableCell>{t("settings.usersPage.emailPhone")}</TableCell>
+                    <TableCell>{t("common.role")}</TableCell>
+                    <TableCell>{t("common.status")}</TableCell>
+                    <TableCell>{t("settings.usersPage.lastLogin")}</TableCell>
+                    <TableCell align="right">{t("common.actions")}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -173,14 +180,14 @@ export default function SettingsUsersPage() {
                         </Typography>
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2">{user.email ?? user.phone ?? "—"}</Typography>
+                        <Typography variant="body2">{user.email ?? user.phone ?? t("common.dash")}</Typography>
                       </TableCell>
                       <TableCell>
                         <Chip label={user.role.name} size="small" variant="outlined" />
                       </TableCell>
                       <TableCell>
                         <Chip
-                          label={user.is_active ? "Active" : "Inactive"}
+                          label={user.is_active ? t("common.active") : t("common.inactive")}
                           size="small"
                           color={user.is_active ? "success" : "default"}
                         />
@@ -189,11 +196,15 @@ export default function SettingsUsersPage() {
                         <Typography variant="caption" color="text.secondary">
                           {user.last_login_at
                             ? new Date(user.last_login_at).toLocaleDateString("en-IN")
-                            : "Never"}
+                            : t("common.never")}
                         </Typography>
                       </TableCell>
                       <TableCell align="right">
-                        <IconButton size="small" aria-label="Edit user" onClick={() => openEdit(user)}>
+                        <IconButton
+                          size="small"
+                          aria-label={t("dialog.editUserAria")}
+                          onClick={() => openEdit(user)}
+                        >
                           <EditOutlined fontSize="small" />
                         </IconButton>
                       </TableCell>
@@ -203,7 +214,7 @@ export default function SettingsUsersPage() {
                     <TableRow>
                       <TableCell colSpan={6} align="center">
                         <Typography variant="body2" color="text.secondary" sx={{ py: 3 }}>
-                          No users found
+                          {t("settings.usersPage.noUsers")}
                         </Typography>
                       </TableCell>
                     </TableRow>
@@ -216,12 +227,14 @@ export default function SettingsUsersPage() {
       </Card>
 
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>{editing ? "Edit user" : "Add user"}</DialogTitle>
+        <DialogTitle>
+          {editing ? t("dialog.editUser") : t("dialog.addUser")}
+        </DialogTitle>
         <DialogContent>
           <TextField
             autoFocus
             margin="dense"
-            label="Full name"
+            label={t("settings.usersPage.fullName")}
             fullWidth
             required
             value={form.full_name}
@@ -230,34 +243,34 @@ export default function SettingsUsersPage() {
           {!editing && (
             <TextField
               margin="dense"
-              label="Email"
+              label={t("common.email")}
               fullWidth
               type="email"
               value={form.email}
               onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
-              helperText="Required with password for web login; leave empty for phone-only field staff"
+              helperText={t("settings.usersPage.emailHelper")}
             />
           )}
           <TextField
             margin="dense"
-            label="Phone"
+            label={t("common.phone")}
             fullWidth
             value={form.phone}
             onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))}
           />
           <TextField
             margin="dense"
-            label={editing ? "New password (optional)" : "Password"}
+            label={editing ? t("settings.usersPage.newPassword") : t("common.password")}
             fullWidth
             type="password"
             value={form.password}
             onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
-            helperText={!editing ? "Required when email is set (min 8 chars)" : undefined}
+            helperText={!editing ? t("settings.usersPage.passwordHelper") : undefined}
           />
           <TextField
             select
             margin="dense"
-            label="Role"
+            label={t("common.role")}
             fullWidth
             required
             value={form.role_id}
@@ -272,13 +285,13 @@ export default function SettingsUsersPage() {
           <TextField
             select
             margin="dense"
-            label="Locale"
+            label={t("common.locale")}
             fullWidth
             value={form.preferred_locale}
             onChange={(e) => setForm((p) => ({ ...p, preferred_locale: e.target.value }))}
           >
-            <MenuItem value="en">English</MenuItem>
-            <MenuItem value="te">Telugu</MenuItem>
+            <MenuItem value="en">{t("profile.english")}</MenuItem>
+            <MenuItem value="te">{t("profile.telugu")}</MenuItem>
           </TextField>
           {editing && (
             <FormControlLabel
@@ -289,23 +302,23 @@ export default function SettingsUsersPage() {
                   onChange={(e) => setForm((p) => ({ ...p, is_active: e.target.checked }))}
                 />
               }
-              label="Active"
+              label={t("common.active")}
             />
           )}
           {saveMutation.isError && (
             <Alert severity="error" sx={{ mt: 1 }}>
-              {saveMutation.error instanceof Error ? saveMutation.error.message : "Save failed"}
+              {saveMutation.error instanceof Error ? saveMutation.error.message : t("errors.saveFailed")}
             </Alert>
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
+          <Button onClick={() => setDialogOpen(false)}>{t("common.cancel")}</Button>
           <Button
             variant="contained"
             disabled={!canSave || saveMutation.isPending}
             onClick={() => saveMutation.mutate()}
           >
-            {saveMutation.isPending ? "Saving…" : "Save"}
+            {saveMutation.isPending ? t("common.saving") : t("common.save")}
           </Button>
         </DialogActions>
       </Dialog>

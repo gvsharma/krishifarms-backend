@@ -14,11 +14,9 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { fetchFarmers } from "@/features/farmers/api";
 import { fetchActivityTypes, fetchVehicleTypes } from "@/features/master-data/api";
+import { useTranslations } from "@/i18n/use-translations";
 import {
   CATEGORY_FIELDS,
-  CLEANING_STATUS_OPTIONS,
-  FACILITY_STATUS_OPTIONS,
-  STATUS_OPTIONS,
   type ServiceCategory,
 } from "./constants";
 import type { FieldServiceCreatePayload, FieldServiceRecord, FieldServiceUpdatePayload } from "./api";
@@ -150,7 +148,21 @@ export function FieldServiceForm({
   error = null,
   disabled = false,
 }: FieldServiceFormProps) {
+  const { t } = useTranslations();
   const fields = useMemo(() => new Set(CATEGORY_FIELDS[category]), [category]);
+
+  const statusOptions = useMemo(
+    () => ["open", "completed", "cancelled"] as const,
+    [],
+  );
+  const cleaningOptions = useMemo(
+    () => ["pending", "done", "not_required"] as const,
+    [],
+  );
+  const facilityOptions = useMemo(
+    () => ["active", "repair", "maintenance", "cleaning"] as const,
+    [],
+  );
 
   const farmersQuery = useQuery({
     queryKey: ["farmers-field-service-form"],
@@ -213,7 +225,7 @@ export function FieldServiceForm({
             required
             fullWidth
             type="date"
-            label="Service date"
+            label={t("operations.fieldServices.form.serviceDate")}
             InputLabelProps={{ shrink: true }}
             value={values.service_date}
             onChange={(e) => set({ service_date: e.target.value })}
@@ -224,14 +236,14 @@ export function FieldServiceForm({
           <TextField
             select
             fullWidth
-            label="Status"
+            label={t("common.status")}
             value={values.status}
             onChange={(e) => set({ status: e.target.value })}
             disabled={disabled}
           >
-            {STATUS_OPTIONS.map((opt) => (
-              <MenuItem key={opt.value} value={opt.value}>
-                {opt.label}
+            {statusOptions.map((opt) => (
+              <MenuItem key={opt} value={opt}>
+                {t(`operations.fieldServices.statusOptions.${opt}`)}
               </MenuItem>
             ))}
           </TextField>
@@ -242,12 +254,12 @@ export function FieldServiceForm({
             <TextField
               select
               fullWidth
-              label="Farmer"
+              label={t("common.farmer")}
               value={values.farmer_id}
               onChange={(e) => set({ farmer_id: e.target.value })}
               disabled={disabled}
             >
-              <MenuItem value="">None</MenuItem>
+              <MenuItem value="">{t("common.none")}</MenuItem>
               {(farmersQuery.data?.items ?? []).map((farmer) => (
                 <MenuItem key={farmer.id} value={farmer.id}>
                   {farmer.full_name} ({farmer.farmer_code})
@@ -262,12 +274,12 @@ export function FieldServiceForm({
             <TextField
               select
               fullWidth
-              label="Activity / equipment type"
+              label={t("operations.fieldServices.form.activityEquipmentType")}
               value={values.activity_type_id}
               onChange={(e) => set({ activity_type_id: e.target.value })}
               disabled={disabled}
             >
-              <MenuItem value="">None</MenuItem>
+              <MenuItem value="">{t("common.none")}</MenuItem>
               {activityOptions.map((activity) => (
                 <MenuItem key={activity.id} value={activity.id}>
                   {activity.name}
@@ -283,12 +295,12 @@ export function FieldServiceForm({
             <TextField
               select
               fullWidth
-              label="Vehicle / equipment type"
+              label={t("operations.fieldServices.form.vehicleEquipmentType")}
               value={values.vehicle_type_id}
               onChange={(e) => set({ vehicle_type_id: e.target.value })}
               disabled={disabled}
             >
-              <MenuItem value="">None</MenuItem>
+              <MenuItem value="">{t("common.none")}</MenuItem>
               {vehicleOptions.map((vehicle) => (
                 <MenuItem key={vehicle.id} value={vehicle.id}>
                   {vehicle.name}
@@ -303,7 +315,7 @@ export function FieldServiceForm({
           <Grid item xs={12}>
             <TextField
               fullWidth
-              label="Location"
+              label={t("operations.fieldServices.detail.location")}
               value={values.location}
               onChange={(e) => set({ location: e.target.value })}
               disabled={disabled}
@@ -317,7 +329,7 @@ export function FieldServiceForm({
               fullWidth
               type="number"
               inputProps={{ min: 0, step: 0.5 }}
-              label="Hours"
+              label={t("operations.fieldServices.detail.hours")}
               value={values.hours}
               onChange={(e) => set({ hours: e.target.value })}
               disabled={disabled}
@@ -331,7 +343,7 @@ export function FieldServiceForm({
               fullWidth
               type="number"
               inputProps={{ min: 0, step: 1 }}
-              label="Bag count"
+              label={t("operations.fieldServices.detail.bagCount")}
               value={values.bag_count}
               onChange={(e) => set({ bag_count: e.target.value })}
               disabled={disabled}
@@ -345,7 +357,7 @@ export function FieldServiceForm({
               fullWidth
               type="number"
               inputProps={{ min: 0, step: 0.01 }}
-              label="Quantity"
+              label={t("operations.fieldServices.detail.quantity")}
               value={values.quantity}
               onChange={(e) => set({ quantity: e.target.value })}
               disabled={disabled}
@@ -357,8 +369,8 @@ export function FieldServiceForm({
           <Grid item xs={12} sm={4}>
             <TextField
               fullWidth
-              label="Quantity unit"
-              placeholder="kg, quintal, bags…"
+              label={t("operations.fieldServices.form.quantityUnit")}
+              placeholder={t("operations.fieldServices.form.quantityUnitPlaceholder")}
               value={values.quantity_unit}
               onChange={(e) => set({ quantity_unit: e.target.value })}
               disabled={disabled}
@@ -372,7 +384,7 @@ export function FieldServiceForm({
               fullWidth
               type="number"
               inputProps={{ min: 0, step: 0.01 }}
-              label="Rate per unit (₹)"
+              label={t("operations.fieldServices.form.ratePerUnitInr")}
               value={values.rate_per_unit}
               onChange={(e) => set({ rate_per_unit: e.target.value })}
               disabled={disabled}
@@ -386,7 +398,7 @@ export function FieldServiceForm({
               fullWidth
               type="number"
               inputProps={{ min: 0, step: 0.01 }}
-              label="Diesel amount (₹)"
+              label={t("operations.fieldServices.form.dieselAmountInr")}
               value={values.diesel_amount}
               onChange={(e) => set({ diesel_amount: e.target.value })}
               disabled={disabled}
@@ -400,7 +412,7 @@ export function FieldServiceForm({
               fullWidth
               type="number"
               inputProps={{ min: 0, step: 0.01 }}
-              label="Amount given (₹)"
+              label={t("operations.fieldServices.form.amountGivenInr")}
               value={values.amount_given}
               onChange={(e) => set({ amount_given: e.target.value })}
               disabled={disabled}
@@ -414,7 +426,7 @@ export function FieldServiceForm({
               fullWidth
               type="number"
               inputProps={{ min: 0, step: 0.01 }}
-              label="Advance (₹)"
+              label={t("operations.fieldServices.form.advanceInr")}
               value={values.advance_amount}
               onChange={(e) => set({ advance_amount: e.target.value })}
               disabled={disabled}
@@ -428,7 +440,7 @@ export function FieldServiceForm({
               fullWidth
               type="number"
               inputProps={{ min: 0, step: 0.01 }}
-              label="Total (₹)"
+              label={t("operations.fieldServices.form.totalInr")}
               value={values.total_amount}
               onChange={(e) => set({ total_amount: e.target.value })}
               disabled={disabled}
@@ -442,7 +454,7 @@ export function FieldServiceForm({
               fullWidth
               type="number"
               inputProps={{ min: 0, step: 0.01 }}
-              label="Pending (₹)"
+              label={t("operations.fieldServices.form.pendingInr")}
               value={values.pending_amount}
               onChange={(e) => set({ pending_amount: e.target.value })}
               disabled={disabled}
@@ -455,15 +467,15 @@ export function FieldServiceForm({
             <TextField
               select
               fullWidth
-              label="Cleaning status"
+              label={t("operations.fieldServices.detail.cleaningStatus")}
               value={values.cleaning_status}
               onChange={(e) => set({ cleaning_status: e.target.value })}
               disabled={disabled}
             >
-              <MenuItem value="">None</MenuItem>
-              {CLEANING_STATUS_OPTIONS.map((opt) => (
-                <MenuItem key={opt.value} value={opt.value}>
-                  {opt.label}
+              <MenuItem value="">{t("common.none")}</MenuItem>
+              {cleaningOptions.map((opt) => (
+                <MenuItem key={opt} value={opt}>
+                  {t(`operations.fieldServices.cleaningStatus.${opt}`)}
                 </MenuItem>
               ))}
             </TextField>
@@ -475,15 +487,15 @@ export function FieldServiceForm({
             <TextField
               select
               fullWidth
-              label="Facility status"
+              label={t("operations.fieldServices.detail.facilityStatus")}
               value={values.facility_status}
               onChange={(e) => set({ facility_status: e.target.value })}
               disabled={disabled}
             >
-              <MenuItem value="">None</MenuItem>
-              {FACILITY_STATUS_OPTIONS.map((opt) => (
-                <MenuItem key={opt.value} value={opt.value}>
-                  {opt.label}
+              <MenuItem value="">{t("common.none")}</MenuItem>
+              {facilityOptions.map((opt) => (
+                <MenuItem key={opt} value={opt}>
+                  {t(`operations.fieldServices.facilityStatus.${opt}`)}
                 </MenuItem>
               ))}
             </TextField>
@@ -493,7 +505,7 @@ export function FieldServiceForm({
         <Grid item xs={12}>
           <TextField
             fullWidth
-            label="Comments"
+            label={t("common.comments")}
             multiline
             minRows={2}
             value={values.comments}
@@ -507,7 +519,7 @@ export function FieldServiceForm({
 
       {!disabled && (
         <Button type="submit" variant="contained" disabled={isSubmitting || !values.service_date}>
-          {isSubmitting ? "Saving…" : submitLabel}
+          {isSubmitting ? t("common.saving") : submitLabel}
         </Button>
       )}
     </Stack>

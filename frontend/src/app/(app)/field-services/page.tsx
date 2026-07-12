@@ -20,15 +20,35 @@ import {
 } from "@mui/material";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { MuiPageShell } from "@/components/shell/mui-page-shell";
 import { fetchFieldServices } from "@/features/field-services/api";
-import { SERVICE_CATEGORIES, categoryLabel } from "@/features/field-services/constants";
-
-const CATEGORIES = [{ value: "", label: "All categories" }, ...SERVICE_CATEGORIES] as const;
+import { SERVICE_CATEGORIES } from "@/features/field-services/constants";
+import { useTranslations } from "@/i18n/use-translations";
 
 export default function FieldServicesPage() {
+  const { t } = useTranslations();
   const [category, setCategory] = useState("");
+
+  const categoryLabel = useCallback(
+    (value: string) => {
+      const key = `operations.fieldServices.categories.${value}`;
+      const label = t(key);
+      return label === key ? value.replace(/_/g, " ") : label;
+    },
+    [t],
+  );
+
+  const categories = useMemo(
+    () => [
+      { value: "", label: t("operations.fieldServices.allCategories") },
+      ...SERVICE_CATEGORIES.map((c) => ({
+        value: c.value,
+        label: t(`operations.fieldServices.categories.${c.value}`),
+      })),
+    ],
+    [t],
+  );
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["field-services", category],
@@ -39,13 +59,18 @@ export default function FieldServicesPage() {
       }),
   });
 
+  const recordCountLabel =
+    data?.total === 1
+      ? t("format.recordCount", { count: data.total })
+      : t("format.recordCountPlural", { count: data?.total ?? 0 });
+
   return (
     <MuiPageShell
-      title="Field services"
-      description="Operational services — tractor work, transport, fertiliser, seeds, agri-finance, vehicle and godown ops."
+      title={t("operations.fieldServices.title")}
+      description={t("operations.fieldServices.description")}
       actions={
         <Button component={Link} href="/field-services/new" variant="contained" startIcon={<Add />}>
-          New service
+          {t("operations.fieldServices.newService")}
         </Button>
       }
     >
@@ -53,12 +78,12 @@ export default function FieldServicesPage() {
         <TextField
           select
           size="small"
-          label="Category"
+          label={t("operations.fieldServices.category")}
           value={category}
           onChange={(e) => setCategory(e.target.value)}
           sx={{ minWidth: 220 }}
         >
-          {CATEGORIES.map((c) => (
+          {categories.map((c) => (
             <MenuItem key={c.value || "all"} value={c.value}>
               {c.label}
             </MenuItem>
@@ -75,7 +100,7 @@ export default function FieldServicesPage() {
 
         {isError && (
           <Alert severity="warning" sx={{ m: 2 }}>
-            {error instanceof Error ? error.message : "Could not load field services"}
+            {error instanceof Error ? error.message : t("operations.fieldServices.loadError")}
           </Alert>
         )}
 
@@ -83,20 +108,20 @@ export default function FieldServicesPage() {
           <>
             <Box sx={{ px: 2, py: 1.5 }}>
               <Typography variant="body2" color="text.secondary">
-                {data.total} record{data.total === 1 ? "" : "s"}
+                {recordCountLabel}
               </Typography>
             </Box>
             <TableContainer>
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell>Number</TableCell>
-                    <TableCell>Category</TableCell>
-                    <TableCell>Date</TableCell>
-                    <TableCell>Farmer</TableCell>
-                    <TableCell align="right">Total (₹)</TableCell>
-                    <TableCell align="right">Pending (₹)</TableCell>
-                    <TableCell>Status</TableCell>
+                    <TableCell>{t("operations.fieldServices.table.number")}</TableCell>
+                    <TableCell>{t("operations.fieldServices.table.category")}</TableCell>
+                    <TableCell>{t("operations.fieldServices.table.date")}</TableCell>
+                    <TableCell>{t("operations.fieldServices.table.farmer")}</TableCell>
+                    <TableCell align="right">{t("operations.fieldServices.table.totalInr")}</TableCell>
+                    <TableCell align="right">{t("operations.fieldServices.table.pendingInr")}</TableCell>
+                    <TableCell>{t("operations.fieldServices.table.status")}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -104,7 +129,7 @@ export default function FieldServicesPage() {
                     <TableRow>
                       <TableCell colSpan={7}>
                         <Typography variant="body2" color="text.secondary" sx={{ py: 3, textAlign: "center" }}>
-                          No records yet.{" "}
+                          {t("operations.fieldServices.empty")}{" "}
                           <Typography
                             component={Link}
                             href="/field-services/new"
@@ -112,7 +137,7 @@ export default function FieldServicesPage() {
                             color="primary"
                             sx={{ textDecoration: "underline" }}
                           >
-                            Create your first service record
+                            {t("operations.fieldServices.emptyAction")}
                           </Typography>
                         </Typography>
                       </TableCell>
@@ -132,7 +157,7 @@ export default function FieldServicesPage() {
                         </TableCell>
                         <TableCell>{row.service_date}</TableCell>
                         <TableCell>
-                          {row.farmer_name ?? "—"}
+                          {row.farmer_name ?? t("common.dash")}
                           {row.farmer_phone ? (
                             <Typography variant="caption" display="block" color="text.secondary">
                               {row.farmer_phone}

@@ -18,8 +18,10 @@ import { useState } from "react";
 import { MuiPageShell } from "@/components/shell/mui-page-shell";
 import { createFarmer } from "@/features/farmers/api";
 import { fetchVillages } from "@/features/master-data/api";
+import { useTranslations } from "@/i18n/use-translations";
 
 export default function NewFarmerPage() {
+  const { t } = useTranslations();
   const router = useRouter();
   const queryClient = useQueryClient();
   const [fullName, setFullName] = useState("");
@@ -53,11 +55,11 @@ export default function NewFarmerPage() {
 
   return (
     <MuiPageShell
-      title="Add farmer"
-      description="Register a farmer for procurement and ledger tracking."
+      title={t("operations.farmers.new.title")}
+      description={t("operations.farmers.new.description")}
       actions={
         <Button component={Link} href="/farmers" startIcon={<ArrowBack />} variant="outlined">
-          Cancel
+          {t("common.cancel")}
         </Button>
       }
     >
@@ -79,26 +81,26 @@ export default function NewFarmerPage() {
           >
             <TextField
               required
-              label="Full name"
+              label={t("operations.farmers.new.fullName")}
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
             />
             <TextField
-              label="Full name (Telugu)"
+              label={t("operations.farmers.new.fullNameTe")}
               value={fullNameTe}
               onChange={(e) => setFullNameTe(e.target.value)}
             />
             <TextField
               required
-              label="Primary phone"
+              label={t("operations.farmers.new.primaryPhone")}
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              helperText="10–20 digits"
+              helperText={t("operations.farmers.new.phoneHelper")}
             />
             <TextField
               select
               required
-              label="Village"
+              label={t("common.village")}
               value={villageId}
               onChange={(e) => setVillageId(e.target.value)}
             >
@@ -109,7 +111,7 @@ export default function NewFarmerPage() {
               ))}
             </TextField>
             <TextField
-              label="Notes"
+              label={t("common.notes")}
               multiline
               minRows={2}
               value={notes}
@@ -119,11 +121,11 @@ export default function NewFarmerPage() {
               <Alert severity="error">
                 {createMutation.error instanceof Error
                   ? createMutation.error.message
-                  : "Failed to create farmer"}
+                  : t("operations.farmers.new.createError")}
               </Alert>
             )}
             <Button type="submit" variant="contained" disabled={!canSubmit}>
-              {createMutation.isPending ? "Saving…" : "Create farmer"}
+              {createMutation.isPending ? t("common.saving") : t("operations.farmers.new.createFarmer")}
             </Button>
           </Stack>
         </Card>

@@ -24,6 +24,7 @@ import {
   formValuesToCreatePayload,
   type FieldServiceFormValues,
 } from "@/features/field-services/field-service-form";
+import { useTranslations } from "@/i18n/use-translations";
 
 const VALID_CATEGORIES = new Set(SERVICE_CATEGORIES.map((c) => c.value));
 
@@ -33,6 +34,7 @@ function parseCategory(value: string | null): ServiceCategory | "" {
 }
 
 function NewFieldServicePageContent() {
+  const { t } = useTranslations();
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
@@ -47,7 +49,7 @@ function NewFieldServicePageContent() {
 
   const createMutation = useMutation({
     mutationFn: () => {
-      if (!category) throw new Error("Select a service category");
+      if (!category) throw new Error(t("errors.selectCategory"));
       return createFieldService(formValuesToCreatePayload(category, values));
     },
     onSuccess: (created) => {
@@ -63,11 +65,11 @@ function NewFieldServicePageContent() {
 
   return (
     <MuiPageShell
-      title="New field service"
-      description="Record operational work — choose a category, then fill the fields relevant to that service."
+      title={t("operations.fieldServices.new.title")}
+      description={t("operations.fieldServices.new.description")}
       actions={
         <Button component={Link} href="/field-services" startIcon={<ArrowBack />} variant="outlined">
-          Cancel
+          {t("common.cancel")}
         </Button>
       }
     >
@@ -76,24 +78,24 @@ function NewFieldServicePageContent() {
           <TextField
             select
             required
-            label="Service category"
+            label={t("operations.fieldServices.new.serviceCategory")}
             value={category}
             onChange={(e) => handleCategoryChange(e.target.value as ServiceCategory | "")}
-            helperText="Fields below change based on category"
+            helperText={t("operations.fieldServices.new.categoryHelper")}
           >
             <MenuItem value="" disabled>
-              Select category…
+              {t("common.selectCategory")}
             </MenuItem>
             {SERVICE_CATEGORIES.map((c) => (
               <MenuItem key={c.value} value={c.value}>
-                {c.label}
+                {t(`operations.fieldServices.categories.${c.value}`)}
               </MenuItem>
             ))}
           </TextField>
 
           {!category && (
             <Typography variant="body2" color="text.secondary">
-              Pick a category to show the operational form (hours, bags, amounts, equipment, etc.).
+              {t("operations.fieldServices.new.pickCategory")}
             </Typography>
           )}
 
@@ -103,13 +105,13 @@ function NewFieldServicePageContent() {
               values={values}
               onChange={setValues}
               onSubmit={() => createMutation.mutate()}
-              submitLabel="Create service record"
+              submitLabel={t("operations.fieldServices.new.createRecord")}
               isSubmitting={createMutation.isPending}
               error={
                 createMutation.isError
                   ? createMutation.error instanceof Error
                     ? createMutation.error.message
-                    : "Failed to create record"
+                    : t("operations.fieldServices.new.createError")
                   : null
               }
             />
@@ -121,10 +123,12 @@ function NewFieldServicePageContent() {
 }
 
 export default function NewFieldServicePage() {
+  const { t } = useTranslations();
+
   return (
     <Suspense
       fallback={
-        <MuiPageShell title="New field service" description="Loading…">
+        <MuiPageShell title={t("operations.fieldServices.new.title")} description={t("common.loading")}>
           <Stack alignItems="center" sx={{ py: 6 }}>
             <CircularProgress />
           </Stack>

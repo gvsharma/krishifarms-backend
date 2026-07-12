@@ -261,13 +261,15 @@ Browser → same-origin `/api/v1` → Next.js rewrite → EC2 nginx. Server Comp
 
 | Concern | Implementation |
 |---------|----------------|
-| UI strings | `next-intl` message files (`messages/en.json`, `messages/te.json`) |
-| Entity names | Display `name_te` when locale is `te` and field populated |
-| API | `Accept-Language` header on all requests |
-| Numbers | `Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' })` |
-| Dates | `dd MMM yyyy` display; ISO in API |
+| UI strings | JSON catalogs `frontend/messages/{en,te}.json`; `useT()` / `useTranslations()` from `@/i18n` (dot-path keys, `{param}` interpolation) |
+| Locale state | `stores/locale-store.ts` (Zustand + `localStorage` key `krishi-locale`); profile menu English / తెలుగు |
+| Sync | `LocaleSync` hydrates from `preferred_locale`, sets `html[lang]` + `body.font-telugu` when `te` |
+| Entity names | Display `*_te` fields when locale is `te` and populated |
+| API | `Accept-Language: en \| te` on all `fetchApi` requests; `PATCH /users/me` persists preference |
+| Numbers | `Intl.NumberFormat('en-IN', …)` / `te-IN` via `lib/utils` format helpers |
+| Dates | `Intl.DateTimeFormat` display; ISO in API |
 
-Language toggle in profile menu; persist in `locale-store`.
+`LocaleProvider` wraps the app for future `next-intl` hooks; runtime translation uses Zustand + JSON catalogs (~390 keys per locale after Pass 4–5).
 
 ---
 

@@ -101,6 +101,7 @@ deploy/
 
 scripts/
   seed.py                 # Default org, roles, owner user, master data
+  seed_service_area_villages.py  # Rangareddy belt villages (idempotent; also run from seed.py)
   smoke-test-api.sh       # Post-deploy API smoke tests
   synthetic_seed/         # Synthetic demo data (see README inside)
 
@@ -139,6 +140,8 @@ docker compose -f infra/docker-compose.yml up -d --build
 ```bash
 docker compose -f infra/docker-compose.yml exec api alembic upgrade head
 docker compose -f infra/docker-compose.yml exec api python scripts/seed.py
+# Optional: re-populate / refresh service-area villages on an existing org
+docker compose -f infra/docker-compose.yml exec api python scripts/seed_service_area_villages.py
 ```
 
 ### 4. Verify

@@ -6,18 +6,9 @@ from sqlalchemy.orm import Session
 
 from app.core.database import SessionLocal
 from app.modules.financial.models import ExpenseCategory
-from app.modules.master_data.models import CropType, Village
+from app.modules.master_data.models import CropType
 from app.modules.platform.models import ActivityType, PaymentMode, VehicleType
 from app.modules.users.models import Organization, User
-
-DEFAULT_VILLAGES = [
-    {
-        "name": "Bhairkhanpally",
-        "mandal": "Nizamabad",
-        "district": "Nizamabad",
-        "state": "Telangana",
-    },
-]
 
 DEFAULT_CROP_TYPES = [
     {"name": "Paddy", "code": "PADDY", "default_moisture_pct": 17.0},
@@ -166,15 +157,14 @@ def _upsert_by_name(db: Session, model, org_id, owner_id, rows: list[dict]) -> t
 def seed_services_for_org(db: Session, org: Organization, owner: User) -> dict[str, int]:
     stats = {"created": 0, "updated": 0}
 
-    for village_data in DEFAULT_VILLAGES:
-        existing = (
-            db.query(Village)
-            .filter(Village.org_id == org.id, Village.name == village_data["name"], Village.deleted_at.is_(None))
-            .first()
-        )
-        if not existing:
-            db.add(Village(org_id=org.id, created_by=owner.id, updated_by=owner.id, **village_data))
-            stats["created"] += 1
+    try:
+        from scripts.seed_service_area_villages import seed_service_area_villages_for_org
+
+        village_stats = seed_service_area_villages_for_org(db, org, owner, commit=False)
+        stats["created"] += village_stats["created"]
+        stats["updated"] += village_stats["updated"]
+    except Exception:
+        pass
 
     c, u = _upsert_by_code(db, CropType, org.id, owner.id, "code", DEFAULT_CROP_TYPES)
     stats["created"] += c

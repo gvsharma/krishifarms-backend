@@ -8,7 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
-- **Premium form controls (Tailwind)** — opt-in Linear/Stripe-style primitives under `frontend/src/components/ui/premium/` (`Input`, `Textarea`, `Label`, `Field`, `Button`, `Scope`); scoped tokens in `styles/premium.css` + `@/lib/design/premium`; Plus Jakarta Sans / Inter as CSS variables only (MUI shell unchanged). Usage: [premium/README.md](../frontend/src/components/ui/premium/README.md)
+- **Frontend Telugu i18n Pass 1 (shell)** — `next-intl` foundation: `frontend/messages/{en,te}.json`, `LocaleProvider`, `locale-store`, `LocaleSync`, dot-path `useT()`; Pass 1 wired: nav/sidebar, profile menu, login, dashboard, settings hub, common CRUD buttons (~91 TE keys in shell namespaces)
+- **Frontend locale switcher** — profile menu English / తెలుగు items; `locale-store` (Zustand + `localStorage`); `Accept-Language` on API requests; `PATCH /users/me` sync; `LocaleSync` sets `html[lang]` + Telugu font on `body`
+- **Frontend Telugu i18n Pass 3 (settings & master data)** — `settings`, `catalog`, `dialog` TE namespaces; wired Settings hub, Users, Villages, master-data hub, all catalog admin pages + Add/Edit dialogs; crop price rules first column shows crop name (`catalog.fields.cropType` + `formatTable`)
+- **Frontend Telugu i18n Pass 4–5** — Unified `messages/{en,te}.json` (392 keys, identical structure); `useTranslations()` / `useT()` via Zustand locale + JSON catalogs (no runtime `next-intl` provider); wired shell, login, dashboard, settings/users, master-data catalogs, farmers, procurement, field services, comments, KPI delta label, placeholders, reports; `catalog-admin-page` Active/Inactive via `common.active`/`common.inactive`; docs: [FRONTEND_ARCHITECTURE.md](./ui/FRONTEND_ARCHITECTURE.md) §6 locale pattern, [API_CONTRACT.md](./api/API_CONTRACT.md) `Accept-Language` note
 - **Admin form chrome** — shared `PremiumDialog` (blur backdrop, 24px radius, MUI focus trap) + `SoftAlert` for settings/catalog save failures; wired into `CatalogAdminPage` and Settings → Users
 - **Frontend e2e — enterprise `validateEntirePage` framework** — 16 validation helpers under `e2e/utils/validation/` (console, network, layout/overlap, inputs, buttons, typography, tables, dialogs, navigation, `@axe-core/playwright` a11y, responsive viewports, visual regression, WCAG contrast, CSS, performance); POM `e2e/pages/`, custom `enterprise-reporter.ts` → `enterprise-validation.json`, baselines `e2e/baselines/`; suites `e2e/tests/{smoke,regression,visual,responsive,workflows}/`; cross-browser projects; CI via `.github/workflows/e2e.yml` (PR smoke gate, push regression+workflows, nightly full); [frontend/e2e/README.md](../frontend/e2e/README.md)
 - **Frontend e2e — settings/admin smoke** — Playwright specs under `frontend/e2e/settings/` for `/settings`, `/settings/users` (table or Alert), `/settings/villages`, `/settings/master-data` + all catalog routes; Add/Edit dialog label visibility + non-overlap checks (buyers emphasized)
@@ -31,6 +34,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **Crop price rules table** — first column shows crop **name** (resolved from `crop_type_id` via crop-types lookup), not raw UUID; column label "Crop"
 - **Master-data catalog dialogs** — `CatalogAdminPage` Add/Edit forms no longer overlap labels (dense MUI `TextField`s in `DialogContent`); now spaced `Scope` + premium `Field`/`Input`/`Textarea`, `PremiumDialog` chrome (24px radius), clear titles; covers activity-types, buyers, crops, and all other catalog pages
 - **GET /users 500** — `UserResponse` / `UserCreateRequest` use `str` instead of `EmailStr` so seeded `*.local` emails serialize (same as auth login); Settings → Users no longer Internal Server Error
 - **CI Ruff lint** — remove unused `typing.Any` import in `app/modules/devices/fcm.py`

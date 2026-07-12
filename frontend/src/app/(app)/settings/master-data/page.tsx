@@ -21,72 +21,30 @@ import {
 } from "@mui/icons-material";
 import Link from "next/link";
 import { MuiPageShell } from "@/components/shell/mui-page-shell";
+import { useTranslations } from "@/i18n/use-translations";
 
-const MASTER_LINKS = [
-  {
-    href: "/settings/master-data/crops",
-    title: "Crop types",
-    description: "Paddy, corn, and seasonal crop catalog",
-    icon: Agriculture,
-  },
-  {
-    href: "/settings/master-data/crop-prices",
-    title: "Crop price rules",
-    description: "Effective rates per quintal for procurement pricing",
-    icon: LocalAtm,
-  },
-  {
-    href: "/settings/master-data/buyers",
-    title: "Buyers",
-    description: "Mill and trader contacts for procurement",
-    icon: Store,
-  },
-  {
-    href: "/settings/master-data/agents",
-    title: "Field agents",
-    description: "Collection and village agent roster",
-    icon: Groups,
-  },
-  {
-    href: "/settings/master-data/vehicle-types",
-    title: "Vehicle types",
-    description: "Fleet categories shared with the mobile app",
-    icon: DirectionsCar,
-  },
-  {
-    href: "/settings/master-data/activity-types",
-    title: "Activity types",
-    description: "Service catalog for field ops, tractor, transport, fertiliser, seeds",
-    icon: WorkOutline,
-  },
-  {
-    href: "/settings/master-data/expense-categories",
-    title: "Expense categories",
-    description: "Fuel, labour, repairs, and other expense buckets",
-    icon: Category,
-  },
-  {
-    href: "/settings/master-data/payment-modes",
-    title: "Payment modes",
-    description: "Cash, UPI, bank transfer settlement modes",
-    icon: Payments,
-  },
-  {
-    href: "/settings/villages",
-    title: "Villages",
-    description: "Geography master for farmers and trips",
-    icon: Agriculture,
-  },
+const MASTER_LINK_KEYS = [
+  { href: "/settings/master-data/crops", key: "cropTypes", icon: Agriculture },
+  { href: "/settings/master-data/crop-prices", key: "cropPrices", icon: LocalAtm },
+  { href: "/settings/master-data/buyers", key: "buyers", icon: Store },
+  { href: "/settings/master-data/agents", key: "agents", icon: Groups },
+  { href: "/settings/master-data/vehicle-types", key: "vehicleTypes", icon: DirectionsCar },
+  { href: "/settings/master-data/activity-types", key: "activityTypes", icon: WorkOutline },
+  { href: "/settings/master-data/expense-categories", key: "expenseCategories", icon: Category },
+  { href: "/settings/master-data/payment-modes", key: "paymentModes", icon: Payments },
+  { href: "/settings/villages", key: "villages", icon: Agriculture },
 ] as const;
 
 export default function SettingsMasterDataPage() {
+  const { t } = useTranslations();
+
   return (
     <MuiPageShell
-      title="Master data"
-      description="Admin catalogs shared by the CRM web app and Android field app."
+      title={t("settings.masterDataHub.title")}
+      description={t("settings.masterDataHub.description")}
     >
       <Grid container spacing={2}>
-        {MASTER_LINKS.map((link) => {
+        {MASTER_LINK_KEYS.map((link) => {
           const Icon = link.icon;
           return (
             <Grid key={link.href} size={{ xs: 12, sm: 6, md: 4 }}>
@@ -98,12 +56,12 @@ export default function SettingsMasterDataPage() {
                       <Stack spacing={0.5} sx={{ flex: 1 }}>
                         <Stack direction="row" alignItems="center" justifyContent="space-between">
                           <Typography variant="subtitle1" fontWeight={600}>
-                            {link.title}
+                            {t(`catalog.${link.key}`)}
                           </Typography>
                           <ChevronRight fontSize="small" color="action" />
                         </Stack>
                         <Typography variant="body2" color="text.secondary">
-                          {link.description}
+                          {t(`catalog.${link.key}Desc`)}
                         </Typography>
                       </Stack>
                     </Stack>

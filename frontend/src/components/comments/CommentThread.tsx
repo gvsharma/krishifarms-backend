@@ -13,12 +13,13 @@ import {
 } from "@mui/material";
 import { Send } from "@mui/icons-material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import {
   createComment,
   fetchComments,
   type Comment,
 } from "@/features/comments/api";
+import { useTranslations } from "@/i18n/use-translations";
 
 export interface CommentThreadProps {
   entityType: string;
@@ -26,18 +27,14 @@ export interface CommentThreadProps {
   title?: string;
 }
 
-function formatRelativeTime(iso: string): string {
-  const date = new Date(iso);
-  const diffMs = Date.now() - date.getTime();
-  const mins = Math.floor(diffMs / 60000);
-  if (mins < 1) return "Just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return date.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
-}
-
-function CommentItem({ comment }: { comment: Comment }) {
+function CommentItem({
+  comment,
+  formatRelativeTime,
+}: {
+  comment: Comment;
+  formatRelativeTime: (iso: string) => string;
+}) {
+  const { t } = useTranslations();
   const initials = (comment.author_name ?? "?")
     .split(" ")
     .map((p) => p[0])
@@ -52,7 +49,7 @@ function CommentItem({ comment }: { comment: Comment }) {
       </Avatar>
       <Box sx={{ flex: 1, minWidth: 0 }}>
         <Stack direction="row" spacing={1} alignItems="baseline">
-          <Typography variant="subtitle2">{comment.author_name ?? "Unknown"}</Typography>
+          <Typography variant="subtitle2">{comment.author_name ?? t("common.unknown")}</Typography>
           <Typography variant="caption" color="text.secondary">
             {formatRelativeTime(comment.created_at)}
           </Typography>
@@ -75,10 +72,27 @@ function CommentItem({ comment }: { comment: Comment }) {
   );
 }
 
-export function CommentThread({ entityType, entityId, title = "Comments" }: CommentThreadProps) {
+export function CommentThread({ entityType, entityId, title }: CommentThreadProps) {
+  const { t } = useTranslations();
   const [body, setBody] = useState("");
   const queryClient = useQueryClient();
   const queryKey = ["comments", entityType, entityId];
+
+  const formatRelativeTime = useCallback(
+    (iso: string): string => {
+      const date = new Date(iso);
+      const diffMs = Date.now() - date.getTime();
+      const mins = Math.floor(diffMs / 60000);
+      if (mins < 1) return t("status.justNow");
+      if (mins < 60) return t("status.minutesAgo", { count: mins });
+      const hours = Math.floor(mins / 60);
+      if (hours < 24) return t("status.hoursAgo", { count: hours });
+      const days = Math.floor(hours / 24);
+      if (days < 7) return t("status.daysAgo", { count: days });
+      return date.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+    },
+    [t],
+  );
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey,
@@ -105,7 +119,7 @@ export function CommentThread({ entityType, entityId, title = "Comments" }: Comm
   return (
     <Box>
       <Typography variant="h6" gutterBottom>
-        {title}
+        {title ?? t("comments.title")}
       </Typography>
 
       {isLoading && (
@@ -116,19 +130,23 @@ export function CommentThread({ entityType, entityId, title = "Comments" }: Comm
 
       {isError && (
         <Alert severity="warning" sx={{ mb: 2 }}>
-          {error instanceof Error ? error.message : "Could not load comments"}
+          {error instanceof Error ? error.message : t("errors.commentsLoadFailed")}
         </Alert>
       )}
 
       {!isLoading && data && data.items.length === 0 && (
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          No comments yet. Add the first note below.
+          {t("comments.empty")}
         </Typography>
       )}
 
       <Stack spacing={2} sx={{ mb: 2 }}>
         {data?.items.map((comment) => (
-          <CommentItem key={comment.id} comment={comment} />
+          <CommentItem
+            key={comment.id}
+            comment={comment}
+            formatRelativeTime={formatRelativeTime}
+          />
         ))}
       </Stack>
 
@@ -139,7 +157,7 @@ export function CommentThread({ entityType, entityId, title = "Comments" }: Comm
           fullWidth
           multiline
           minRows={2}
-          placeholder="Add a comment…"
+          placeholder={t("comments.placeholder")}
           value={body}
           onChange={(e) => setBody(e.target.value)}
           disabled={mutation.isPending}
@@ -147,7 +165,7 @@ export function CommentThread({ entityType, entityId, title = "Comments" }: Comm
         />
         {mutation.isError && (
           <Alert severity="error" sx={{ mt: 1 }}>
-            {mutation.error instanceof Error ? mutation.error.message : "Failed to post comment"}
+            {mutation.error instanceof Error ? mutation.error.message : t("errors.commentPostFailed")}
           </Alert>
         )}
         <Stack direction="row" justifyContent="flex-end" sx={{ mt: 1 }}>
@@ -158,7 +176,7 @@ export function CommentThread({ entityType, entityId, title = "Comments" }: Comm
             startIcon={<Send />}
             disabled={!body.trim() || mutation.isPending}
           >
-            {mutation.isPending ? "Posting…" : "Post comment"}
+            {mutation.isPending ? t("common.posting") : t("comments.post")}
           </Button>
         </Stack>
       </Box>

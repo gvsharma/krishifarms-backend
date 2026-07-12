@@ -20,8 +20,10 @@ import { MuiPageShell } from "@/components/shell/mui-page-shell";
 import { fetchFarmers } from "@/features/farmers/api";
 import { fetchVillages } from "@/features/master-data/api";
 import { createProcurement, fetchCropTypes } from "@/features/procurements/api";
+import { useTranslations } from "@/i18n/use-translations";
 
 export default function NewProcurementPage() {
+  const { t } = useTranslations();
   const router = useRouter();
   const queryClient = useQueryClient();
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
@@ -57,11 +59,11 @@ export default function NewProcurementPage() {
 
   return (
     <MuiPageShell
-      title="New procurement"
-      description="Create a draft ticket — weighment and pricing happen in later workflow steps."
+      title={t("operations.procurement.new.title")}
+      description={t("operations.procurement.new.description")}
       actions={
         <Button component={Link} href="/procurement" startIcon={<ArrowBack />} variant="outlined">
-          Cancel
+          {t("common.cancel")}
         </Button>
       }
     >
@@ -75,13 +77,13 @@ export default function NewProcurementPage() {
         <Card sx={{ p: 3, maxWidth: 560 }}>
           <Stack spacing={2} component="form" onSubmit={(e) => { e.preventDefault(); if (canSubmit) createMutation.mutate(); }}>
             <Typography variant="subtitle2" color="text.secondary">
-              Step 1 of 3 — Capture basics
+              {t("operations.procurement.new.step1")}
             </Typography>
 
             <TextField
               select
               required
-              label="Farmer"
+              label={t("common.farmer")}
               value={farmerId}
               onChange={(e) => {
                 setFarmerId(e.target.value);
@@ -99,7 +101,7 @@ export default function NewProcurementPage() {
             <TextField
               select
               required
-              label="Crop type"
+              label={t("operations.procurement.new.cropType")}
               value={cropTypeId}
               onChange={(e) => setCropTypeId(e.target.value)}
             >
@@ -113,7 +115,7 @@ export default function NewProcurementPage() {
             <TextField
               select
               required
-              label="Village"
+              label={t("common.village")}
               value={villageId}
               onChange={(e) => setVillageId(e.target.value)}
             >
@@ -125,7 +127,7 @@ export default function NewProcurementPage() {
             </TextField>
 
             <TextField
-              label="Bag count"
+              label={t("operations.procurement.new.bagCount")}
               type="number"
               inputProps={{ min: 0 }}
               value={bagCount}
@@ -133,7 +135,7 @@ export default function NewProcurementPage() {
             />
 
             <TextField
-              label="Notes"
+              label={t("common.notes")}
               multiline
               minRows={2}
               value={notes}
@@ -144,12 +146,12 @@ export default function NewProcurementPage() {
               <Alert severity="error">
                 {createMutation.error instanceof Error
                   ? createMutation.error.message
-                  : "Could not create procurement"}
+                  : t("operations.procurement.new.createError")}
               </Alert>
             )}
 
             <Button type="submit" variant="contained" disabled={!canSubmit}>
-              {createMutation.isPending ? "Saving…" : "Save draft"}
+              {createMutation.isPending ? t("common.saving") : t("operations.procurement.new.saveDraft")}
             </Button>
           </Stack>
         </Card>

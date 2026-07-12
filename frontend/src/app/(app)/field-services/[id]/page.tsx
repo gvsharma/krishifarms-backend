@@ -15,10 +15,10 @@ import {
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { MuiPageShell } from "@/components/shell/mui-page-shell";
 import { fetchFieldService, updateFieldService } from "@/features/field-services/api";
-import { CATEGORY_FIELDS, categoryLabel, type ServiceCategory } from "@/features/field-services/constants";
+import { CATEGORY_FIELDS, type ServiceCategory } from "@/features/field-services/constants";
 import {
   FieldServiceForm,
   formValuesToUpdatePayload,
@@ -26,13 +26,24 @@ import {
   type FieldServiceFormValues,
 } from "@/features/field-services/field-service-form";
 import { formatInr } from "@/features/procurements/api";
+import { useTranslations } from "@/i18n/use-translations";
 
 export default function FieldServiceDetailPage() {
+  const { t } = useTranslations();
   const params = useParams<{ id: string }>();
   const recordId = params.id;
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [formValues, setFormValues] = useState<FieldServiceFormValues | null>(null);
+
+  const categoryLabel = useCallback(
+    (value: string) => {
+      const key = `operations.fieldServices.categories.${value}`;
+      const label = t(key);
+      return label === key ? value.replace(/_/g, " ") : label;
+    },
+    [t],
+  );
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["field-service", recordId],
@@ -73,21 +84,21 @@ export default function FieldServiceDetailPage() {
 
   return (
     <MuiPageShell
-      title={data?.record_number ?? "Field service"}
+      title={data?.record_number ?? t("operations.fieldServices.detail.title")}
       description={
         data
           ? `${categoryLabel(data.service_category)} · ${data.service_date}`
-          : "Loading…"
+          : t("common.loading")
       }
       actions={
         <Stack direction="row" spacing={1}>
           {!editing && data && (
             <Button startIcon={<Edit />} variant="contained" onClick={startEdit}>
-              Edit
+              {t("common.edit")}
             </Button>
           )}
           <Button component={Link} href="/field-services" startIcon={<ArrowBack />} variant="outlined">
-            Back to list
+            {t("operations.fieldServices.detail.backToList")}
           </Button>
         </Stack>
       }
@@ -100,7 +111,7 @@ export default function FieldServiceDetailPage() {
 
       {isError && (
         <Alert severity="warning">
-          {error instanceof Error ? error.message : "Could not load field service"}
+          {error instanceof Error ? error.message : t("operations.fieldServices.detail.loadError")}
         </Alert>
       )}
 
@@ -111,18 +122,18 @@ export default function FieldServiceDetailPage() {
             values={formValues}
             onChange={setFormValues}
             onSubmit={() => updateMutation.mutate()}
-            submitLabel="Save changes"
+            submitLabel={t("operations.fieldServices.detail.saveChanges")}
             isSubmitting={updateMutation.isPending}
             error={
               updateMutation.isError
                 ? updateMutation.error instanceof Error
                   ? updateMutation.error.message
-                  : "Failed to update record"
+                  : t("operations.fieldServices.detail.updateError")
                 : null
             }
           />
           <Button sx={{ mt: 2 }} variant="text" onClick={cancelEdit}>
-            Cancel edit
+            {t("operations.fieldServices.detail.cancelEdit")}
           </Button>
         </Card>
       )}
@@ -137,17 +148,17 @@ export default function FieldServiceDetailPage() {
 
             <Grid container spacing={2}>
               <Grid size={{ xs: 6, sm: 4 }}>
-                <DetailField label="Service date" value={data.service_date} />
+                <DetailField label={t("operations.fieldServices.detail.serviceDate")} value={data.service_date} />
               </Grid>
 
               {visibleFields.has("farmer_id") && (
                 <Grid size={{ xs: 6, sm: 4 }}>
                   <DetailField
-                    label="Farmer"
+                    label={t("common.farmer")}
                     value={
                       data.farmer_name
                         ? `${data.farmer_name}${data.farmer_phone ? ` · ${data.farmer_phone}` : ""}`
-                        : "—"
+                        : t("common.dash")
                     }
                   />
                 </Grid>
@@ -155,42 +166,57 @@ export default function FieldServiceDetailPage() {
 
               {visibleFields.has("activity_type_id") && (
                 <Grid size={{ xs: 6, sm: 4 }}>
-                  <DetailField label="Activity type" value={data.activity_type_name ?? "—"} />
+                  <DetailField
+                    label={t("operations.fieldServices.detail.activityType")}
+                    value={data.activity_type_name ?? t("common.dash")}
+                  />
                 </Grid>
               )}
 
               {visibleFields.has("vehicle_type_id") && (
                 <Grid size={{ xs: 6, sm: 4 }}>
-                  <DetailField label="Vehicle / equipment" value={data.vehicle_type_name ?? "—"} />
+                  <DetailField
+                    label={t("operations.fieldServices.detail.vehicleEquipment")}
+                    value={data.vehicle_type_name ?? t("common.dash")}
+                  />
                 </Grid>
               )}
 
               {visibleFields.has("location") && (
                 <Grid size={{ xs: 12, sm: 6 }}>
-                  <DetailField label="Location" value={data.location ?? "—"} />
+                  <DetailField
+                    label={t("operations.fieldServices.detail.location")}
+                    value={data.location ?? t("common.dash")}
+                  />
                 </Grid>
               )}
 
               {visibleFields.has("hours") && (
                 <Grid size={{ xs: 6, sm: 4 }}>
-                  <DetailField label="Hours" value={data.hours ?? "—"} />
+                  <DetailField
+                    label={t("operations.fieldServices.detail.hours")}
+                    value={data.hours ?? t("common.dash")}
+                  />
                 </Grid>
               )}
 
               {visibleFields.has("bag_count") && (
                 <Grid size={{ xs: 6, sm: 4 }}>
-                  <DetailField label="Bag count" value={data.bag_count != null ? String(data.bag_count) : "—"} />
+                  <DetailField
+                    label={t("operations.fieldServices.detail.bagCount")}
+                    value={data.bag_count != null ? String(data.bag_count) : t("common.dash")}
+                  />
                 </Grid>
               )}
 
               {visibleFields.has("quantity") && (
                 <Grid size={{ xs: 6, sm: 4 }}>
                   <DetailField
-                    label="Quantity"
+                    label={t("operations.fieldServices.detail.quantity")}
                     value={
                       data.quantity
                         ? `${data.quantity}${data.quantity_unit ? ` ${data.quantity_unit}` : ""}`
-                        : "—"
+                        : t("common.dash")
                     }
                   />
                 </Grid>
@@ -199,57 +225,78 @@ export default function FieldServiceDetailPage() {
               {visibleFields.has("rate_per_unit") && (
                 <Grid size={{ xs: 6, sm: 4 }}>
                   <DetailField
-                    label="Rate per unit"
-                    value={data.rate_per_unit ? formatInr(data.rate_per_unit) : "—"}
+                    label={t("operations.fieldServices.detail.ratePerUnit")}
+                    value={data.rate_per_unit ? formatInr(data.rate_per_unit) : t("common.dash")}
                   />
                 </Grid>
               )}
 
               {visibleFields.has("diesel_amount") && (
                 <Grid size={{ xs: 6, sm: 4 }}>
-                  <DetailField label="Diesel" value={formatInr(data.diesel_amount)} />
+                  <DetailField
+                    label={t("operations.fieldServices.detail.diesel")}
+                    value={formatInr(data.diesel_amount)}
+                  />
                 </Grid>
               )}
 
               {visibleFields.has("amount_given") && (
                 <Grid size={{ xs: 6, sm: 4 }}>
-                  <DetailField label="Amount given" value={formatInr(data.amount_given)} />
+                  <DetailField
+                    label={t("operations.fieldServices.detail.amountGiven")}
+                    value={formatInr(data.amount_given)}
+                  />
                 </Grid>
               )}
 
               {visibleFields.has("advance_amount") && (
                 <Grid size={{ xs: 6, sm: 4 }}>
-                  <DetailField label="Advance" value={formatInr(data.advance_amount)} />
+                  <DetailField
+                    label={t("operations.fieldServices.detail.advance")}
+                    value={formatInr(data.advance_amount)}
+                  />
                 </Grid>
               )}
 
               {visibleFields.has("total_amount") && (
                 <Grid size={{ xs: 6, sm: 4 }}>
-                  <DetailField label="Total" value={formatInr(data.total_amount)} />
+                  <DetailField
+                    label={t("operations.fieldServices.detail.total")}
+                    value={formatInr(data.total_amount)}
+                  />
                 </Grid>
               )}
 
               {visibleFields.has("pending_amount") && (
                 <Grid size={{ xs: 6, sm: 4 }}>
-                  <DetailField label="Pending" value={formatInr(data.pending_amount)} />
+                  <DetailField
+                    label={t("operations.fieldServices.detail.pending")}
+                    value={formatInr(data.pending_amount)}
+                  />
                 </Grid>
               )}
 
               {visibleFields.has("cleaning_status") && (
                 <Grid size={{ xs: 6, sm: 4 }}>
-                  <DetailField label="Cleaning status" value={data.cleaning_status ?? "—"} />
+                  <DetailField
+                    label={t("operations.fieldServices.detail.cleaningStatus")}
+                    value={data.cleaning_status ?? t("common.dash")}
+                  />
                 </Grid>
               )}
 
               {visibleFields.has("facility_status") && (
                 <Grid size={{ xs: 6, sm: 4 }}>
-                  <DetailField label="Facility status" value={data.facility_status ?? "—"} />
+                  <DetailField
+                    label={t("operations.fieldServices.detail.facilityStatus")}
+                    value={data.facility_status ?? t("common.dash")}
+                  />
                 </Grid>
               )}
 
               {data.comments && (
                 <Grid size={{ xs: 12 }}>
-                  <DetailField label="Comments" value={data.comments} />
+                  <DetailField label={t("common.comments")} value={data.comments} />
                 </Grid>
               )}
             </Grid>

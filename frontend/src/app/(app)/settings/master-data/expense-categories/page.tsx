@@ -7,23 +7,26 @@ import {
   fetchExpenseCategories,
   updateExpenseCategory,
 } from "@/features/master-data/api";
+import { useTranslations } from "@/i18n/use-translations";
 
 export default function ExpenseCategoriesPage() {
+  const { t } = useTranslations();
+
   return (
     <CatalogAdminPage
-      title="Expense categories"
-      description="Categories for operational expenses (fuel, labour, repairs, etc.)."
+      title={t("catalog.expenseCategories")}
+      description={t("catalog.expenseCategoriesDesc")}
       queryKey="expense-categories-admin"
       fields={[
-        { key: "name", label: "Name", required: true },
+        { key: "name", label: t("catalog.fields.name"), required: true },
         {
           key: "type",
-          label: "Type",
+          label: t("common.type"),
           type: "select",
           required: true,
           options: [
-            { value: "expense", label: "Expense" },
-            { value: "income", label: "Income" },
+            { value: "expense", label: t("catalog.fields.expense") },
+            { value: "income", label: t("catalog.fields.income") },
           ],
         },
       ]}

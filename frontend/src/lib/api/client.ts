@@ -1,3 +1,4 @@
+import { getAppLocale } from "@/stores/locale-store";
 import { getApiBaseUrl } from "./config";
 import { getDeviceId } from "./device-id";
 
@@ -66,6 +67,7 @@ export async function fetchApi<T>(
   if (token) {
     reqHeaders.set("Authorization", `Bearer ${token}`);
   }
+  reqHeaders.set("Accept-Language", getAppLocale());
   if (clientHeaders) {
     reqHeaders.set("X-Device-Id", getDeviceId());
     reqHeaders.set("X-Client-Type", "web");

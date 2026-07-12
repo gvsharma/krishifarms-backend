@@ -20,94 +20,92 @@ import {
   WorkOutline,
 } from "@mui/icons-material";
 import Link from "next/link";
+import { useTranslations } from "@/i18n/use-translations";
 import { MuiPageShell } from "@/components/shell/mui-page-shell";
 import { ROUTES } from "@/constants/routes";
 import { useAuth } from "@/hooks/use-auth";
+import type { AppRole } from "@/features/auth/types";
 
-const ADMIN_LINKS = [
+const ADMIN_LINK_KEYS = [
   {
     href: ROUTES.settingsUsers,
-    title: "Users & roles",
-    description: "Add and edit organization members",
+    titleKey: "usersRoles",
     icon: People,
   },
   {
     href: ROUTES.settingsMasterData,
-    title: "Master data hub",
-    description: "All catalogs in one place",
+    titleKey: "masterDataHub",
     icon: Dataset,
   },
   {
     href: "/settings/master-data/crops",
-    title: "Crop types",
-    description: "Paddy, corn, seasonal crops",
+    titleKey: "cropTypes",
     icon: Agriculture,
   },
   {
     href: "/settings/master-data/vehicle-types",
-    title: "Vehicle types",
-    description: "Fleet categories for trips",
+    titleKey: "vehicleTypes",
     icon: DirectionsCar,
   },
   {
     href: "/settings/master-data/activity-types",
-    title: "Activity types",
-    description: "Field service and work types",
+    titleKey: "activityTypes",
     icon: WorkOutline,
   },
   {
     href: "/settings/master-data/buyers",
-    title: "Buyers",
-    description: "Mills and traders",
+    titleKey: "buyers",
     icon: LocalAtm,
   },
   {
     href: "/settings/master-data/agents",
-    title: "Field agents",
-    description: "Collection agent roster",
+    titleKey: "fieldAgents",
     icon: Groups,
   },
   {
     href: ROUTES.settingsVillages,
-    title: "Villages",
-    description: "Geography master (read/create/edit)",
+    titleKey: "villages",
     icon: Agriculture,
   },
 ] as const;
 
 export function DashboardHome() {
+  const { t } = useTranslations();
   const { user, role, canAccessAdmin, isError, error, isLoading } = useAuth();
+
+  const roleLabel =
+    role && (["OWNER", "MANAGER", "SUPERVISOR", "AGENT", "DRIVER", "WORKER", "ACCOUNTANT"] as const).includes(
+      role as AppRole,
+    )
+      ? t(`roles.${role as AppRole}`)
+      : role;
 
   return (
     <MuiPageShell
-      title="Home"
-      description={
-        canAccessAdmin
-          ? "Farm operations overview and administration shortcuts."
-          : "Farm operations overview for Bhairkhanpally."
-      }
+      title={t("dashboard.title")}
+      description={canAccessAdmin ? t("dashboard.descriptionAdmin") : t("dashboard.descriptionUser")}
     >
       <Stack spacing={3}>
         {isError && (
           <Alert severity="warning">
-            {error instanceof Error
-              ? error.message
-              : "Could not load your session. Sign in again if pages look empty."}
+            {error instanceof Error ? error.message : t("dashboard.sessionError")}
           </Alert>
         )}
 
         <Card>
           <CardContent>
             <Typography variant="h6" fontWeight={600}>
-              Welcome{user?.name ? `, ${user.name}` : ""}
+              {t("dashboard.welcome", {
+                commaName: user?.name ? t("dashboard.welcomeCommaName", { name: user.name }) : "",
+              })}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
               {isLoading
-                ? "Loading session…"
+                ? t("dashboard.loadingSession")
                 : role
-                  ? `Signed in as ${role}`
-                  : "Session unavailable"}{" "}
-              — use the sidebar for farmers, procurement, and field services.
+                  ? t("dashboard.signedInAs", { role: roleLabel ?? role })
+                  : t("dashboard.sessionUnavailable")}{" "}
+              {t("dashboard.sidebarHint")}
             </Typography>
           </CardContent>
         </Card>
@@ -115,10 +113,10 @@ export function DashboardHome() {
         {canAccessAdmin && (
           <>
             <Typography variant="subtitle1" fontWeight={600}>
-              Administration
+              {t("dashboard.administration")}
             </Typography>
             <Grid container spacing={2}>
-              {ADMIN_LINKS.map((link) => {
+              {ADMIN_LINK_KEYS.map((link) => {
                 const Icon = link.icon;
                 return (
                   <Grid key={link.href} size={{ xs: 12, sm: 6, md: 4 }}>
@@ -134,12 +132,12 @@ export function DashboardHome() {
                                 justifyContent="space-between"
                               >
                                 <Typography variant="subtitle1" fontWeight={600}>
-                                  {link.title}
+                                  {t(`dashboard.adminLinks.${link.titleKey}.title`)}
                                 </Typography>
                                 <ChevronRight fontSize="small" color="action" />
                               </Stack>
                               <Typography variant="body2" color="text.secondary">
-                                {link.description}
+                                {t(`dashboard.adminLinks.${link.titleKey}.description`)}
                               </Typography>
                             </Stack>
                           </Stack>

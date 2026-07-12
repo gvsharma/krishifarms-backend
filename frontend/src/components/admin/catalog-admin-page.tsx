@@ -28,6 +28,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { MuiPageShell } from "@/components/shell/mui-page-shell";
 import { useAuth } from "@/hooks/use-auth";
+import { useT } from "@/i18n/use-t";
 
 export type CatalogFieldType = "text" | "number" | "boolean" | "select" | "date";
 
@@ -41,11 +42,15 @@ export interface CatalogField {
   table?: boolean;
   options?: { value: string; label: string }[];
   placeholder?: string;
+  /** Custom table cell formatter (e.g. resolve select IDs to labels). */
+  formatTable?: (value: unknown, row: Record<string, unknown>) => string;
 }
 
 export interface CatalogAdminPageProps<T extends { id: string }> {
   title: string;
   description: string;
+  addTitle?: string;
+  editTitle?: string;
   queryKey: string;
   fields: CatalogField[];
   list: () => Promise<{ items: T[]; total: number }>;
@@ -118,6 +123,8 @@ function defaultToPayload(
 export function CatalogAdminPage<T extends { id: string }>({
   title,
   description,
+  addTitle,
+  editTitle,
   queryKey,
   fields,
   list,
@@ -128,6 +135,7 @@ export function CatalogAdminPage<T extends { id: string }>({
   toFormValues,
   toPayload,
 }: CatalogAdminPageProps<T>) {
+  const t = useT();
   const queryClient = useQueryClient();
   const { canDelete } = useAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -164,7 +172,7 @@ export function CatalogAdminPage<T extends { id: string }>({
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => {
-      if (!remove) throw new Error("Delete not supported");
+      if (!remove) throw new Error(t("errors.deleteNotSupported"));
       return remove(id);
     },
     onSuccess: () => {
@@ -201,7 +209,7 @@ export function CatalogAdminPage<T extends { id: string }>({
       description={description}
       actions={
         <Button variant="contained" startIcon={<Add />} onClick={openCreate}>
-          Add
+          {t("common.add")}
         </Button>
       }
     >
@@ -214,7 +222,7 @@ export function CatalogAdminPage<T extends { id: string }>({
 
         {isError && (
           <Alert severity="warning" sx={{ m: 2 }}>
-            {error instanceof Error ? error.message : `Could not load ${title.toLowerCase()}`}
+            {error instanceof Error ? error.message : t("errors.loadFailed", { resource: title.toLowerCase() })}
           </Alert>
         )}
 
@@ -226,27 +234,36 @@ export function CatalogAdminPage<T extends { id: string }>({
                   {tableFields.map((f) => (
                     <TableCell key={f.key}>{f.label}</TableCell>
                   ))}
-                  <TableCell align="right">Actions</TableCell>
+                  <TableCell align="right">{t("common.actions")}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {data.items.map((row) => (
                   <TableRow key={row.id} hover>
                     {tableFields.map((f) => {
-                      const raw = (row as unknown as Record<string, unknown>)[f.key];
-                      let display = "—";
-                      if (f.type === "boolean") display = raw ? "Active" : "Inactive";
-                      else if (raw != null && raw !== "") display = String(raw);
+                      const rowRecord = row as unknown as Record<string, unknown>;
+                      const raw = rowRecord[f.key];
+                      let display = t("common.dash");
+                      if (f.formatTable) {
+                        display = f.formatTable(raw, rowRecord);
+                      } else if (f.type === "boolean") {
+                        display = raw ? t("common.active") : t("common.inactive");
+                      } else if (f.type === "select" && f.options) {
+                        const opt = f.options.find((o) => o.value === String(raw));
+                        display = opt?.label ?? (raw != null && raw !== "" ? String(raw) : t("common.dash"));
+                      } else if (raw != null && raw !== "") {
+                        display = String(raw);
+                      }
                       return <TableCell key={f.key}>{display}</TableCell>;
                     })}
                     <TableCell align="right">
-                      <IconButton size="small" aria-label="Edit" onClick={() => openEdit(row)}>
+                      <IconButton size="small" aria-label={t("common.edit")} onClick={() => openEdit(row)}>
                         <EditOutlined fontSize="small" />
                       </IconButton>
                       {showDelete && (
                         <IconButton
                           size="small"
-                          aria-label="Delete"
+                          aria-label={t("common.delete")}
                           color="error"
                           onClick={() => setDeleteId(row.id)}
                         >
@@ -260,7 +277,7 @@ export function CatalogAdminPage<T extends { id: string }>({
                   <TableRow>
                     <TableCell colSpan={tableFields.length + 1} align="center">
                       <Typography variant="body2" color="text.secondary" sx={{ py: 3 }}>
-                        No records yet
+                        {t("common.noRecords")}
                       </Typography>
                     </TableCell>
                   </TableRow>
@@ -272,7 +289,9 @@ export function CatalogAdminPage<T extends { id: string }>({
       </Card>
 
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>{editing ? `Edit ${title.slice(0, -1) || title}` : `Add ${title.slice(0, -1) || title}`}</DialogTitle>
+        <DialogTitle>
+          {editing ? (editTitle ?? t("dialog.editItem", { item: title })) : (addTitle ?? t("dialog.addItem", { item: title }))}
+        </DialogTitle>
         <DialogContent>
           {dialogFields.map((field) => {
             if (field.type === "boolean") {
@@ -302,7 +321,7 @@ export function CatalogAdminPage<T extends { id: string }>({
                   value={String(form[field.key] ?? "")}
                   onChange={(e) => setForm((prev) => ({ ...prev, [field.key]: e.target.value }))}
                 >
-                  {!field.required && <MenuItem value="">—</MenuItem>}
+                  {!field.required && <MenuItem value="">{t("common.dash")}</MenuItem>}
                   {field.options.map((opt) => (
                     <MenuItem key={opt.value} value={opt.value}>
                       {opt.label}
@@ -329,47 +348,49 @@ export function CatalogAdminPage<T extends { id: string }>({
           })}
           {saveMutation.isError && (
             <Alert severity="error" sx={{ mt: 1 }}>
-              {saveMutation.error instanceof Error ? saveMutation.error.message : "Save failed"}
+              {saveMutation.error instanceof Error ? saveMutation.error.message : t("errors.saveFailed")}
             </Alert>
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
+          <Button onClick={() => setDialogOpen(false)}>{t("common.cancel")}</Button>
           <Button
             variant="contained"
             disabled={!canSave || saveMutation.isPending}
             onClick={() => saveMutation.mutate()}
           >
-            {saveMutation.isPending ? "Saving…" : "Save"}
+            {saveMutation.isPending ? t("common.saving") : t("common.save")}
           </Button>
         </DialogActions>
       </Dialog>
 
       <Dialog open={Boolean(deleteId) && showDelete} onClose={() => setDeleteId(null)} maxWidth="xs" fullWidth>
-        <DialogTitle>Delete record?</DialogTitle>
+        <DialogTitle>{t("dialog.deleteRecord")}</DialogTitle>
         <DialogContent>
                       <Typography variant="body2">
                         {(() => {
                           const row = data?.items.find((r) => r.id === deleteId);
-                          if (row && rowLabel) return `Soft-delete ${rowLabel(row)}?`;
-                          return "This soft-deletes the record. It will no longer appear in lists.";
+                          if (row && rowLabel) {
+                            return t("dialog.deleteRecordNamed", { name: rowLabel(row) });
+                          }
+                          return t("dialog.deleteRecordSoft");
                         })()}
                       </Typography>
           {deleteMutation.isError && (
             <Alert severity="error" sx={{ mt: 1 }}>
-              {deleteMutation.error instanceof Error ? deleteMutation.error.message : "Delete failed"}
+              {deleteMutation.error instanceof Error ? deleteMutation.error.message : t("errors.deleteFailed")}
             </Alert>
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteId(null)}>Cancel</Button>
+          <Button onClick={() => setDeleteId(null)}>{t("common.cancel")}</Button>
           <Button
             color="error"
             variant="contained"
             disabled={!deleteId || deleteMutation.isPending}
             onClick={() => deleteId && deleteMutation.mutate(deleteId)}
           >
-            {deleteMutation.isPending ? "Deleting…" : "Delete"}
+            {deleteMutation.isPending ? t("common.deleting") : t("common.delete")}
           </Button>
         </DialogActions>
       </Dialog>

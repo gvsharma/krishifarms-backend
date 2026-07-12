@@ -20,17 +20,35 @@ import {
 import { Add } from "@mui/icons-material";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { MuiPageShell } from "@/components/shell/mui-page-shell";
 import {
   fetchProcurements,
   formatInr,
-  STATUS_LABELS,
   type ProcurementStatus,
 } from "@/features/procurements/api";
+import { useTranslations } from "@/i18n/use-translations";
+
+const PROCUREMENT_STATUSES: ProcurementStatus[] = [
+  "draft",
+  "pending_weighment",
+  "weighed",
+  "priced",
+  "confirmed",
+  "paid_partial",
+  "paid_full",
+  "cancelled",
+  "reversed",
+];
 
 export default function ProcurementPage() {
+  const { t } = useTranslations();
   const [status, setStatus] = useState<ProcurementStatus | "">("");
+
+  const statusLabel = useCallback(
+    (key: ProcurementStatus) => t(`operations.procurement.status.${key}`),
+    [t],
+  );
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["procurements", status],
@@ -39,11 +57,11 @@ export default function ProcurementPage() {
 
   return (
     <MuiPageShell
-      title="Procurement"
-      description="Intake tickets from draft through confirmation."
+      title={t("operations.procurement.title")}
+      description={t("operations.procurement.description")}
       actions={
         <Button component={Link} href="/procurement/new" variant="contained" startIcon={<Add />}>
-          New procurement
+          {t("operations.procurement.newProcurement")}
         </Button>
       }
     >
@@ -51,15 +69,15 @@ export default function ProcurementPage() {
         <TextField
           select
           size="small"
-          label="Status filter"
+          label={t("operations.procurement.statusFilter")}
           value={status}
           onChange={(e) => setStatus(e.target.value as ProcurementStatus | "")}
           sx={{ minWidth: 220 }}
         >
-          <MenuItem value="">All statuses</MenuItem>
-          {(Object.keys(STATUS_LABELS) as ProcurementStatus[]).map((key) => (
+          <MenuItem value="">{t("operations.procurement.allStatuses")}</MenuItem>
+          {PROCUREMENT_STATUSES.map((key) => (
             <MenuItem key={key} value={key}>
-              {STATUS_LABELS[key]}
+              {statusLabel(key)}
             </MenuItem>
           ))}
         </TextField>
@@ -74,7 +92,7 @@ export default function ProcurementPage() {
 
         {isError && (
           <Alert severity="warning" sx={{ m: 2 }}>
-            {error instanceof Error ? error.message : "Could not load procurements"}
+            {error instanceof Error ? error.message : t("operations.procurement.loadError")}
           </Alert>
         )}
 
@@ -83,13 +101,13 @@ export default function ProcurementPage() {
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell>Ticket</TableCell>
-                  <TableCell>Date</TableCell>
-                  <TableCell>Farmer</TableCell>
-                  <TableCell>Crop</TableCell>
-                  <TableCell>Net (kg)</TableCell>
-                  <TableCell>Amount</TableCell>
-                  <TableCell>Status</TableCell>
+                  <TableCell>{t("operations.procurement.table.ticket")}</TableCell>
+                  <TableCell>{t("operations.procurement.table.date")}</TableCell>
+                  <TableCell>{t("operations.procurement.table.farmer")}</TableCell>
+                  <TableCell>{t("operations.procurement.table.crop")}</TableCell>
+                  <TableCell>{t("operations.procurement.table.netKg")}</TableCell>
+                  <TableCell>{t("operations.procurement.table.amount")}</TableCell>
+                  <TableCell>{t("operations.procurement.table.status")}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -103,12 +121,12 @@ export default function ProcurementPage() {
                   >
                     <TableCell>{row.procurement_number}</TableCell>
                     <TableCell>{row.procurement_date}</TableCell>
-                    <TableCell>{row.farmer_name ?? "—"}</TableCell>
-                    <TableCell>{row.crop_type_name ?? "—"}</TableCell>
+                    <TableCell>{row.farmer_name ?? t("common.dash")}</TableCell>
+                    <TableCell>{row.crop_type_name ?? t("common.dash")}</TableCell>
                     <TableCell>{row.net_weight_kg}</TableCell>
                     <TableCell>{formatInr(row.net_amount)}</TableCell>
                     <TableCell>
-                      <Chip label={STATUS_LABELS[row.status]} size="small" />
+                      <Chip label={statusLabel(row.status)} size="small" />
                     </TableCell>
                   </TableRow>
                 ))}
@@ -116,7 +134,7 @@ export default function ProcurementPage() {
                   <TableRow>
                     <TableCell colSpan={7} align="center">
                       <Typography variant="body2" color="text.secondary" sx={{ py: 3 }}>
-                        No procurements yet — create a draft to get started
+                        {t("operations.procurement.empty")}
                       </Typography>
                     </TableCell>
                   </TableRow>
