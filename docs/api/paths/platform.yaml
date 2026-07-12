@@ -1,0 +1,361 @@
+# Shared list/create/update/delete pattern for platform + master catalogs.
+# Full response schemas mirror Python `app/modules/platform/schemas.py` and master_data/financial modules.
+
+villages:
+  get:
+    tags: [Master Data]
+    operationId: listVillages
+    summary: List villages
+    responses:
+      '200': { description: Paginated villages }
+  post:
+    tags: [Master Data]
+    operationId: createVillage
+    summary: Create village
+    responses:
+      '201': { description: Created }
+
+villageById:
+  patch:
+    tags: [Master Data]
+    operationId: updateVillage
+    summary: Update village
+    parameters:
+      - name: village_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: Updated }
+  delete:
+    tags: [Master Data]
+    operationId: deleteVillage
+    summary: Soft-delete village
+    parameters:
+      - name: village_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: Soft-deleted }
+
+cropTypes:
+  get:
+    tags: [Master Data]
+    operationId: listCropTypes
+    summary: List crop types
+    responses:
+      '200': { description: Paginated crop types }
+  post:
+    tags: [Master Data]
+    operationId: createCropType
+    summary: Create crop type
+    responses:
+      '201': { description: Created }
+
+cropTypeById:
+  patch:
+    tags: [Master Data]
+    operationId: updateCropType
+    parameters:
+      - name: crop_type_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: Updated }
+  delete:
+    tags: [Master Data]
+    operationId: deleteCropType
+    parameters:
+      - name: crop_type_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: Soft-deleted }
+
+expenseCategories:
+  get:
+    tags: [Master Data]
+    operationId: listExpenseCategories
+    summary: List expense categories
+    responses:
+      '200': { description: Paginated categories }
+  post:
+    tags: [Master Data]
+    operationId: createExpenseCategory
+    responses:
+      '201': { description: Created }
+
+expenseCategoryById:
+  patch:
+    tags: [Master Data]
+    operationId: updateExpenseCategory
+    parameters:
+      - name: category_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: Updated }
+  delete:
+    tags: [Master Data]
+    operationId: deleteExpenseCategory
+    parameters:
+      - name: category_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: Soft-deleted }
+
+activityTypes:
+  get:
+    tags: [Platform]
+    operationId: listActivityTypes
+    summary: List activity / service types
+    responses:
+      '200': { description: Paginated activity types }
+  post:
+    tags: [Platform]
+    operationId: createActivityType
+    responses:
+      '201': { description: Created }
+
+activityTypeById:
+  patch:
+    tags: [Platform]
+    operationId: updateActivityType
+    parameters:
+      - name: row_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: Updated }
+  delete:
+    tags: [Platform]
+    operationId: deleteActivityType
+    parameters:
+      - name: row_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: Soft-deleted }
+
+paymentModes:
+  get:
+    tags: [Platform]
+    operationId: listPaymentModes
+    summary: List payment modes (cash, UPI, bank, etc.)
+    responses:
+      '200': { description: Paginated payment modes }
+  post:
+    tags: [Platform]
+    operationId: createPaymentMode
+    responses:
+      '201': { description: Created }
+
+paymentModeById:
+  patch:
+    tags: [Platform]
+    operationId: updatePaymentMode
+    parameters:
+      - name: row_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: Updated }
+  delete:
+    tags: [Platform]
+    operationId: deletePaymentMode
+    parameters:
+      - name: row_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: Soft-deleted }
+
+buyers:
+  get:
+    tags: [Platform]
+    operationId: listBuyers
+    responses:
+      '200': { description: Paginated buyers }
+  post:
+    tags: [Platform]
+    operationId: createBuyer
+    responses:
+      '201': { description: Created }
+
+buyerById:
+  patch:
+    tags: [Platform]
+    operationId: updateBuyer
+    parameters:
+      - name: row_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: Updated }
+  delete:
+    tags: [Platform]
+    operationId: deleteBuyer
+    parameters:
+      - name: row_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: Soft-deleted }
+
+agents:
+  get:
+    tags: [Platform]
+    operationId: listFieldAgents
+    responses:
+      '200': { description: Paginated field agents }
+  post:
+    tags: [Platform]
+    operationId: createFieldAgent
+    responses:
+      '201': { description: Created }
+
+agentById:
+  patch:
+    tags: [Platform]
+    operationId: updateFieldAgent
+    parameters:
+      - name: row_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: Updated }
+  delete:
+    tags: [Platform]
+    operationId: deleteFieldAgent
+    parameters:
+      - name: row_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: Soft-deleted }
+
+vehicleTypes:
+  get:
+    tags: [Platform]
+    operationId: listVehicleTypes
+    responses:
+      '200': { description: Paginated vehicle types }
+  post:
+    tags: [Platform]
+    operationId: createVehicleType
+    responses:
+      '201': { description: Created }
+
+vehicleTypeById:
+  patch:
+    tags: [Platform]
+    operationId: updateVehicleType
+    parameters:
+      - name: row_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: Updated }
+  delete:
+    tags: [Platform]
+    operationId: deleteVehicleType
+    parameters:
+      - name: row_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: Soft-deleted }
+
+cropPrices:
+  get:
+    tags: [Platform]
+    operationId: listCropPrices
+    summary: List crop price rules
+    responses:
+      '200': { description: Paginated crop price rules }
+  post:
+    tags: [Platform]
+    operationId: createCropPrice
+    responses:
+      '201': { description: Created }
+
+cropPriceById:
+  patch:
+    tags: [Platform]
+    operationId: updateCropPrice
+    parameters:
+      - name: row_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: Updated }
+  delete:
+    tags: [Platform]
+    operationId: deleteCropPrice
+    parameters:
+      - name: row_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: Soft-deleted }
+
+comments:
+  get:
+    tags: [Platform]
+    operationId: listComments
+    parameters:
+      - name: entity_type
+        in: query
+        schema: { type: string }
+      - name: entity_id
+        in: query
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: Paginated comments }
+  post:
+    tags: [Platform]
+    operationId: createComment
+    responses:
+      '201': { description: Created }
+
+tags:
+  get:
+    tags: [Platform]
+    operationId: listTags
+    responses:
+      '200': { description: Paginated tags }
+  post:
+    tags: [Platform]
+    operationId: createTag
+    responses:
+      '201': { description: Created }
+
+tagById:
+  delete:
+    tags: [Platform]
+    operationId: deleteTag
+    parameters:
+      - name: tag_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: Soft-deleted }

@@ -78,13 +78,14 @@ docs/deploy/           → CI/CD details
 | Auth | ✅ | ✅ | — | `001` | `paths/auth.yaml` | 1 |
 | Users / Roles | ✅ | ✅ | ✅ | `001`, `002`, `015` | in `001` spec | 1 |
 | Villages / Crop types | ✅ | ✅ | ✅ | `001`, `003` | in master paths | 1 |
-| Platform (buyers, agents, services, prices, comments, tags) | ✅ | ✅ | ✅ | `017`, `018` | `paths/platform.yaml` | 1b |
-| Expense categories | ✅ | ✅ | ✅ | `001` | in financial paths | 1 |
+| Platform (buyers, agents, services, prices, payment modes, comments, tags) | ✅ | ✅ | ✅ | `003`, `017`, `018` | `paths/platform.yaml` | 1b |
+| Expense categories | ✅ | ✅ | ✅ | `001` | `paths/platform.yaml` | 1 |
 | Documents | 🟡 | ✅ | 🟡 | `001`, `007` | `paths/documents.yaml` | 1 |
 | Devices / FCM push | ✅ | ✅ | ✅ | `020` | `paths/devices.yaml` | 1 |
 | Audit / Activity | ✅ | ✅ | ✅ | `001`, `013`, `017` | in platform paths | 1 |
 | Dashboard / Health | 🟡 | ✅ | — | — | in platform paths | 1 |
 | Farmers | ✅ | ✅ | ✅ | `004` | `paths/farmers.yaml` | 2a/2b (sub-resources) |
+| Field services | ✅ | ✅ | ✅ | `021`, `022` | `paths/field-services.yaml` | 2c |
 | Farms | ⬜ | — | — | `006` | `paths/farms.yaml` | 4 |
 | Procurements | ✅ | ✅ | ✅ | `008`, `019` | `paths/procurement.yaml` | 2b |
 | Farmer payments / Ledger | ⬜ | — | — | `008` | `paths/payments.yaml` | 2 |
@@ -101,21 +102,21 @@ docs/deploy/           → CI/CD details
 
 | System | Status | Location |
 |--------|--------|----------|
-| Full DB schema | ✅ | `alembic/versions/202506210001`–`015` |
+| Full DB schema | ✅ | `alembic/versions/202506210001`–`022` |
 | RBAC permissions (DB seed) | ✅ | Migration `015` |
-| RBAC permissions (Python seed) | 🟡 Phase 1 subset | `app/shared/permissions.py` |
+| RBAC permissions (Python seed) | 🟡 Phase 1 + platform subset | `app/shared/permissions.py` |
 | Reporting SQL (8 dashboards) | ✅ | `docs/reporting/sql/` |
 | Synthetic UAT data | ✅ | `scripts/synthetic_seed/` |
 | CI/CD pipeline | ✅ | `.github/workflows/` |
 | Cache layer | ✅ | `app/core/cache/` |
-| Unit tests | ⬜ | No `tests/` directory yet |
-| Frontend | ⬜ | `frontend/` placeholder only — [docs/ui/FRONTEND_ARCHITECTURE.md](./ui/FRONTEND_ARCHITECTURE.md) |
+| Unit tests | 🟡 | `tests/` (farmers, platform, procurements) |
+| Frontend | 🟡 | `frontend/` — MUI shell + settings master-data CRUD, farmers, procurement; Phase 2+ pages still placeholders — [ANDROID_CRM_PARITY.md](./modules/ANDROID_CRM_PARITY.md) |
 
 ### 3.3 Registered SQLAlchemy models (`app/models.py`)
 
-Only Phase 1 tables: `Organization`, `User`, `Role`, `Permission`, `RefreshToken`, `Village`, `CropType`, `ExpenseCategory`, `Document`, `DocumentLink`, `AuditLog`, `ActivityFeed`.
+Phase 1–2b live models include: org/IAM, villages, crop types, expense categories, platform catalogs (`ActivityType`, `PaymentMode`, `Buyer`, `FieldAgent`, `VehicleType`, `CropPriceRule`, comments/tags), farmers (+ bank/land), procurements (+ ledger/deductions), documents, devices (`UserDeviceToken`), field services (`FieldServiceRecord`), audit/activity.
 
-Phase 2+ tables exist in DB but have **no Python models yet**.
+Phase 3–5 tables (workers, expenses, assets, trips, rentals, etc.) exist in DB but have **no Python models/routers yet**.
 
 ---
 
@@ -208,6 +209,9 @@ Full topology: [ARCHITECTURE.md](./ARCHITECTURE.md).
 | `013` | `audit_and_sync_enhancements` | Audit indexes, sync |
 | `014` | `ai_support_tables` | AI jobs, OCR, WhatsApp |
 | `015` | `seed_permissions_and_roles` | Permissions + org roles |
+| `016`–`020` | firebase, platform accountability/RBAC, procurements workflow, devices | Auth, catalogs, FCM |
+| `021` | `field_services` | `field_service_records`, `activity_types.service_category` |
+| `022` | `field_services_rbac` | `field_services:*` permissions |
 
 See also [alembic/versions/README.md](../alembic/versions/README.md).
 
@@ -562,10 +566,11 @@ Database migrations for Phases 2–5 already exist; Python routes follow increme
 | API contract | [API_CONTRACT.md](./api/API_CONTRACT.md) |
 | OpenAPI spec | [openapi.yaml](./api/openapi.yaml) |
 | Document management | [DOCUMENT_MANAGEMENT.md](./modules/DOCUMENT_MANAGEMENT.md) |
+| Android ↔ CRM parity | [ANDROID_CRM_PARITY.md](./modules/ANDROID_CRM_PARITY.md) |
 | Reporting | [REPORTING_ARCHITECTURE.md](./reporting/REPORTING_ARCHITECTURE.md) |
 | KPI definitions | [kpi_definitions.md](./reporting/kpi_definitions.md) |
 | CI/CD | [CI_CD.md](./deploy/CI_CD.md) |
 | EC2 deploy | [deploy/README.md](../deploy/README.md) |
 | Synthetic seed | [scripts/synthetic_seed/README.md](../scripts/synthetic_seed/README.md) |
 | Migrations | [alembic/versions/README.md](../alembic/versions/README.md) |
-| Frontend (planned) | [frontend/README.md](../frontend/README.md), [docs/ui/FRONTEND_ARCHITECTURE.md](./ui/FRONTEND_ARCHITECTURE.md) |
+| Frontend | [frontend/README.md](../frontend/README.md), [docs/ui/FRONTEND_ARCHITECTURE.md](./ui/FRONTEND_ARCHITECTURE.md) |

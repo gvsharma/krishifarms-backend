@@ -53,9 +53,13 @@ PushTokenResponse:
       format: date-time
 
 PushTokenAPIResponse:
-  allOf:
-    - $ref: './common.yaml#/APIResponse'
-    - type: object
-      properties:
-        data:
-          $ref: '#/PushTokenResponse'
+  type: object
+  required: [success, data]
+  properties:
+    success:
+      type: boolean
+      enum: [true]
+    data:
+      $ref: '#/PushTokenResponse'
+    meta:
+      $ref: './common.yaml#/Meta'

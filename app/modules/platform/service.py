@@ -15,6 +15,7 @@ from app.modules.platform.models import (
     EntityComment,
     EntityTag,
     FieldAgent,
+    PaymentMode,
     VehicleType,
 )
 from app.modules.platform.schemas import (
@@ -27,6 +28,8 @@ from app.modules.platform.schemas import (
     CropPriceUpdateRequest,
     FieldAgentCreateRequest,
     FieldAgentUpdateRequest,
+    PaymentModeCreateRequest,
+    PaymentModeUpdateRequest,
     TagCreateRequest,
     VehicleTypeCreateRequest,
     VehicleTypeUpdateRequest,
@@ -190,6 +193,106 @@ def delete_activity_type(
         entity_id=row.id,
         client=client,
         summary=f"Service type deleted: {row.name}",
+    )
+    db.commit()
+
+
+# --- Payment modes ---
+
+
+def list_payment_modes(db: Session, org_id: UUID, page: int, page_size: int) -> tuple[list[PaymentMode], int]:
+    q = (
+        db.query(PaymentMode)
+        .filter(PaymentMode.org_id == org_id, PaymentMode.deleted_at.is_(None))
+        .order_by(PaymentMode.name)
+    )
+    return _paginate(q, page, page_size)
+
+
+def create_payment_mode(
+    db: Session, org_id: UUID, payload: PaymentModeCreateRequest, actor_user_id: UUID, client: ClientContext | None
+) -> PaymentMode:
+    if (
+        db.query(PaymentMode)
+        .filter(PaymentMode.org_id == org_id, PaymentMode.code == payload.code, PaymentMode.deleted_at.is_(None))
+        .first()
+    ):
+        raise ConflictError("Payment mode code already exists")
+    row = PaymentMode(org_id=org_id, created_by=actor_user_id, updated_by=actor_user_id, **payload.model_dump())
+    db.add(row)
+    db.flush()
+    _audit(
+        db,
+        org_id=org_id,
+        actor_user_id=actor_user_id,
+        action="CREATE",
+        entity_type="payment_mode",
+        entity_id=row.id,
+        after=payload.model_dump(mode="json"),
+        client=client,
+        summary=f"Payment mode created: {row.name}",
+    )
+    db.commit()
+    db.refresh(row)
+    return row
+
+
+def update_payment_mode(
+    db: Session,
+    org_id: UUID,
+    row_id: UUID,
+    payload: PaymentModeUpdateRequest,
+    actor_user_id: UUID,
+    client: ClientContext | None,
+) -> PaymentMode:
+    row = (
+        db.query(PaymentMode)
+        .filter(PaymentMode.id == row_id, PaymentMode.org_id == org_id, PaymentMode.deleted_at.is_(None))
+        .first()
+    )
+    if row is None:
+        raise NotFoundError("Payment mode not found")
+    before = {"name": row.name, "is_active": row.is_active}
+    for field, value in payload.model_dump(exclude_unset=True).items():
+        setattr(row, field, value)
+    row.updated_by = actor_user_id
+    _audit(
+        db,
+        org_id=org_id,
+        actor_user_id=actor_user_id,
+        action="UPDATE",
+        entity_type="payment_mode",
+        entity_id=row.id,
+        before=before,
+        after=payload.model_dump(exclude_unset=True, mode="json"),
+        client=client,
+        summary=f"Payment mode updated: {row.name}",
+    )
+    db.commit()
+    db.refresh(row)
+    return row
+
+
+def delete_payment_mode(
+    db: Session, org_id: UUID, row_id: UUID, actor_user_id: UUID, client: ClientContext | None
+) -> None:
+    row = (
+        db.query(PaymentMode)
+        .filter(PaymentMode.id == row_id, PaymentMode.org_id == org_id, PaymentMode.deleted_at.is_(None))
+        .first()
+    )
+    if row is None:
+        raise NotFoundError("Payment mode not found")
+    _soft_delete(row, actor_user_id)
+    _audit(
+        db,
+        org_id=org_id,
+        actor_user_id=actor_user_id,
+        action="DELETE",
+        entity_type="payment_mode",
+        entity_id=row.id,
+        client=client,
+        summary=f"Payment mode deleted: {row.name}",
     )
     db.commit()
 

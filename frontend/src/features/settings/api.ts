@@ -35,3 +35,34 @@ export function fetchUsers(page = 1, pageSize = 50): Promise<UserListData> {
   });
   return fetchApi<UserListData>(`/users?${params}`, { method: "GET", clientHeaders: false });
 }
+
+export function fetchRoles(): Promise<UserRole[]> {
+  return fetchApi<UserRole[]>("/roles", { method: "GET", clientHeaders: false });
+}
+
+export function createUser(payload: {
+  full_name: string;
+  role_id: string;
+  email?: string | null;
+  password?: string | null;
+  phone?: string | null;
+  village_id?: string | null;
+  preferred_locale?: string;
+}): Promise<User> {
+  return fetchApi<User>("/users", { method: "POST", body: payload, clientHeaders: true });
+}
+
+export function updateUser(
+  id: string,
+  payload: Partial<{
+    full_name: string;
+    phone: string | null;
+    village_id: string | null;
+    role_id: string;
+    preferred_locale: string;
+    is_active: boolean;
+    password: string;
+  }>,
+): Promise<User> {
+  return fetchApi<User>(`/users/${id}`, { method: "PATCH", body: payload, clientHeaders: true });
+}

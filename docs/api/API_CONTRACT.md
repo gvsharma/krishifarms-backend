@@ -95,6 +95,26 @@ Paginated `data`:
 
 ## 2. Endpoint Catalog
 
+### Master data & platform (Phase 1 / 1b — live)
+
+| Method | Path | Notes |
+|--------|------|-------|
+| GET/POST | `/villages` | Soft-delete via DELETE |
+| PATCH/DELETE | `/villages/{id}` | |
+| GET/POST | `/crop-types` | |
+| PATCH/DELETE | `/crop-types/{id}` | |
+| GET/POST | `/expense-categories` | |
+| PATCH/DELETE | `/expense-categories/{id}` | |
+| GET/POST | `/activity-types` | Service / labour types (`service_category` groups field ops) |
+| PATCH/DELETE | `/activity-types/{id}` | |
+| GET/POST | `/payment-modes` | Cash, UPI, bank, etc. |
+| PATCH/DELETE | `/payment-modes/{id}` | |
+| GET/POST | `/buyers`, `/agents`, `/vehicle-types`, `/crop-prices` | Platform catalogs |
+| PATCH/DELETE | `/{resource}/{id}` | Soft-delete |
+| GET/POST | `/comments`, `/tags` | Entity comments / tags |
+
+OpenAPI: `docs/api/paths/platform.yaml`. Web admin: Settings → Master data.
+
 ### Authentication
 
 | Method | Path | Request | Response `data` |
@@ -129,6 +149,18 @@ See [DEVICES_NOTIFICATIONS.md](../modules/DEVICES_NOTIFICATIONS.md).
 | GET/POST | `/farmers/{id}/crop-history` | |
 | GET | `/farmers/{id}/ledger` | Paginated ledger entries |
 | GET | `/farmers/{id}/outstanding` | `{ outstanding_amount, as_of_date }` |
+
+### Field services
+
+| Method | Path | Notes |
+|--------|------|-------|
+| GET | `/field-services` | Filter: `service_category`, `farmer_id`, `status`, `date_from`, `date_to` |
+| POST | `/field-services` | Create unified service record (`FSR-####`) |
+| GET | `/field-services/{record_id}` | Detail with farmer / activity names |
+| PATCH | `/field-services/{record_id}` | Update amounts, status, comments |
+| DELETE | `/field-services/{record_id}` | OWNER only; soft delete |
+
+Categories: `field_service`, `tractor_work`, `transport`, `fertiliser`, `seeds`, `agri_finance`, `vehicle_ops`, `godown`. See [FIELD_SERVICES.md](../modules/FIELD_SERVICES.md).
 
 ### Farms
 

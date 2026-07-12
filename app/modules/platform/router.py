@@ -26,6 +26,10 @@ from app.modules.platform.schemas import (
     FieldAgentListResponse,
     FieldAgentResponse,
     FieldAgentUpdateRequest,
+    PaymentModeCreateRequest,
+    PaymentModeListResponse,
+    PaymentModeResponse,
+    PaymentModeUpdateRequest,
     TagCreateRequest,
     TagListResponse,
     TagResponse,
@@ -108,6 +112,61 @@ def delete_activity_type(
 ):
     service.delete_activity_type(db, ctx.user.org_id, row_id, ctx.user.id, client)
     return APIResponse(data=MessageResponse(message="Activity type deleted"))
+
+
+# --- Payment modes ---
+
+
+@router.get("/payment-modes", response_model=APIResponse[PaymentModeListResponse])
+def list_payment_modes(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+    ctx: CurrentUserContext = Depends(require_permission("payment_modes:read")),
+    db: Session = Depends(get_db),
+):
+    items, total = service.list_payment_modes(db, ctx.user.org_id, page, page_size)
+    return APIResponse(
+        data=PaymentModeListResponse(
+            items=[_with_audit_names(db, i, PaymentModeResponse) for i in items],
+            total=total,
+            page=page,
+            page_size=page_size,
+        )
+    )
+
+
+@router.post("/payment-modes", response_model=APIResponse[PaymentModeResponse], status_code=201)
+def create_payment_mode(
+    payload: PaymentModeCreateRequest,
+    ctx: CurrentUserContext = Depends(require_permission("payment_modes:create")),
+    client: ClientContext = Depends(get_client_context),
+    db: Session = Depends(get_db),
+):
+    row = service.create_payment_mode(db, ctx.user.org_id, payload, ctx.user.id, client)
+    return APIResponse(data=_with_audit_names(db, row, PaymentModeResponse))
+
+
+@router.patch("/payment-modes/{row_id}", response_model=APIResponse[PaymentModeResponse])
+def update_payment_mode(
+    row_id: UUID,
+    payload: PaymentModeUpdateRequest,
+    ctx: CurrentUserContext = Depends(require_permission("payment_modes:update")),
+    client: ClientContext = Depends(get_client_context),
+    db: Session = Depends(get_db),
+):
+    row = service.update_payment_mode(db, ctx.user.org_id, row_id, payload, ctx.user.id, client)
+    return APIResponse(data=_with_audit_names(db, row, PaymentModeResponse))
+
+
+@router.delete("/payment-modes/{row_id}", response_model=APIResponse[MessageResponse])
+def delete_payment_mode(
+    row_id: UUID,
+    ctx: CurrentUserContext = Depends(require_permission("payment_modes:delete")),
+    client: ClientContext = Depends(get_client_context),
+    db: Session = Depends(get_db),
+):
+    service.delete_payment_mode(db, ctx.user.org_id, row_id, ctx.user.id, client)
+    return APIResponse(data=MessageResponse(message="Payment mode deleted"))
 
 
 # --- Buyers ---

@@ -41,6 +41,7 @@ alembic downgrade -1
 | `202506210017` | Platform | Entity comments/tags, accountability columns |
 | `202506210018` | Platform | Platform RBAC permissions, AGENT/DRIVER roles |
 | `202506210019` | Procurement | Extend procurement status CHECK for workflow states |
+| `202506210020` | Devices | `user_device_tokens` for FCM push registration |
 
 ## Partition Maintenance
 

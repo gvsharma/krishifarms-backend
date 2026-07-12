@@ -10,6 +10,7 @@ from app.modules.procurements.models import (  # noqa: F401
     Procurement,
     ProcurementDeduction,
 )
+from app.modules.field_services.models import FieldServiceRecord  # noqa: F401
 from app.modules.financial.models import ExpenseCategory  # noqa: F401
 from app.modules.master_data.models import CropType, Village  # noqa: F401
 from app.modules.platform.models import (  # noqa: F401
@@ -19,6 +20,7 @@ from app.modules.platform.models import (  # noqa: F401
     EntityComment,
     EntityTag,
     FieldAgent,
+    PaymentMode,
     VehicleType,
 )
 from app.modules.users.models import (  # noqa: F401
