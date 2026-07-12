@@ -1,11 +1,15 @@
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, String, Table, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB, UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import AuditActorMixin, Base, SoftDeleteMixin, TimestampMixin, UUIDPrimaryKeyMixin
+
+# workers table exists via migrations; stub metadata so User.worker_id FK resolves at flush
+if "workers" not in Base.metadata.tables:
+    Table("workers", Base.metadata, Column("id", PGUUID(as_uuid=True), primary_key=True))
 
 
 class Organization(Base, UUIDPrimaryKeyMixin, TimestampMixin):

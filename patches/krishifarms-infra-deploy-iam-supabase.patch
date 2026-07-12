@@ -1,0 +1,205 @@
+diff --git a/.github/workflows/terraform.yml b/.github/workflows/terraform.yml
+index d0135b1..f08765b 100644
+--- a/.github/workflows/terraform.yml
++++ b/.github/workflows/terraform.yml
+@@ -57,6 +57,7 @@ jobs:
+     runs-on: ubuntu-latest
+     env:
+       TF_VAR_github_token: ${{ secrets.KRISHIFARMS_GH_TOKEN }}
++      TF_VAR_supabase_db_password: ${{ secrets.SUPABASE_DB_PASSWORD }}
+     permissions:
+       id-token: write
+       contents: read
+@@ -157,6 +158,7 @@ jobs:
+     environment: development
+     env:
+       TF_VAR_github_token: ${{ secrets.KRISHIFARMS_GH_TOKEN }}
++      TF_VAR_supabase_db_password: ${{ secrets.SUPABASE_DB_PASSWORD }}
+     permissions:
+       id-token: write
+       contents: read
+diff --git a/environments/dev/ci.tfvars b/environments/dev/ci.tfvars
+index e811052..7129d3c 100644
+--- a/environments/dev/ci.tfvars
++++ b/environments/dev/ci.tfvars
+@@ -23,7 +23,7 @@ health_check_url = "http://127.0.0.1:8082/health"
+ 
+ # Backend deploy: GitHub Actions → S3 → SSM → EC2 (Docker)
+ enable_backend_ssm_deploy   = true
+-github_backend_repository   = "gvsharma/krishifarms-crm"
++github_backend_repository   = "gvsharma/krishifarms-backend"
+ create_github_oidc_provider = false
+ 
+ enable_custom_domain = true
+diff --git a/environments/dev/main.tf b/environments/dev/main.tf
+index ce9a13a..dad3105 100644
+--- a/environments/dev/main.tf
++++ b/environments/dev/main.tf
+@@ -62,6 +62,7 @@ module "ci_backend_deploy" {
+   ec2_instance_arn     = data.aws_instance.app.arn
+   create_oidc_provider = false
+   rds_instance_arn     = null
++  ssm_parameter_prefix = local.ssm_parameter_prefix
+ 
+   allowed_ref_subjects = [
+     "repo:${var.github_backend_repository}:ref:refs/heads/main",
+@@ -72,11 +73,12 @@ module "github_backend_deploy_config" {
+   count  = var.enable_backend_ssm_deploy && var.github_token != null ? 1 : 0
+   source = "../../modules/github-backend-deploy-config"
+ 
+-  repository      = var.github_backend_repository
+-  deploy_role_arn = module.ci_backend_deploy[0].deploy_role_arn
+-  deploy_bucket   = module.backend_deploy_artifacts[0].bucket_name
+-  ec2_instance_id = var.existing_ec2_instance_id
+-  ec2_host        = var.existing_ec2_public_ip
++  repository            = var.github_backend_repository
++  deploy_role_arn       = module.ci_backend_deploy[0].deploy_role_arn
++  deploy_bucket         = module.backend_deploy_artifacts[0].bucket_name
++  ec2_instance_id       = var.existing_ec2_instance_id
++  ec2_host              = var.existing_ec2_public_ip
++  supabase_db_password  = var.supabase_db_password
+ }
+ 
+ module "route53_records" {
+diff --git a/environments/dev/variables.tf b/environments/dev/variables.tf
+index becc792..583428e 100644
+--- a/environments/dev/variables.tf
++++ b/environments/dev/variables.tf
+@@ -49,7 +49,14 @@ variable "github_infra_repository" {
+ 
+ variable "github_backend_repository" {
+   type    = string
+-  default = "gvsharma/krishifarms-crm"
++  default = "gvsharma/krishifarms-backend"
++}
++
++variable "supabase_db_password" {
++  type        = string
++  description = "Supabase database password — synced to backend repo GitHub secret SUPABASE_DB_PASSWORD."
++  sensitive   = true
++  default     = null
+ }
+ 
+ variable "github_token" {
+diff --git a/modules/ci-backend-deploy-iam/main.tf b/modules/ci-backend-deploy-iam/main.tf
+index a44e015..ca6488c 100644
+--- a/modules/ci-backend-deploy-iam/main.tf
++++ b/modules/ci-backend-deploy-iam/main.tf
+@@ -1,5 +1,11 @@
+ data "aws_region" "current" {}
+ 
++data "aws_caller_identity" "current" {}
++
++locals {
++  ssm_parameter_arn_prefix = "arn:aws:ssm:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:parameter${var.ssm_parameter_prefix}"
++}
++
+ locals {
+   github_oidc_url = "https://token.actions.githubusercontent.com"
+   repo_subject    = "repo:${var.github_repository}:*"
+@@ -142,6 +148,48 @@ data "aws_iam_policy_document" "deploy" {
+     ]
+     resources = [var.ec2_instance_arn]
+   }
++
++  dynamic "statement" {
++    for_each = var.ssm_parameter_prefix != "" ? [1] : []
++    content {
++      sid    = "ManageDeploySsmParameters"
++      effect = "Allow"
++      actions = [
++        "ssm:GetParameter",
++        "ssm:PutParameter",
++        "ssm:AddTagsToResource",
++      ]
++      resources = ["${local.ssm_parameter_arn_prefix}/*"]
++    }
++  }
++
++  dynamic "statement" {
++    for_each = var.cost_scheduler_lambda_name != "" ? [1] : []
++    content {
++      sid    = "ConfigureCostSchedulerLambda"
++      effect = "Allow"
++      actions = [
++        "lambda:GetFunctionConfiguration",
++        "lambda:UpdateFunctionConfiguration",
++      ]
++      resources = [
++        "arn:aws:lambda:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:function:${var.cost_scheduler_lambda_name}",
++      ]
++    }
++  }
++
++  dynamic "statement" {
++    for_each = var.enable_scheduler_schedule_management ? [1] : []
++    content {
++      sid    = "ManageOrphanEventBridgeSchedules"
++      effect = "Allow"
++      actions = [
++        "scheduler:GetSchedule",
++        "scheduler:DeleteSchedule",
++      ]
++      resources = ["arn:aws:scheduler:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:schedule/*"]
++    }
++  }
+ }
+ 
+ resource "aws_iam_role_policy" "deploy" {
+diff --git a/modules/ci-backend-deploy-iam/variables.tf b/modules/ci-backend-deploy-iam/variables.tf
+index 45e9714..87c5ae4 100644
+--- a/modules/ci-backend-deploy-iam/variables.tf
++++ b/modules/ci-backend-deploy-iam/variables.tf
+@@ -41,3 +41,21 @@ variable "rds_instance_arn" {
+   description = "RDS instance ARN for deploy-time start/describe (optional)."
+   default     = null
+ }
++
++variable "ssm_parameter_prefix" {
++  type        = string
++  description = "SSM path prefix for deploy-time secret sync (e.g. /krishifarms/dev)."
++  default     = "/krishifarms/dev"
++}
++
++variable "cost_scheduler_lambda_name" {
++  type        = string
++  description = "Shared Gamya cost scheduler Lambda to configure EC2-only cron."
++  default     = "gamya-couture-dev-cost-scheduler"
++}
++
++variable "enable_scheduler_schedule_management" {
++  type        = bool
++  description = "Allow deleting orphan EventBridge Scheduler rules during deploy."
++  default     = true
++}
+diff --git a/modules/github-backend-deploy-config/main.tf b/modules/github-backend-deploy-config/main.tf
+index 5c56667..e3bbb1e 100644
+--- a/modules/github-backend-deploy-config/main.tf
++++ b/modules/github-backend-deploy-config/main.tf
+@@ -21,3 +21,11 @@ resource "github_actions_variable" "ec2_host" {
+   variable_name = "EC2_HOST"
+   value         = var.ec2_host
+ }
++
++resource "github_actions_secret" "supabase_db_password" {
++  count = var.supabase_db_password != null && var.supabase_db_password != "" ? 1 : 0
++
++  repository  = local.name
++  secret_name = "SUPABASE_DB_PASSWORD"
++  value       = var.supabase_db_password
++}
+diff --git a/modules/github-backend-deploy-config/variables.tf b/modules/github-backend-deploy-config/variables.tf
+index 07cd4f1..67aba52 100644
+--- a/modules/github-backend-deploy-config/variables.tf
++++ b/modules/github-backend-deploy-config/variables.tf
+@@ -22,3 +22,10 @@ variable "ec2_host" {
+   type        = string
+   description = "EC2 public IP or hostname for health checks (Elastic IP when provisioned)."
+ }
++
++variable "supabase_db_password" {
++  type        = string
++  description = "Optional — sync SUPABASE_DB_PASSWORD secret to the backend repository."
++  sensitive   = true
++  default     = null
++}

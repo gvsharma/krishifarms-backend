@@ -1,8 +1,9 @@
-from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr | None = None
+    # Use str (not EmailStr) so seeded *.local demo/dev addresses are accepted.
+    email: str | None = Field(default=None, max_length=255)
     mobile: str | None = Field(default=None, min_length=10, max_length=15)
     password: str = Field(min_length=8)
 
@@ -11,6 +12,16 @@ class LoginRequest(BaseModel):
         if not self.email and not self.mobile:
             raise ValueError("Either email or mobile is required")
         return self
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        email = value.strip().lower()
+        if "@" not in email or email.startswith("@") or email.endswith("@"):
+            raise ValueError("Invalid email address")
+        return email
 
     @field_validator("mobile")
     @classmethod

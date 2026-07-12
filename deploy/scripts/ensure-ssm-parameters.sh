@@ -38,13 +38,29 @@ param_exists() {
 
 create_param() {
   local name="$1" type="$2" value="$3"
-  aws ssm put-parameter \
+  local err_file
+  err_file="$(mktemp)"
+  if aws ssm put-parameter \
     --region "$REGION" \
     --name "$name" \
     --type "$type" \
     --value "$value" \
     --tags "Key=Project,Value=krishifarms" "Key=ManagedBy,Value=ensure-ssm-parameters.sh" \
-    >/dev/null
+    >/dev/null 2>"${err_file}"; then
+    rm -f "${err_file}"
+    return 0
+  fi
+  if grep -qE 'AccessDenied|AccessDeniedException' "${err_file}"; then
+    log "WARN  ${name} — PutParameter AccessDenied (attach deploy IAM policy or create param in Console)"
+    rm -f "${err_file}"
+    if [[ "${ENSURE_SSM_STRICT:-false}" == "true" ]]; then
+      return 1
+    fi
+    return 0
+  fi
+  cat "${err_file}" >&2
+  rm -f "${err_file}"
+  return 1
 }
 
 if ! command -v aws >/dev/null 2>&1; then

@@ -2,11 +2,14 @@
 # Prompt for Supabase DB password and write SecureString SSM parameter
 # /krishifarms/dev/db/database_url for project ucvwtoziiqgmcyzxkwxe.
 #
-# Does NOT print the password. Does NOT commit anything.
+# EC2 cannot use direct db.<ref>.supabase.co (IPv6-only on free tier).
+# Uses session pooler (IPv4). Pooler host varies (aws-0/aws-1 + region) — copy from
+# Dashboard → Project Settings → Database → Connection string, or set SUPABASE_POOLER_HOST.
 #
 # Usage:
 #   bash deploy/scripts/put-supabase-database-url-ssm.sh
-#   SUPABASE_DB_PASSWORD='...' bash deploy/scripts/put-supabase-database-url-ssm.sh  # non-interactive
+#   SUPABASE_DB_PASSWORD='...' bash deploy/scripts/put-supabase-database-url-ssm.sh
+#   SUPABASE_POOLER_HOST='aws-1-ap-southeast-1.pooler.supabase.com' SUPABASE_DB_PASSWORD='...' bash ...
 #
 # Requires: aws CLI, permission ssm:PutParameter on /krishifarms/dev/db/*
 set -euo pipefail
@@ -14,11 +17,181 @@ set -euo pipefail
 REGION="${AWS_REGION:-ap-south-1}"
 PARAM_NAME="${SSM_DB_URL_PATH:-/krishifarms/dev/db/database_url}"
 PROJECT_REF="${SUPABASE_PROJECT_REF:-ucvwtoziiqgmcyzxkwxe}"
-HOST="db.${PROJECT_REF}.supabase.co"
+CONNECTION_MODE="${SUPABASE_CONNECTION_MODE:-pooler}"
 
-urlencode() {
-  # Minimal encode for password special chars in URI userinfo
-  python3 -c 'import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1], safe=""))' "$1"
+log() { echo "[put-supabase] $*"; }
+
+discover_pooler_host() {
+  local password="$1"
+  python3 - "$PROJECT_REF" "$password" <<'PY'
+import subprocess
+import sys
+
+project_ref, password = sys.argv[1], sys.argv[2]
+
+try:
+    import psycopg2
+except ImportError:
+    subprocess.check_call(
+        [sys.executable, "-m", "pip", "install", "psycopg2-binary", "-q"],
+    )
+    import importlib
+
+    psycopg2 = importlib.import_module("psycopg2")
+
+regions = [
+    "ap-northeast-1",
+    "ap-south-1",
+    "ap-southeast-1",
+    "ap-southeast-2",
+    "us-east-1",
+    "us-east-2",
+    "us-west-1",
+    "eu-west-1",
+    "eu-central-1",
+]
+prefixes = ["aws-0", "aws-1", "aws-2"]
+user = f"postgres.{project_ref}"
+
+for prefix in prefixes:
+    for region in regions:
+        host = f"{prefix}-{region}.pooler.supabase.com"
+        try:
+            conn = psycopg2.connect(
+                host=host,
+                port=5432,
+                dbname="postgres",
+                user=user,
+                password=password,
+                sslmode="require",
+                connect_timeout=8,
+            )
+            conn.close()
+            print(host)
+            sys.exit(0)
+        except Exception:
+            continue
+
+sys.stderr.write(
+    "ERROR: Could not find working pooler host. Set SUPABASE_POOLER_HOST from "
+    "Supabase Dashboard → Settings → Database → Connection string (Session pooler).\n"
+)
+sys.exit(1)
+PY
+}
+
+build_verify_and_put_database_url() {
+  # Verify credentials and put SSM from Python. Use URL.render_as_string(hide_password=False):
+  # SQLAlchemy 2.x str(URL) replaces the password with "***", which previously corrupted SSM.
+  local password="$1"
+  local host="$2"
+  python3 - "$PROJECT_REF" "$password" "$host" "$CONNECTION_MODE" "$REGION" "$PARAM_NAME" <<'PY'
+import json
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+project_ref, password, host, mode, region, param_name = sys.argv[1:7]
+
+try:
+    import psycopg2
+    from sqlalchemy.engine import URL
+except ImportError:
+    subprocess.check_call(
+        [sys.executable, "-m", "pip", "install", "psycopg2-binary", "sqlalchemy", "-q"],
+    )
+    import importlib
+
+    psycopg2 = importlib.import_module("psycopg2")
+    URL = importlib.import_module("sqlalchemy.engine").URL
+
+password = password.strip()
+if not password or len(password) < 8 or password == "***":
+    sys.stderr.write(
+        "ERROR: SUPABASE_DB_PASSWORD looks invalid. Re-paste the full database password "
+        "into the GitHub secret (not '***' or a truncated value).\n"
+    )
+    sys.exit(1)
+
+if mode == "pooler":
+    username = f"postgres.{project_ref}"
+    connect_host = host
+elif mode == "direct":
+    username = "postgres"
+    connect_host = f"db.{project_ref}.supabase.co"
+else:
+    sys.stderr.write("ERROR: SUPABASE_CONNECTION_MODE must be pooler or direct\n")
+    sys.exit(1)
+
+try:
+    conn = psycopg2.connect(
+        host=connect_host,
+        port=5432,
+        dbname="postgres",
+        user=username,
+        password=password,
+        sslmode="require",
+        connect_timeout=15,
+    )
+    conn.close()
+except Exception as exc:
+    sys.stderr.write(
+        f"ERROR: Supabase connection failed for user {username} @ {connect_host}: {exc}\n"
+    )
+    sys.stderr.write(
+        "Check SUPABASE_DB_PASSWORD is the raw database password from "
+        "Dashboard → Project Settings → Database (not API keys, not URL-encoded).\n"
+    )
+    sys.exit(1)
+
+database_url = URL.create(
+    drivername="postgresql+psycopg2",
+    username=username,
+    password=password,
+    host=connect_host,
+    port=5432,
+    database="postgres",
+    query={"sslmode": "require"},
+).render_as_string(hide_password=False)
+# NOTE: str(URL) hides passwords as "***" in SQLAlchemy 2.x — never use str(url) for SSM.
+if ":***@" in database_url or database_url.count("@") != 1:
+    sys.stderr.write(
+        "ERROR: refusing to write masked/invalid DATABASE_URL "
+        "(use URL.render_as_string(hide_password=False)).\n"
+    )
+    sys.exit(1)
+
+payload = {
+    "Name": param_name,
+    "Type": "SecureString",
+    "Value": database_url,
+    "Overwrite": True,
+}
+with tempfile.NamedTemporaryFile("w", encoding="utf-8", suffix=".json", delete=False) as fh:
+    json.dump(payload, fh)
+    payload_path = fh.name
+
+try:
+    subprocess.run(
+        [
+            "aws",
+            "ssm",
+            "put-parameter",
+            "--region",
+            region,
+            "--cli-input-json",
+            f"file://{payload_path}",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+finally:
+    Path(payload_path).unlink(missing_ok=True)
+
+print(f"ok user={username} host={connect_host} param={param_name}", flush=True)
+PY
 }
 
 if [[ -n "${SUPABASE_DB_PASSWORD:-}" ]]; then
@@ -32,26 +205,29 @@ else
   echo
 fi
 
+# Trim accidental whitespace/newlines from GitHub secrets paste
+PASSWORD="$(printf '%s' "${PASSWORD}" | tr -d '\r\n')"
+
 if [[ -z "${PASSWORD}" ]]; then
   echo "ERROR: empty password" >&2
   exit 1
 fi
 
-ENCODED="$(urlencode "${PASSWORD}")"
-DATABASE_URL="postgresql+psycopg2://postgres:${ENCODED}@${HOST}:5432/postgres?sslmode=require"
+if [[ "${#PASSWORD}" -lt 8 || "${PASSWORD}" == "***" ]]; then
+  echo "ERROR: SUPABASE_DB_PASSWORD looks invalid (len=${#PASSWORD}). Re-paste the full database password into the GitHub secret (not '***' or a truncated value)." >&2
+  exit 1
+fi
 
-echo "Writing SecureString ${PARAM_NAME} (region ${REGION})…"
-echo "Host: ${HOST} (password redacted)"
+POOLER_HOST="${SUPABASE_POOLER_HOST:-}"
+if [[ "${CONNECTION_MODE}" == "pooler" && -z "${POOLER_HOST}" ]]; then
+  log "Discovering session pooler host for project ${PROJECT_REF}…"
+  POOLER_HOST="$(discover_pooler_host "${PASSWORD}")"
+  log "Discovered pooler host: ${POOLER_HOST}"
+elif [[ "${CONNECTION_MODE}" == "pooler" ]]; then
+  log "Using SUPABASE_POOLER_HOST=${POOLER_HOST}"
+fi
 
-aws ssm put-parameter \
-  --region "${REGION}" \
-  --name "${PARAM_NAME}" \
-  --type SecureString \
-  --value "${DATABASE_URL}" \
-  --overwrite >/dev/null
+log "Verifying Supabase credentials and writing SSM ${PARAM_NAME}…"
+build_verify_and_put_database_url "${PASSWORD}" "${POOLER_HOST}"
 
-echo "Done. Next:"
-echo "  1. Merge chore/supabase-db-migration → main (or deploy Compose/SSM script changes)"
-echo "  2. On EC2: sudo APP_PATH=/opt/krishifarms bash /opt/krishifarms/scripts/sync-env-from-ssm.sh"
-echo "  3. alembic upgrade head && python scripts/seed.py (local or on EC2 api container)"
-echo "See docs/deploy/SUPABASE_MIGRATION.md"
+log "Done. Re-run Deploy workflow on main."

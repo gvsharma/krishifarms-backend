@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse
 from app.core.cache import get_cache_provider
 from app.core.config import settings
 from app.core.exceptions import AppError
+import app.models  # noqa: F401 — register ORM metadata (incl. migration-only stubs)
 from app.modules.audit.router import router as audit_router
 from app.modules.auth.router import router as auth_router
 from app.modules.dashboard.router import router as dashboard_router

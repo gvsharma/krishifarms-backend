@@ -147,6 +147,9 @@ docker compose -f "${COMPOSE_FILE}" up -d --build --remove-orphans
 log "Running database migrations"
 docker compose -f "${COMPOSE_FILE}" exec -T api alembic upgrade head
 
+log "Seeding database if empty (idempotent)"
+docker compose -f "${COMPOSE_FILE}" exec -T api python scripts/seed.py || log "WARN: seed exited non-zero"
+
 if wait_for_health "deploy"; then
   prune_backups
   rm -f "${INCOMING_ARCHIVE}"

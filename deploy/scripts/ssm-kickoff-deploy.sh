@@ -77,9 +77,12 @@ main() {
   log "Downloading deploy scripts from S3"
   aws s3 cp "s3://${DEPLOY_BUCKET}/${SYNC_KEY}" "${APP_PATH}/scripts/sync-env-from-ssm.sh"
   aws s3 cp "s3://${DEPLOY_BUCKET}/${SCRIPT_KEY}" "${APP_PATH}/scripts/remote-deploy.sh"
+  aws s3 cp "s3://${DEPLOY_BUCKET}/incoming/fix-firebase-env.py" "${APP_PATH}/scripts/fix-firebase-env.py" \
+    || log "WARN: fix-firebase-env.py not in S3"
   aws s3 cp "s3://${DEPLOY_BUCKET}/${ENV_TEMPLATE_KEY}" "${APP_PATH}/scripts/application.env.example" \
     || log "WARN: application.env.example not in S3 — sync-env must find an existing config file"
   chmod 755 "${APP_PATH}/scripts/sync-env-from-ssm.sh" "${APP_PATH}/scripts/remote-deploy.sh"
+  chmod 755 "${APP_PATH}/scripts/fix-firebase-env.py" 2>/dev/null || true
 
   log "Downloading deploy bundle from S3"
   aws s3 cp "s3://${DEPLOY_BUCKET}/${ARCHIVE_KEY}" "${APP_PATH}/incoming/deploy.tar.gz"

@@ -26,13 +26,19 @@ Direct (recommended for Alembic + app):
 postgresql://postgres:[YOUR-PASSWORD]@db.ucvwtoziiqgmcyzxkwxe.supabase.co:5432/postgres
 ```
 
-App / SQLAlchemy form (always add SSL):
+Direct (laptop / IPv6-capable networks only):
 
 ```text
 postgresql+psycopg2://postgres:[YOUR-PASSWORD]@db.ucvwtoziiqgmcyzxkwxe.supabase.co:5432/postgres?sslmode=require
 ```
 
-Session pooler (also fine for Alembic; replace `<REGION>` e.g. `ap-south-1`):
+**EC2 / Docker (recommended — IPv4 session pooler):** default in `put-supabase-database-url-ssm.sh`
+
+```text
+postgresql+psycopg2://postgres.ucvwtoziiqgmcyzxkwxe:[YOUR-PASSWORD]@aws-0-ap-south-1.pooler.supabase.com:5432/postgres?sslmode=require
+```
+
+Legacy pooler template (replace `<REGION>` e.g. `ap-south-1`):
 
 ```text
 postgresql+psycopg2://postgres.ucvwtoziiqgmcyzxkwxe:[YOUR-PASSWORD]@aws-0-<REGION>.pooler.supabase.com:5432/postgres?sslmode=require
@@ -50,8 +56,8 @@ Transaction pooler (port **6543**): app-only — **avoid for Alembic**.
 |------|--------|
 | Prod DB | Docker `postgres:16-alpine` on EC2 `i-0426cdc00ff15bfe9` (`infra-postgres-1`, volume `infra_pgdata`) |
 | `DATABASE_URL` on EC2 | `postgresql+psycopg2://krishi:***@postgres:5432/krishifarms` |
-| Aurora | **None** — destroy skipped (nothing KrishiFarms-owned) |
-| RDS in account | `gamya-couture-dev-pg` only (tags `Project=gamya-couture`; stopped) — **do not destroy** without confirmation |
+| Aurora | **None** |
+| RDS in account | `gamya-couture-dev-pg` (Gamya Terraform) — remove via [GAMYA_RDS_REMOVAL.md](./GAMYA_RDS_REMOVAL.md) |
 | SSM DB secret | `/krishifarms/dev/db/password` → builds Docker `DATABASE_URL` |
 | SSM override (this cutover) | `/krishifarms/dev/db/database_url` → full Supabase URL when set (structure via `ensure-ssm-parameters.sh`; real value via `put-supabase-database-url-ssm.sh`) |
 | Extensions needed | `pgcrypto`, `pg_trgm` (Alembic `create_extensions()`) — both available on Supabase |
@@ -65,33 +71,23 @@ Transaction pooler (port **6543**): app-only — **avoid for Alembic**.
 ### 1. Prerequisites
 
 - [x] Supabase project created — ref `ucvwtoziiqgmcyzxkwxe`
-- [ ] This branch merged to `main` (Compose no longer hardcodes Docker `DATABASE_URL`; SSM sync supports full URL)
-- [ ] Database **password** available (paste to agent or set SSM yourself)
-- [ ] Confirm **fresh Alembic + seed** (recommended) vs dump/restore from Docker
+- [x] Compose + SSM sync merged to `main`
+- [ ] **`SUPABASE_DB_PASSWORD`** GitHub secret on `krishifarms-backend` — [runbook](./SUPABASE_CUTOVER_RUNBOOK.md)
+- [ ] **IAM** `ssm:PutParameter` on deploy role — `bash deploy/scripts/attach-github-deploy-iam-supabase-policy.sh`
+- [ ] **Green deploy** — `alembic upgrade head` + seed on Supabase
 
-### 2. Put URL in AWS SSM (recommended)
+### 2. Put URL in AWS SSM (automated on deploy)
 
-Ensure parameter structure exists (creates missing keys with `REPLACE_ME`; safe to re-run):
+**Preferred:** add GitHub secret **`SUPABASE_DB_PASSWORD`** (repo → Settings → Secrets → Actions). Each push to `main` runs `github-predeploy.sh` which:
 
-```bash
-bash deploy/scripts/ensure-ssm-parameters.sh
-```
+1. Ensures SSM keys exist (`ensure-ssm-parameters.sh`)
+2. Writes `/krishifarms/dev/db/database_url` with `sslmode=require`
+3. Configures EC2-only cost scheduler (drops RDS from daily cron)
 
-Then write the real Supabase URL (prompts for password; URL-encodes; does not echo secrets):
-
-```bash
-bash deploy/scripts/put-supabase-database-url-ssm.sh
-```
-
-Or manually (replace `[YOUR-PASSWORD]`; URL-encode special chars):
+**Manual fallback** (local machine with AWS CLI):
 
 ```bash
-aws ssm put-parameter \
-  --region ap-south-1 \
-  --name /krishifarms/dev/db/database_url \
-  --type SecureString \
-  --value 'postgresql+psycopg2://postgres:[YOUR-PASSWORD]@db.ucvwtoziiqgmcyzxkwxe.supabase.co:5432/postgres?sslmode=require' \
-  --overwrite
+SUPABASE_DB_PASSWORD='...' bash deploy/scripts/put-supabase-database-url-ssm.sh
 ```
 
 When `/krishifarms/dev/db/database_url` is set, `sync-env-from-ssm.sh` uses it and **does not** overwrite with the Docker Postgres URL.
@@ -154,7 +150,27 @@ curl -sf http://127.0.0.1:8082/api/v1/health
 # Login: owner@krishifarms.local / ChangeMe123! (or your seeded owner)
 ```
 
-### 7. Optional cleanup
+### 6b. Optional temporary demo data (Android + CRM)
+
+After schema + bootstrap seed, load the live-module demo pack (farmers, procurements, platform). See **[docs/DEMO_DATA.md](../DEMO_DATA.md)** — purge before production.
+
+```bash
+sudo docker compose -f infra/docker-compose.prod.yml exec -T api python scripts/seed_demo_data.py
+# Purge: python scripts/purge_demo_data.py
+```
+
+### 7. EC2 start/stop cron — keep EC2, drop RDS
+
+Daily EventBridge Scheduler jobs (06:00 / 11:00 IST) should **still start/stop EC2** `i-0426cdc00ff15bfe9` but **not** RDS `gamya-couture-dev-pg` after Supabase cutover:
+
+```bash
+bash deploy/scripts/configure-compute-scheduler-ec2-only.sh
+# Preview: bash deploy/scripts/configure-compute-scheduler-ec2-only.sh --dry-run
+```
+
+This removes `DB_INSTANCE_IDENTIFIER` from Lambda `gamya-couture-dev-cost-scheduler` and deletes the disabled orphan `shutdown-ec2` schedule.
+
+### 8. Optional cleanup (Docker Postgres on EC2)
 
 ```bash
 # Free RAM on t3.small — local DB unused after cutover
@@ -162,7 +178,7 @@ sudo docker compose -f infra/docker-compose.prod.yml stop postgres
 # Keep volume `infra_pgdata` until you are sure you will not roll back
 ```
 
-### 8. Rollback
+### 9. Rollback
 
 1. Remove or empty SSM `/krishifarms/dev/db/database_url` (or unset `DATABASE_URL` override)
 2. Re-run `sync-env-from-ssm.sh` so Docker URL is rebuilt from `/krishifarms/dev/db/password`

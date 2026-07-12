@@ -16,14 +16,36 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Sessions API** — `GET /users/me/sessions`, `DELETE /users/me/sessions/{id}` (active refresh tokens; device_id only — no new migration)
 - **Locale self-service** — `preferred_locale` on `AuthUserResponse` / `/auth/me`; `PATCH /users/me` for `preferred_locale` + `full_name`
 - **SSM parameter bootstrap** — `deploy/scripts/ensure-ssm-parameters.sh` creates missing `/krishifarms/dev/*` SecureString/String params (placeholder `REPLACE_ME`; does not overwrite). Created `/krishifarms/dev/db/database_url` in ap-south-1 for Supabase cutover.
+- **Temporary demo data pack** — `scripts/seed_demo_data.py` + `scripts/purge_demo_data.py` for live modules (farmers, procurements, platform); markers `[DEMO]` / `@demo.krishifarms.local`; runbook + inventory in [docs/DEMO_DATA.md](./DEMO_DATA.md)
+- **GitHub deploy automation** — `deploy/scripts/github-predeploy.sh` runs on each `main` deploy: writes Supabase `DATABASE_URL` to SSM from `SUPABASE_DB_PASSWORD` secret, runs EC2-only cost scheduler config; remote deploy seeds DB if empty
 
-### Changed
-
-- **Supabase DB cutover prep** — project `ucvwtoziiqgmcyzxkwxe`; `docker-compose.prod.yml` no longer hardcodes Docker `DATABASE_URL` (env_file wins); `depends_on.postgres.required: false`; `sync-env-from-ssm.sh` prefers SSM `/krishifarms/dev/db/database_url` and ignores `REPLACE_ME` placeholders; helpers `ensure-ssm-parameters.sh` + `put-supabase-database-url-ssm.sh`; cutover guide [docs/deploy/SUPABASE_MIGRATION.md](./deploy/SUPABASE_MIGRATION.md)
-- **Aurora destroy skipped** — ap-south-1 has no KrishiFarms Aurora/RDS; only `gamya-couture-dev-pg` (Gamya, stopped) — left untouched. Prod DB remains Docker Postgres on EC2 until Supabase cutover.
 
 ### Fixed
 
+- **Audit helpers** — `write_audit_log` / `write_activity_feed` accept `device_id` and `client_type` (callers already passed them; previously TypeError)
+- **Auth login** — accept seeded `*.local` emails (EmailStr rejected special-use domains)
+- **bcrypt pin** — constrain `bcrypt>=4.0.1,<4.1` (bcrypt 5.x breaks passlib verify / login)
+- **ORM workers stub** — register migration-only `workers` table in metadata so `users.worker_id` FK flush works (login/refresh tokens)
+
+### Changed
+
+- **Supabase cutover runbook** — [docs/deploy/SUPABASE_CUTOVER_RUNBOOK.md](./deploy/SUPABASE_CUTOVER_RUNBOOK.md): GitHub secret + IAM attach script + deploy verify steps
+- **Deploy IAM policy** — `deploy/iam/github-backend-deploy-ssm-supabase.json` + `attach-github-deploy-iam-supabase-policy.sh` for one-time admin attach
+- **Deploy workflow** — fails fast if `SUPABASE_DB_PASSWORD` missing; `workflow_dispatch` for manual redeploy; `github-predeploy` writes Supabase URL first
+- **krishifarms-infra patch** — `patches/krishifarms-infra-deploy-iam-supabase.patch` (SSM + Lambda perms on deploy role; optional Terraform-managed secret)
+- **Supabase DB cutover prep** — project `ucvwtoziiqgmcyzxkwxe`; `docker-compose.prod.yml` no longer hardcodes Docker `DATABASE_URL` (env_file wins); `depends_on.postgres.required: false`; `sync-env-from-ssm.sh` prefers SSM `/krishifarms/dev/db/database_url` and ignores `REPLACE_ME` placeholders; helpers `ensure-ssm-parameters.sh` + `put-supabase-database-url-ssm.sh`; cutover guide [docs/deploy/SUPABASE_MIGRATION.md](./deploy/SUPABASE_MIGRATION.md)
+- **EC2-only cost scheduler** — `deploy/scripts/configure-compute-scheduler-ec2-only.sh` removes RDS from daily Lambda cron while keeping EC2 start/stop
+- **Gamya RDS removal patch** — `patches/gamya-couture-infra-remove-rds.patch` + [docs/deploy/GAMYA_RDS_REMOVAL.md](./deploy/GAMYA_RDS_REMOVAL.md): apply in `gvsharma/gamya-couture-infra` to destroy `gamya-couture-dev-pg` via Terraform (`enable_rds = false`)
+- **Aurora destroy skipped** — ap-south-1 has no KrishiFarms Aurora/RDS; only `gamya-couture-dev-pg` (Gamya, stopped) — left untouched. Prod DB remains Docker Postgres on EC2 until Supabase cutover.
+- **Supabase pooler discovery** — `put-supabase-database-url-ssm.sh` probes `aws-0/1/2` pooler hosts or uses `SUPABASE_POOLER_HOST` GitHub variable (fixes `Tenant not found` + EC2 IPv6 errors)
+
+### Fixed
+
+- **Supabase SSM DATABASE_URL** — use `URL.render_as_string(hide_password=False)`; SQLAlchemy 2.x `str(URL)` masks passwords as `***`, which was written into SSM and broke EC2/Alembic auth
+- **Supabase SSM put path** — write SecureString via Python/`aws --cli-input-json file://…` (avoid bash capturing the URL)
+- **Supabase SSM password sync** — `put-supabase-database-url-ssm.sh` rejects truncated/`***` GitHub secrets before writing SSM
+- **Supabase deploy auth** — `put-supabase-database-url-ssm.sh` verifies pooler connection before writing SSM, builds `DATABASE_URL` via SQLAlchemy `URL.create` (avoids manual URL-encoding mistakes); Alembic online migrations use `create_engine(settings.database_url)` directly (no ConfigParser round-trip)
+- **Alembic + Supabase pooler** — `alembic/env.py` escapes `%` in `DATABASE_URL` before `set_main_option` (URL-encoded passwords broke migrations with `invalid interpolation syntax`)
 - **Firebase login 500** — EC2 `FIREBASE_SERVICE_ACCOUNT_JSON` was multiline in `application.env`; env upsert only replaced the first line, leaving orphan private-key lines that broke `json.loads` and docker-compose parsing. `fix-firebase-env.py` and `sync-env-from-ssm.sh` now remove full multiline values before upsert and double-escape backslashes so docker-compose does not turn JSON `\\n` into real newlines; `firebase.py` returns 503 on malformed JSON instead of 500
 - **Seed** — `Permission.roles` relationship missing `Role` target class (SQLAlchemy `ArgumentError` on `scripts/seed.py`)
 - **Migration 008** — `uq_procurements_idempotency` unique index on partitioned `procurements` now includes `procurement_date` (PostgreSQL partition-key requirement; matches `farmer_payments` idempotency index pattern)

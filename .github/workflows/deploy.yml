@@ -4,6 +4,12 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: Optional note for manual Supabase cutover / redeploy
+        required: false
+        default: "manual redeploy"
 
 concurrency:
   group: deploy-backend-production
@@ -111,11 +117,29 @@ jobs:
           echo "ec2_name_tag=${EC2_NAME_TAG}" >> "$GITHUB_OUTPUT"
           echo "rds_instance_id=${RDS_INSTANCE_ID}" >> "$GITHUB_OUTPUT"
 
+      - name: Verify Supabase cutover prerequisites
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${SUPABASE_DB_PASSWORD//[[:space:]]/}" ]]; then
+            echo "::error title=Missing SUPABASE_DB_PASSWORD::Add repository secret SUPABASE_DB_PASSWORD (Supabase database password) before deploy." >&2
+            echo "See docs/deploy/SUPABASE_CUTOVER_RUNBOOK.md" >&2
+            exit 1
+          fi
+          echo "SUPABASE_DB_PASSWORD is set (value not logged)."
+
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_BACKEND_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
+
+      - name: Sync Supabase SSM and EC2-only scheduler
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SUPABASE_POOLER_HOST: ${{ vars.SUPABASE_POOLER_HOST }}
+        run: bash deploy/scripts/github-predeploy.sh
 
       - name: Prepare RDS database
         env:
@@ -295,6 +319,8 @@ jobs:
           aws s3 cp deploy.tar.gz "s3://${DEPLOY_BUCKET}/${DEPLOY_OBJECT_KEY}"
           aws s3 cp deploy/scripts/remote-deploy.sh "s3://${DEPLOY_BUCKET}/${DEPLOY_SCRIPT_KEY}"
           aws s3 cp deploy/scripts/sync-env-from-ssm.sh "s3://${DEPLOY_BUCKET}/${DEPLOY_SYNC_SCRIPT_KEY}"
+          aws s3 cp deploy/scripts/fix-firebase-env.py "s3://${DEPLOY_BUCKET}/incoming/fix-firebase-env.py"
+          aws s3 cp deploy/scripts/ensure-ssm-parameters.sh "s3://${DEPLOY_BUCKET}/incoming/ensure-ssm-parameters.sh"
           aws s3 cp deploy/scripts/ssm-kickoff-deploy.sh "s3://${DEPLOY_BUCKET}/${DEPLOY_KICKOFF_SCRIPT_KEY}"
           aws s3 cp deploy/env/application.env.example "s3://${DEPLOY_BUCKET}/${DEPLOY_ENV_TEMPLATE_KEY}"
 
