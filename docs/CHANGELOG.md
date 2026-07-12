@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **Vercel frontend build** — wrap `useSearchParams` in `Suspense` on `/field-services/new` (Next.js 15 static prerender)
 - **Audit helpers** — `write_audit_log` / `write_activity_feed` accept `device_id` and `client_type` (callers already passed them; previously TypeError)
 - **Auth login** — accept seeded `*.local` emails (EmailStr rejected special-use domains)
 - **bcrypt pin** — constrain `bcrypt>=4.0.1,<4.1` (bcrypt 5.x breaks passlib verify / login)

@@ -1,11 +1,20 @@
 "use client";
 
 import { ArrowBack } from "@mui/icons-material";
-import { Alert, Button, Card, MenuItem, Stack, TextField, Typography } from "@mui/material";
+import {
+  Alert,
+  Button,
+  Card,
+  CircularProgress,
+  MenuItem,
+  Stack,
+  TextField,
+  Typography,
+} from "@mui/material";
 import Link from "next/link";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { MuiPageShell } from "@/components/shell/mui-page-shell";
 import { createFieldService } from "@/features/field-services/api";
 import { SERVICE_CATEGORIES, type ServiceCategory } from "@/features/field-services/constants";
@@ -23,7 +32,7 @@ function parseCategory(value: string | null): ServiceCategory | "" {
   return value as ServiceCategory;
 }
 
-export default function NewFieldServicePage() {
+function NewFieldServicePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
@@ -108,5 +117,21 @@ export default function NewFieldServicePage() {
         </Stack>
       </Card>
     </MuiPageShell>
+  );
+}
+
+export default function NewFieldServicePage() {
+  return (
+    <Suspense
+      fallback={
+        <MuiPageShell title="New field service" description="Loading…">
+          <Stack alignItems="center" sx={{ py: 6 }}>
+            <CircularProgress />
+          </Stack>
+        </MuiPageShell>
+      }
+    >
+      <NewFieldServicePageContent />
+    </Suspense>
   );
 }
