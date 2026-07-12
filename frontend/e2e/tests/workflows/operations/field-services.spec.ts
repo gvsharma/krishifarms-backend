@@ -58,4 +58,43 @@ test.describe("operations — field services", () => {
 
     expectNoPageErrors(pageErrors);
   });
+
+  test("detail page: view record, enter edit, cancel without save", async ({ page }) => {
+    const pageErrors = trackPageErrors(page);
+
+    await page.goto("/field-services");
+    await expectShellTitle(page, /^Field services$/i);
+
+    const outcome = await expectListContent(page, /No records yet/i);
+    if (outcome !== "table") {
+      test.info().annotations.push({
+        type: "note",
+        description: "No field service rows — skipped detail check",
+      });
+      expectNoPageErrors(pageErrors);
+      return;
+    }
+
+    const firstRow = page.getByRole("row").nth(1);
+    await firstRow.click();
+
+    const editBtn = page.getByRole("button", { name: /^Edit$/i });
+    if ((await editBtn.count()) === 0) {
+      await expect(
+        page.getByRole("button", { name: /Back to list/i }).or(page.getByRole("alert")),
+      ).toBeVisible();
+      expectNoPageErrors(pageErrors);
+      return;
+    }
+
+    await editBtn.click();
+    await expect(page.getByRole("button", { name: /Save changes/i })).toBeVisible();
+
+    const cancelBtn = page.getByRole("button", { name: /Cancel/i });
+    if ((await cancelBtn.count()) > 0) {
+      await cancelBtn.first().click();
+    }
+
+    expectNoPageErrors(pageErrors);
+  });
 });

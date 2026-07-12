@@ -19,3 +19,10 @@ build/
 alembic/versions/*.pyc
 .vercel
 .env*
+
+# Playwright (frontend e2e)
+frontend/e2e/.auth/
+frontend/playwright-report/
+frontend/test-results/
+frontend/blob-report/
+frontend/playwright/.cache/
