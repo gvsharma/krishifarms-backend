@@ -26,20 +26,23 @@ import {
   ChevronRight,
   DarkMode,
   LightMode,
+  Logout,
   Menu as MenuIcon,
   NotificationsNone,
   Search,
 } from "@mui/icons-material";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useTheme as useNextTheme } from "next-themes";
 import { useEffect, useState, type ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   filterNavByRole,
   NAV_SECTIONS,
   type NavRole,
 } from "@/constants/nav-config";
 import { ROUTES, SITE_NAME } from "@/constants/routes";
+import { signOut } from "@/features/auth/api";
 import { useAuth } from "@/hooks/use-auth";
 import { DRAWER_WIDTH, DRAWER_WIDTH_COLLAPSED } from "@/theme/material-theme";
 import { useUiStore } from "@/stores/ui-store";
@@ -50,6 +53,8 @@ interface MuiAppShellProps {
 
 export function MuiAppShell({ children }: MuiAppShellProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const queryClient = useQueryClient();
   const muiTheme = useTheme();
   const isMobile = useMediaQuery(muiTheme.breakpoints.down("md"));
   const collapsed = useUiStore((s) => s.sidebarCollapsed);
@@ -64,6 +69,13 @@ export function MuiAppShell({ children }: MuiAppShellProps) {
   const drawerWidth = collapsed && !isMobile ? DRAWER_WIDTH_COLLAPSED : DRAWER_WIDTH;
   const { user, role } = useAuth();
   const navSections = filterNavByRole(NAV_SECTIONS, (role ?? "OWNER") as NavRole);
+
+  const handleSignOut = async () => {
+    setUserMenuAnchor(null);
+    await signOut();
+    queryClient.clear();
+    router.replace(ROUTES.login);
+  };
 
   const drawerContent = (
     <Box sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
@@ -255,6 +267,12 @@ export function MuiAppShell({ children }: MuiAppShellProps) {
         <Divider />
         <MenuItem component={Link} href={ROUTES.settings} onClick={() => setUserMenuAnchor(null)}>
           Settings
+        </MenuItem>
+        <MenuItem onClick={() => void handleSignOut()}>
+          <ListItemIcon sx={{ minWidth: 36 }}>
+            <Logout fontSize="small" />
+          </ListItemIcon>
+          Sign out
         </MenuItem>
       </Menu>
 

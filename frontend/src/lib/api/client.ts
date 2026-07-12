@@ -28,6 +28,15 @@ export function setAccessToken(token: string): void {
   localStorage.setItem(TOKEN_KEY, token);
 }
 
+export function clearAccessToken(): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(TOKEN_KEY);
+  } catch {
+    // Ignore storage errors (private mode, etc.)
+  }
+}
+
 export interface ApiEnvelope<T> {
   success: boolean;
   data: T;

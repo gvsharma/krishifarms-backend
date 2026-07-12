@@ -1,8 +1,17 @@
+import {
+  clearRefreshToken,
+  clearSignedOutFlag,
+  getRefreshToken,
+  markSignedOut,
+  setRefreshToken,
+  wasExplicitlySignedOut,
+} from "@/features/auth/session";
 import type { AuthMe } from "@/features/auth/types";
-import { fetchApi, setAccessToken } from "@/lib/api/client";
+import { clearAccessToken, fetchApi, getAccessToken, setAccessToken } from "@/lib/api/client";
 
 export interface LoginResponse {
   access_token: string;
+  refresh_token: string;
   token_type: string;
 }
 
@@ -13,6 +22,8 @@ export async function loginWithPassword(email: string, password: string): Promis
     clientHeaders: false,
   });
   setAccessToken(data.access_token);
+  setRefreshToken(data.refresh_token);
+  clearSignedOutFlag();
   return data.access_token;
 }
 
@@ -20,9 +31,35 @@ export function fetchAuthMe(): Promise<AuthMe> {
   return fetchApi<AuthMe>("/auth/me", { method: "GET", clientHeaders: false });
 }
 
+/** Best-effort server logout when a refresh token is available. */
+export async function logoutFromServer(): Promise<void> {
+  const refreshToken = getRefreshToken();
+  if (!refreshToken) return;
+
+  try {
+    await fetchApi<{ message: string }>("/auth/logout", {
+      method: "POST",
+      body: { refresh_token: refreshToken },
+      clientHeaders: true,
+    });
+  } catch {
+    // Local sign-out still succeeds if the server call fails.
+  }
+}
+
+/** Clear tokens, mark explicit sign-out, and optionally revoke refresh token server-side. */
+export async function signOut(): Promise<void> {
+  markSignedOut();
+  await logoutFromServer();
+  clearAccessToken();
+  clearRefreshToken();
+}
+
 /** Dev-only: seed token from env or password login once per session. */
 export async function bootstrapAuthToken(): Promise<void> {
   if (typeof window === "undefined") return;
+  if (wasExplicitlySignedOut()) return;
+  if (getAccessToken()) return;
 
   const devToken = process.env.NEXT_PUBLIC_DEV_ACCESS_TOKEN?.trim();
   if (devToken) {
