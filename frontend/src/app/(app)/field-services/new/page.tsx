@@ -4,6 +4,7 @@ import { ArrowBack } from "@mui/icons-material";
 import {
   Alert,
   Button,
+  Box,
   Card,
   CircularProgress,
   MenuItem,
@@ -71,48 +72,61 @@ function NewFieldServicePageContent() {
         </Button>
       }
     >
-      <Card sx={{ p: 3, maxWidth: 720 }}>
+      <Card sx={{ p: { xs: 2, sm: 3 }, maxWidth: 800 }}>
         <Stack spacing={3}>
-          <TextField
-            select
-            required
-            label="Service category"
-            value={category}
-            onChange={(e) => handleCategoryChange(e.target.value as ServiceCategory | "")}
-            helperText="Fields below change based on category"
-          >
-            <MenuItem value="" disabled>
-              Select category…
-            </MenuItem>
-            {SERVICE_CATEGORIES.map((c) => (
-              <MenuItem key={c.value} value={c.value}>
-                {c.label}
+          <Box>
+            <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+              Service details
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Choose a category first. The fields below update for that work type.
+            </Typography>
+            <TextField
+              select
+              required
+              fullWidth
+              label="Service category"
+              value={category}
+              onChange={(e) => handleCategoryChange(e.target.value as ServiceCategory | "")}
+            >
+              <MenuItem value="" disabled>
+                Select category…
               </MenuItem>
-            ))}
-          </TextField>
+              {SERVICE_CATEGORIES.map((c) => (
+                <MenuItem key={c.value} value={c.value}>
+                  {c.label}
+                </MenuItem>
+              ))}
+            </TextField>
+          </Box>
 
           {!category && (
-            <Typography variant="body2" color="text.secondary">
+            <Alert severity="info">
               Pick a category to show the operational form (hours, bags, amounts, equipment, etc.).
-            </Typography>
+            </Alert>
           )}
 
           {category && (
-            <FieldServiceForm
-              category={category}
-              values={values}
-              onChange={setValues}
-              onSubmit={() => createMutation.mutate()}
-              submitLabel="Create service record"
-              isSubmitting={createMutation.isPending}
-              error={
-                createMutation.isError
-                  ? createMutation.error instanceof Error
-                    ? createMutation.error.message
-                    : "Failed to create record"
-                  : null
-              }
-            />
+            <Box>
+              <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+                {SERVICE_CATEGORIES.find((c) => c.value === category)?.label ?? "Details"}
+              </Typography>
+              <FieldServiceForm
+                category={category}
+                values={values}
+                onChange={setValues}
+                onSubmit={() => createMutation.mutate()}
+                submitLabel="Create service record"
+                isSubmitting={createMutation.isPending}
+                error={
+                  createMutation.isError
+                    ? createMutation.error instanceof Error
+                      ? createMutation.error.message
+                      : "Failed to create record"
+                    : null
+                }
+              />
+            </Box>
           )}
         </Stack>
       </Card>
