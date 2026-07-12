@@ -251,7 +251,7 @@ Reference shot: [Dribbble #27437443](https://dribbble.com/shots/27437443-Farm-Ma
 | `KrishiDataTable` | Custom table — see [COMPONENT_LIBRARY.md](./COMPONENT_LIBRARY.md) |
 | `Card` | `shadow-sm`, `rounded-lg` |
 | `Tabs` | 2 px primary indicator, scrollable on mobile |
-| `Dialog` / `Sheet` | `rounded-lg`, max-w-lg (560 px) |
+| `Dialog` / `Sheet` | Admin: `PremiumDialog` (blur backdrop, `rounded-[24px]`, `#FAFAFA` paper); focus trap via MUI Dialog |
 | `Sonner` toast | Bottom-right desktop; bottom-center mobile |
 
 ### 5.6 Theme modes
