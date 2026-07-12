@@ -44,4 +44,32 @@ test.describe("Settings — Villages", () => {
     await dialog.getByRole("button", { name: /Cancel/i }).click();
     expectNoPageErrors(pageErrors);
   });
+
+  test("Add village validation blocks empty required fields", async ({ page }) => {
+    const pageErrors = trackPageErrors(page);
+
+    await page.goto("/settings/villages");
+    await expectSettingsShell(page, "Villages");
+
+    const dialog = await openCatalogAddDialog(page);
+    const saveBtn = dialog.getByRole("button", { name: /^Save$/i });
+    await expect(saveBtn).toBeDisabled();
+
+    await dialog.getByRole("button", { name: /Cancel/i }).click();
+    expectNoPageErrors(pageErrors);
+  });
+
+  test("Add village cancel closes dialog without saving", async ({ page }) => {
+    const pageErrors = trackPageErrors(page);
+
+    await page.goto("/settings/villages");
+    await expectSettingsShell(page, "Villages");
+
+    const dialog = await openCatalogAddDialog(page);
+    await dialog.getByLabel("Name", { exact: true }).fill("E2E Test Village");
+    await dialog.getByRole("button", { name: /Cancel/i }).click();
+    await expect(dialog).toHaveCount(0);
+
+    expectNoPageErrors(pageErrors);
+  });
 });
