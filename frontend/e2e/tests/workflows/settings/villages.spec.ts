@@ -36,8 +36,8 @@ test.describe("Settings — Villages", () => {
 
     await expectDialogLabelsNotOverlapping(dialog, [
       "Name",
-      "Mandal",
       "District",
+      "Mandal",
       "State",
       "Pincode",
     ]);

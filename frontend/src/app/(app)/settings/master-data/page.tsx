@@ -26,7 +26,7 @@ const MASTER_LINKS = [
   {
     href: "/settings/master-data/crops",
     title: "Crop types",
-    description: "Paddy, corn, and seasonal crop catalog",
+    description: "Paddy, corn, maize, cotton, grams, oilseeds, and more",
     icon: Agriculture,
   },
   {
@@ -50,7 +50,7 @@ const MASTER_LINKS = [
   {
     href: "/settings/master-data/vehicle-types",
     title: "Vehicle types",
-    description: "John Deere tractors, Mahindra Bolero, Eicher DCM, and implements",
+    description: "Tractor–Drone catalog plus John Deere, Bolero, DCM inventory",
     icon: DirectionsCar,
   },
   {

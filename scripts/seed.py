@@ -7,6 +7,7 @@ from app.modules.financial.models import ExpenseCategory
 from app.modules.master_data.models import CropType, Village
 from app.modules.users.models import Organization, Permission, Role, User
 from app.shared.permissions import ROLE_DEFINITIONS, ROLE_PERMISSIONS, SYSTEM_PERMISSIONS
+from scripts.data.crop_catalog import DEFAULT_CROP_TYPES
 
 
 DEFAULT_VILLAGES = [
@@ -16,14 +17,6 @@ DEFAULT_VILLAGES = [
         "district": "Nizamabad",
         "state": "Telangana",
     },
-]
-
-DEFAULT_CROP_TYPES = [
-    {"name": "Paddy", "code": "PADDY", "default_moisture_pct": 17.0},
-    {"name": "Corn", "code": "CORN", "default_moisture_pct": 14.0},
-    {"name": "Vegetables", "code": "VEGETABLES", "default_moisture_pct": None},
-    {"name": "Pulses", "code": "PULSES", "default_moisture_pct": None},
-    {"name": "Concrete Work", "code": "CONCRETEWORK", "default_moisture_pct": None},
 ]
 
 DEFAULT_EXPENSE_CATEGORIES = [
@@ -105,6 +98,18 @@ def seed_database(db: Session) -> None:
         print("Services master data seeded")
     except Exception as exc:
         print(f"Services seed skipped: {exc}")
+
+    try:
+        from scripts.seed_locations import seed_locations_for_org
+
+        stats = seed_locations_for_org(db, org, owner)
+        print(
+            "Locations seeded: "
+            f"+{stats['districts']} districts, +{stats['mandals']} mandals, "
+            f"+{stats['villages']} villages"
+        )
+    except Exception as exc:
+        print(f"Locations seed skipped: {exc}")
 
 
 def main() -> None:

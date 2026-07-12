@@ -122,7 +122,7 @@ test.describe("Settings — Users", () => {
     await editBtn.click();
     const dialog = page.getByRole("dialog");
     await expect(dialog.getByRole("heading", { name: /Edit user/i })).toBeVisible();
-    await expectDialogLabelsNotOverlapping(dialog, ["Full name", "Email", "Phone", "Role"]);
+    await expectDialogLabelsNotOverlapping(dialog, ["Full name", "Phone", "Role"]);
 
     await dialog.getByRole("button", { name: /Cancel/i }).click();
     expectNoPageErrors(pageErrors);

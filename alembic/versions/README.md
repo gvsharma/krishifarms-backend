@@ -42,6 +42,12 @@ alembic downgrade -1
 | `202506210018` | Platform | Platform RBAC permissions, AGENT/DRIVER roles |
 | `202506210019` | Procurement | Extend procurement status CHECK for workflow states |
 | `202506210020` | Devices | `user_device_tokens` for FCM push registration |
+| `202506210021` | Field services | `field_service_records` table |
+| `202506210022` | Field services RBAC | `field_services:*` permissions |
+| `202506210023` | Location hierarchy | `districts`, `mandals`, village FKs + unique `(org, mandal, name)` |
+| `202506210024` | RBAC alignment | Location + soft-wired domain perms; FARMER role; supervisor display names |
+| `202506210025` | Assets fleet | `vehicle_type_id` / `fuel_type` / `driver_name` on assets; DRIVER asset + field-service write grants |
+| `202506210026` | Procurement | `buyer_id`, payment terms + expected/actual payment dates on `procurements` |
 
 ## Partition Maintenance
 

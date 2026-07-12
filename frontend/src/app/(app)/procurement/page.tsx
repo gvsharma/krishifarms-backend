@@ -25,6 +25,7 @@ import { MuiPageShell } from "@/components/shell/mui-page-shell";
 import {
   fetchProcurements,
   formatInr,
+  STATUS_COLORS,
   STATUS_LABELS,
   type ProcurementStatus,
 } from "@/features/procurements/api";
@@ -108,7 +109,11 @@ export default function ProcurementPage() {
                     <TableCell>{row.net_weight_kg}</TableCell>
                     <TableCell>{formatInr(row.net_amount)}</TableCell>
                     <TableCell>
-                      <Chip label={STATUS_LABELS[row.status]} size="small" />
+                      <Chip
+                        label={STATUS_LABELS[row.status]}
+                        color={STATUS_COLORS[row.status]}
+                        size="small"
+                      />
                     </TableCell>
                   </TableRow>
                 ))}

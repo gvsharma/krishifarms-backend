@@ -12,7 +12,7 @@ export default function CropTypesPage() {
   return (
     <CatalogAdminPage
       title="Crop types"
-      description="Paddy, corn, and seasonal crop catalog used by procurement."
+      description="Paddy, Corn, Maize, Cotton, grams, oilseeds, Vegetables, Others — used by procurement and tractor work."
       queryKey="crop-types-admin"
       fields={[
         { key: "name", label: "Name", required: true },

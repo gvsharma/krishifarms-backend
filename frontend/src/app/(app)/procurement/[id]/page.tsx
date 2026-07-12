@@ -17,11 +17,15 @@ import { useQuery } from "@tanstack/react-query";
 import { useParams, useSearchParams } from "next/navigation";
 import { CommentThread } from "@/components/comments/CommentThread";
 import { MuiPageShell } from "@/components/shell/mui-page-shell";
+import { EntityDocumentUpload } from "@/features/documents/entity-document-upload";
 import {
   fetchProcurement,
   formatInr,
+  STATUS_COLORS,
   STATUS_LABELS,
 } from "@/features/procurements/api";
+import { resolveProcurementDisplayExtras } from "@/features/procurements/draft-extras";
+import { ProcurementWorkflowActions } from "@/features/procurements/workflow-actions";
 
 export default function ProcurementDetailPage() {
   const params = useParams<{ id: string }>();
@@ -33,6 +37,16 @@ export default function ProcurementDetailPage() {
     queryFn: () => fetchProcurement(params.id, procurementDate),
     enabled: Boolean(params.id),
   });
+
+  const display = data
+    ? resolveProcurementDisplayExtras(data)
+    : {
+        buyerName: null,
+        paymentTerms: null,
+        plannedMoisturePct: null,
+        plannedRate: null,
+        freeNotes: "",
+      };
 
   return (
     <MuiPageShell
@@ -59,8 +73,12 @@ export default function ProcurementDetailPage() {
       {data && (
         <Stack spacing={2}>
           <Card sx={{ p: 2 }}>
-            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
-              <Chip label={STATUS_LABELS[data.status]} color="primary" size="small" />
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }} flexWrap="wrap" useFlexGap>
+              <Chip
+                label={STATUS_LABELS[data.status]}
+                color={STATUS_COLORS[data.status]}
+                size="small"
+              />
               {data.tags.map((tag) => (
                 <Chip key={tag} label={tag} size="small" variant="outlined" />
               ))}
@@ -75,6 +93,16 @@ export default function ProcurementDetailPage() {
               <Grid size={{ xs: 6, sm: 4 }}>
                 <Field label="Village" value={data.village_name ?? "—"} />
               </Grid>
+              {display.buyerName && (
+                <Grid size={{ xs: 6, sm: 4 }}>
+                  <Field label="Buyer" value={display.buyerName} />
+                </Grid>
+              )}
+              {display.paymentTerms && (
+                <Grid size={{ xs: 6, sm: 4 }}>
+                  <Field label="Payment terms" value={display.paymentTerms} />
+                </Grid>
+              )}
               <Grid size={{ xs: 6, sm: 4 }}>
                 <Field label="Bags" value={String(data.bag_count)} />
               </Grid>
@@ -85,17 +113,81 @@ export default function ProcurementDetailPage() {
                 <Field label="Net weight (kg)" value={data.net_weight_kg} />
               </Grid>
               <Grid size={{ xs: 6, sm: 4 }}>
-                <Field label="Rate / quintal" value={formatInr(data.rate_per_quintal)} />
+                <Field
+                  label="Moisture %"
+                  value={
+                    data.moisture_pct != null
+                      ? String(data.moisture_pct)
+                      : display.plannedMoisturePct
+                        ? `${display.plannedMoisturePct} (planned)`
+                        : "—"
+                  }
+                />
+              </Grid>
+              <Grid size={{ xs: 6, sm: 4 }}>
+                <Field
+                  label="Rate / quintal"
+                  value={
+                    Number(data.rate_per_quintal) > 0
+                      ? formatInr(data.rate_per_quintal)
+                      : display.plannedRate
+                        ? `${formatInr(display.plannedRate)} (planned)`
+                        : "—"
+                  }
+                />
+              </Grid>
+              <Grid size={{ xs: 6, sm: 4 }}>
+                <Field label="Gross amount" value={formatInr(data.gross_amount)} />
+              </Grid>
+              <Grid size={{ xs: 6, sm: 4 }}>
+                <Field label="Deductions" value={formatInr(data.deduction_amount)} />
               </Grid>
               <Grid size={{ xs: 6, sm: 4 }}>
                 <Field label="Net amount" value={formatInr(data.net_amount)} />
               </Grid>
-              {data.notes && (
+              {data.confirmed_by_name && (
+                <Grid size={{ xs: 6, sm: 4 }}>
+                  <Field
+                    label="Confirmed by"
+                    value={`${data.confirmed_by_name}${data.confirmed_at ? ` · ${data.confirmed_at.slice(0, 10)}` : ""}`}
+                  />
+                </Grid>
+              )}
+              {data.cancellation_reason && (
                 <Grid size={{ xs: 12 }}>
-                  <Field label="Notes" value={data.notes} />
+                  <Field label="Cancellation reason" value={data.cancellation_reason} />
+                </Grid>
+              )}
+              {display.freeNotes && (
+                <Grid size={{ xs: 12 }}>
+                  <Field label="Notes" value={display.freeNotes} />
                 </Grid>
               )}
             </Grid>
+
+            {data.deductions?.length > 0 && (
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="caption" color="text.secondary">
+                  Deduction lines
+                </Typography>
+                {data.deductions.map((d) => (
+                  <Typography key={d.id} variant="body2">
+                    {d.deduction_type}: {formatInr(d.amount)}
+                    {d.notes ? ` — ${d.notes}` : ""}
+                  </Typography>
+                ))}
+              </Box>
+            )}
+          </Card>
+
+          <ProcurementWorkflowActions
+            procurement={data}
+            procurementDate={procurementDate}
+            plannedMoisturePct={display.plannedMoisturePct}
+          />
+
+          <Card sx={{ p: 2 }}>
+            <EntityDocumentUpload entityType="procurement" entityId={data.id} />
           </Card>
 
           <Card sx={{ p: 2 }}>

@@ -13,18 +13,19 @@ Rather than five parallel tables, v1 uses a **unified `field_service_records` ta
 | Concern | Approach |
 |---------|----------|
 | Service / activity catalog | Extend `activity_types` with `service_category`; seed tractor, transport, fertiliser, seeds, etc. |
-| Equipment / fleet types | `vehicle_types` catalog — John Deere tractors (2W/4W), Mahindra Bolero, Eicher DCM, implements (trolley, baler, pump, cultivator, rotavator, weeder) |
-| Crop catalog | `crop_types` seed: paddy, corn, vegetables, pulses, concretework |
+| Equipment / fleet types | `vehicle_types` catalog — Tractor, Cultivator, Rotavator, Baler, Trolley, Weeder, Fertilizer Pump, Bolero, DCM, Harvester, Drone + inventory (John Deere 2W/4W, Mahindra Bolero, Eicher DCM) |
+| Crop catalog | `crop_types` seed: Paddy, Corn, Maize, Cotton, Red/Green/Black/Bengal Gram, Sunflower, Groundnut, Vegetables, Others (+ legacy Pulses, Concrete Work) |
 | Vehicle repairs / trips / expenses | Existing `assets`, `maintenance_records`, `vehicle_trips`, `expenses` tables — **Phase 2** Python; `field_service_records.asset_id` links facility ops now |
 | Worker labour | `work_orders` — separate workforce domain; not duplicated here |
+| Conditional work forms (web) | Vehicle-type profiles on field-service form: Tractor (crop/area/stage), Trolley (trips/purpose/material), Bolero (trips/locality/distance/weight/goods), DCM (trips/distance/tonnes/load/unload). Stored in `comments` as `[kf:work]…[/kf:work]` JSON |
 
 ### `service_category` values
 
 | Value | Android / ops meaning |
 |-------|----------------------|
 | `field_service` | General field work — hours, location, diesel, amounts |
-| `tractor_work` | John Deere tractors + cultivator, rotavator, trolley, baler, pump, weeder |
-| `transport` | Mahindra Bolero / Eicher DCM carrying |
+| `tractor_work` | Tractor + cultivator, rotavator, trolley, baler, fertilizer pump, weeder, harvester, drone |
+| `transport` | Bolero / DCM carrying |
 | `fertiliser` | Bags, advance, total, pending |
 | `seeds` | Quantity, prices, advance, total, pending |
 | `agri_finance` | Amount given / pending / total |
@@ -74,12 +75,14 @@ Fresh install (`scripts/seed.py`) also invokes services seed when org is created
 
 Seeded catalogs:
 
-- **Crop types:** PADDY, CORN, VEGETABLES, PULSES, CONCRETEWORK
-- **Activity types:** 27 entries across all `service_category` values (bilingual `name_te` on activity/vehicle types)
-- **Vehicle types:** JD_TRACTOR_2W, JD_TRACTOR_4W, MAHINDRA_BOLERO, EICHER_DCM, TROLLEY, BALER, PUMP, CULTIVATOR, ROTAVATOR, WEEDER (+ legacy BOLERO/DCM name refresh)
+- **Crop types:** PADDY, CORN, MAIZE, COTTON, RED_GRAM, GREEN_GRAM, BLACK_GRAM, BENGAL_GRAM, SUNFLOWER, GROUNDNUT, VEGETABLES, OTHERS (+ legacy PULSES, CONCRETEWORK)
+- **Activity types:** entries across all `service_category` values (bilingual `name_te`; includes Harvester Work, Drone Spraying, Fertilizer Pump Work)
+- **Vehicle types:** TRACTOR, CULTIVATOR, ROTAVATOR, BALER, TROLLEY, WEEDER, FERTILIZER_PUMP, BOLERO, DCM, HARVESTER, DRONE + JD_TRACTOR_2W/4W, MAHINDRA_BOLERO, EICHER_DCM (+ legacy PUMP name refresh)
 - **Expense categories:** Fuel, Diesel, Vehicle Repairs, Godown Maintenance, …
 - **Payment modes:** cash, upi, bank_transfer
 - **Village:** Bhairkhanpally (if missing)
+
+Canonical sources: `scripts/data/fleet_inventory.py`, `scripts/data/crop_catalog.py`.
 
 ---
 

@@ -87,3 +87,23 @@ export function createFarmer(payload: {
     clientHeaders: true,
   });
 }
+
+export function updateFarmer(
+  id: string,
+  payload: Partial<{
+    full_name: string;
+    full_name_te: string | null;
+    phone_primary: string;
+    phone_secondary: string | null;
+    village_id: string;
+    address: string | null;
+    notes: string | null;
+    status: string;
+  }>,
+): Promise<FarmerDetail> {
+  return fetchApi<FarmerDetail>(`/farmers/${id}`, {
+    method: "PATCH",
+    body: payload,
+    clientHeaders: true,
+  });
+}

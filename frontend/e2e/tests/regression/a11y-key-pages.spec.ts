@@ -11,7 +11,7 @@ test.describe("accessibility — key pages", () => {
       const pageErrors = trackPageErrors(page);
 
       await page.goto("/login");
-      await expect(page.getByLabel(/email/i)).toBeVisible();
+      await expect(page.getByLabel(/phone or email|email/i)).toBeVisible();
       await expect(page.getByLabel(/^password/i)).toBeVisible();
       await expect(page.getByRole("button", { name: /^(Next|Sign in)$/i })).toBeVisible();
 

@@ -48,5 +48,9 @@ vehicleTripById:
         in: path
         required: true
         schema: { type: string, format: uuid }
+      - name: trip_date
+        in: query
+        required: true
+        schema: { type: string, format: date }
     responses:
       '200': { description: Updated }

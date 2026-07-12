@@ -8,6 +8,8 @@ from app.core.cache import get_cache_provider
 from app.core.config import settings
 from app.core.exceptions import AppError
 import app.models  # noqa: F401 — register ORM metadata (incl. migration-only stubs)
+from app.modules.assets.router import router as assets_router
+from app.modules.assets.vehicle_trip_router import router as vehicle_trips_router
 from app.modules.audit.router import router as audit_router
 from app.modules.auth.router import router as auth_router
 from app.modules.dashboard.router import router as dashboard_router
@@ -16,6 +18,8 @@ from app.modules.documents.router import router as documents_router
 from app.modules.field_services.router import router as field_services_router
 from app.modules.financial.router import router as financial_router
 from app.modules.farmers.router import router as farmers_router
+from app.modules.farmer_payments.router import router as farmer_payments_router
+from app.modules.farms.router import router as farms_router
 from app.modules.procurements.router import router as procurements_router
 from app.modules.master_data.router import router as master_data_router
 from app.modules.platform.router import router as platform_router
@@ -53,7 +57,11 @@ api_v1.include_router(platform_router)
 api_v1.include_router(farmers_router)
 api_v1.include_router(field_services_router)
 api_v1.include_router(procurements_router)
+api_v1.include_router(farmer_payments_router)
+api_v1.include_router(farms_router)
 api_v1.include_router(financial_router)
+api_v1.include_router(assets_router)
+api_v1.include_router(vehicle_trips_router)
 api_v1.include_router(documents_router)
 api_v1.include_router(devices_router)
 api_v1.include_router(audit_router)

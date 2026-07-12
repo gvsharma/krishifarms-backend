@@ -76,6 +76,11 @@ COMMENT_CREATE = "COMMENT_CREATE"
 TAG_VIEW = "TAG_VIEW"
 TAG_MANAGE = "TAG_MANAGE"
 
+FIELD_SERVICE_VIEW = "FIELD_SERVICE_VIEW"
+FIELD_SERVICE_CREATE = "FIELD_SERVICE_CREATE"
+FIELD_SERVICE_UPDATE = "FIELD_SERVICE_UPDATE"
+FIELD_SERVICE_DELETE = "FIELD_SERVICE_DELETE"
+
 ALL_MOBILE_PERMISSIONS: frozenset[str] = frozenset(
     [
         FARMER_VIEW,
@@ -130,6 +135,10 @@ ALL_MOBILE_PERMISSIONS: frozenset[str] = frozenset(
         COMMENT_CREATE,
         TAG_VIEW,
         TAG_MANAGE,
+        FIELD_SERVICE_VIEW,
+        FIELD_SERVICE_CREATE,
+        FIELD_SERVICE_UPDATE,
+        FIELD_SERVICE_DELETE,
     ]
 )
 
@@ -176,6 +185,9 @@ _MANAGER: frozenset[str] = frozenset(
         TRIP_VIEW,
         ASSET_VIEW,
         RENTAL_VIEW,
+        FIELD_SERVICE_VIEW,
+        FIELD_SERVICE_CREATE,
+        FIELD_SERVICE_UPDATE,
         COMMENT_VIEW,
         COMMENT_CREATE,
         TAG_VIEW,
@@ -184,6 +196,10 @@ _MANAGER: frozenset[str] = frozenset(
 
 _AGENT: frozenset[str] = frozenset(
     [
+        FARMER_VIEW,
+        FIELD_SERVICE_VIEW,
+        FIELD_SERVICE_CREATE,
+        FIELD_SERVICE_UPDATE,
         COMMENT_VIEW,
         COMMENT_CREATE,
         TAG_VIEW,
@@ -196,6 +212,10 @@ _DRIVER: frozenset[str] = frozenset(
     [
         VEHICLE_VIEW,
         TRIP_VIEW,
+        ASSET_VIEW,
+        FIELD_SERVICE_VIEW,
+        FIELD_SERVICE_CREATE,
+        FIELD_SERVICE_UPDATE,
         COMMENT_VIEW,
         COMMENT_CREATE,
         TAG_VIEW,
@@ -207,11 +227,17 @@ _DRIVER: frozenset[str] = frozenset(
 _SUPERVISOR: frozenset[str] = frozenset(
     [
         FARMER_VIEW,
+        FARMER_CREATE,
+        FARMER_UPDATE,
         FARM_VIEW,
+        FARM_CREATE,
         FARM_UPDATE,
         PROCUREMENT_VIEW,
         PROCUREMENT_CREATE,
         PROCUREMENT_UPDATE,
+        FIELD_SERVICE_VIEW,
+        FIELD_SERVICE_CREATE,
+        FIELD_SERVICE_UPDATE,
         WORKER_VIEW,
         WORK_ORDER_VIEW,
         WORK_ORDER_CREATE,
@@ -246,6 +272,20 @@ _WORKER: frozenset[str] = frozenset(
     ]
 )
 
+# Farmer portal — read-only soft-wire (no create/update/delete).
+_FARMER: frozenset[str] = frozenset(
+    [
+        FARMER_VIEW,
+        FARM_VIEW,
+        PROCUREMENT_VIEW,
+        FIELD_SERVICE_VIEW,
+        DOCUMENT_VIEW,
+        REPORT_VIEW,
+        SETTINGS_VIEW,
+        COMMENT_VIEW,
+    ]
+)
+
 _ACCOUNTANT: frozenset[str] = frozenset(
     [
         FARMER_VIEW,
@@ -275,6 +315,7 @@ ROLE_MOBILE_PERMISSIONS: dict[str, frozenset[str]] = {
     "AGENT": _AGENT,
     "DRIVER": _DRIVER,
     "WORKER": _WORKER,
+    "FARMER": _FARMER,
     "ACCOUNTANT": _ACCOUNTANT,
 }
 
@@ -332,6 +373,25 @@ BACKEND_TO_MOBILE: dict[str, str] = {
     "villages:read": SETTINGS_VIEW,
     "villages:create": SETTINGS_MANAGE,
     "villages:update": SETTINGS_MANAGE,
+    "districts:read": SETTINGS_VIEW,
+    "districts:create": SETTINGS_MANAGE,
+    "districts:update": SETTINGS_MANAGE,
+    "mandals:read": SETTINGS_VIEW,
+    "mandals:create": SETTINGS_MANAGE,
+    "mandals:update": SETTINGS_MANAGE,
+    "master_data:read": SETTINGS_VIEW,
+    "vehicles:read": VEHICLE_VIEW,
+    "transport:read": TRIP_VIEW,
+    "transport:create": TRIP_VIEW,
+    "transport:update": TRIP_VIEW,
+    "diesel:read": VEHICLE_VIEW,
+    "diesel:create": VEHICLE_VIEW,
+    "diesel:update": VEHICLE_VIEW,
+    "farming:read": FARM_VIEW,
+    "farming:create": FARM_CREATE,
+    "farming:update": FARM_UPDATE,
+    "finance:read": EXPENSE_VIEW,
+    "approve": PROCUREMENT_APPROVE,
     "crop_types:read": SETTINGS_VIEW,
     "crop_types:create": SETTINGS_MANAGE,
     "crop_types:update": SETTINGS_MANAGE,
@@ -358,6 +418,10 @@ BACKEND_TO_MOBILE: dict[str, str] = {
     "tags:read": TAG_VIEW,
     "tags:create": TAG_MANAGE,
     "tags:delete": TAG_MANAGE,
+    "field_services:read": FIELD_SERVICE_VIEW,
+    "field_services:create": FIELD_SERVICE_CREATE,
+    "field_services:update": FIELD_SERVICE_UPDATE,
+    "field_services:delete": FIELD_SERVICE_DELETE,
 }
 
 # Module keys returned as accessibleModules — any matching view permission grants access.
@@ -366,6 +430,7 @@ MODULE_VIEW_PERMISSIONS: dict[str, frozenset[str]] = {
     "farmers": frozenset({FARMER_VIEW}),
     "farms": frozenset({FARM_VIEW}),
     "procurement": frozenset({PROCUREMENT_VIEW}),
+    "field_services": frozenset({FIELD_SERVICE_VIEW}),
     "farmer_payments": frozenset({PAYMENT_VIEW}),
     "workers": frozenset({WORKER_VIEW}),
     "work_orders": frozenset({WORK_ORDER_VIEW}),
@@ -388,6 +453,7 @@ MODULE_ORDER: dict[str, int] = {
     "farmers": 10,
     "farms": 20,
     "procurement": 30,
+    "field_services": 35,
     "farmer_payments": 40,
     "workers": 50,
     "work_orders": 60,

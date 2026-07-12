@@ -7,12 +7,13 @@ import {
   Box,
   Button,
   CircularProgress,
+  Divider,
   Stack,
   Typography,
 } from "@mui/material";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
-import { loginWithPassword } from "@/features/auth/api";
+import { isEmailIdentifier, loginWithPassword } from "@/features/auth/api";
 import { clearSignedOutFlag, wasExplicitlySignedOut } from "@/features/auth/session";
 import { getAccessToken } from "@/lib/api/client";
 import { ROUTES, SITE_NAME } from "@/constants/routes";
@@ -31,13 +32,21 @@ const loginFieldClassName = cn(
 
 const fieldLabelClassName = "mb-2 block text-sm font-medium leading-none text-[#374151]";
 
-/** Simple Google-style email + password sign-in. */
+function identifierLooksValid(value: string): boolean {
+  const trimmed = value.trim();
+  if (!trimmed) return false;
+  if (isEmailIdentifier(trimmed)) return trimmed.includes("@") && !trimmed.startsWith("@");
+  const digits = trimmed.replace(/\D/g, "");
+  return digits.length >= 10;
+}
+
+/** Phone-first password sign-in (email OR mobile) + OTP stub. */
 export default function LoginPage() {
   const router = useRouter();
-  const emailId = useId();
+  const identifierId = useId();
   const passwordId = useId();
   const errorId = useId();
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,10 +64,14 @@ export default function LoginPage() {
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError(null);
+    if (!identifierLooksValid(identifier)) {
+      setError("Enter a valid phone number (10+ digits) or email");
+      return;
+    }
     setSubmitting(true);
     try {
       clearSignedOutFlag();
-      await loginWithPassword(email.trim(), password);
+      await loginWithPassword(identifier, password);
       router.replace(ROUTES.dashboard);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
@@ -74,6 +87,8 @@ export default function LoginPage() {
       </Box>
     );
   }
+
+  const canSubmit = identifierLooksValid(identifier) && password.length >= 8 && !submitting;
 
   return (
     <Box
@@ -130,23 +145,28 @@ export default function LoginPage() {
             )}
 
             <div>
-              <label htmlFor={emailId} className={fieldLabelClassName}>
-                Email
+              <label htmlFor={identifierId} className={fieldLabelClassName}>
+                Phone or email
               </label>
               <Input
-                id={emailId}
-                name="email"
-                type="email"
-                autoComplete="email"
+                id={identifierId}
+                name="identifier"
+                type="text"
+                inputMode="tel"
+                autoComplete="username"
                 autoFocus
                 required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                placeholder="10-digit phone or email"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
                 disabled={submitting}
                 aria-invalid={error ? true : undefined}
                 aria-describedby={error ? errorId : undefined}
                 className={loginFieldClassName}
               />
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.75, display: "block" }}>
+                Prefer phone (10+ digits, +91 optional) — same password as email login
+              </Typography>
             </div>
 
             <div>
@@ -194,7 +214,7 @@ export default function LoginPage() {
                 type="submit"
                 variant="contained"
                 disableElevation
-                disabled={submitting || !email.trim() || !password}
+                disabled={!canSubmit}
                 sx={{
                   minWidth: 96,
                   minHeight: 40,
@@ -203,9 +223,33 @@ export default function LoginPage() {
                   transition: "none",
                 }}
               >
-                {submitting ? <CircularProgress size={18} color="inherit" /> : "Next"}
+                {submitting ? <CircularProgress size={18} color="inherit" /> : "Sign in"}
               </Button>
             </Box>
+
+            <Divider sx={{ my: 0.5 }}>
+              <Typography variant="caption" color="text.secondary">
+                or
+              </Typography>
+            </Divider>
+
+            <Button
+              type="button"
+              variant="outlined"
+              fullWidth
+              disabled
+              aria-disabled
+              title="Firebase Phone OTP will call POST /auth/firebase-login — see docs/modules/FIREBASE_OTP.md"
+              sx={{
+                minHeight: 44,
+                textTransform: "none",
+                fontWeight: 500,
+                borderColor: "#dadce0",
+                color: "text.secondary",
+              }}
+            >
+              Login with OTP (coming soon)
+            </Button>
           </Stack>
         </Box>
       </Box>

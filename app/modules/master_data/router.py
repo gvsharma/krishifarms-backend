@@ -10,6 +10,14 @@ from app.modules.master_data.schemas import (
     CropTypeListResponse,
     CropTypeResponse,
     CropTypeUpdateRequest,
+    DistrictCreateRequest,
+    DistrictListResponse,
+    DistrictResponse,
+    DistrictUpdateRequest,
+    MandalCreateRequest,
+    MandalListResponse,
+    MandalResponse,
+    MandalUpdateRequest,
     VillageCreateRequest,
     VillageListResponse,
     VillageResponse,
@@ -20,14 +28,139 @@ from app.shared.schemas.common import APIResponse, MessageResponse
 router = APIRouter(tags=["Master Data"])
 
 
+@router.get("/districts", response_model=APIResponse[DistrictListResponse])
+def list_districts(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=50, ge=1, le=200),
+    q: str | None = Query(default=None, description="Filter by district name"),
+    ctx: CurrentUserContext = Depends(require_permission("districts:read")),
+    db: Session = Depends(get_db),
+):
+    items, total = service.list_districts(db, ctx.user.org_id, page, page_size, q=q)
+    return APIResponse(
+        data=DistrictListResponse(
+            items=[DistrictResponse.model_validate(item) for item in items],
+            total=total,
+            page=page,
+            page_size=page_size,
+        )
+    )
+
+
+@router.post("/districts", response_model=APIResponse[DistrictResponse], status_code=201)
+def create_district(
+    payload: DistrictCreateRequest,
+    ctx: CurrentUserContext = Depends(require_permission("districts:create")),
+    db: Session = Depends(get_db),
+):
+    district = service.create_district(db, ctx.user.org_id, payload, ctx.user.id)
+    return APIResponse(data=DistrictResponse.model_validate(district))
+
+
+@router.patch("/districts/{district_id}", response_model=APIResponse[DistrictResponse])
+def update_district(
+    district_id: UUID,
+    payload: DistrictUpdateRequest,
+    ctx: CurrentUserContext = Depends(require_permission("districts:update")),
+    db: Session = Depends(get_db),
+):
+    district = service.update_district(db, ctx.user.org_id, district_id, payload, ctx.user.id)
+    return APIResponse(data=DistrictResponse.model_validate(district))
+
+
+@router.delete("/districts/{district_id}", response_model=APIResponse[MessageResponse])
+def delete_district(
+    district_id: UUID,
+    ctx: CurrentUserContext = Depends(require_permission("districts:delete")),
+    db: Session = Depends(get_db),
+):
+    service.delete_district(db, ctx.user.org_id, district_id, ctx.user.id)
+    return APIResponse(data=MessageResponse(message="District deleted"))
+
+
+@router.get("/mandals", response_model=APIResponse[MandalListResponse])
+def list_mandals(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=50, ge=1, le=200),
+    district_id: UUID | None = Query(default=None, description="Filter by district UUID"),
+    district: str | None = Query(default=None, description="Filter by district name"),
+    q: str | None = Query(default=None, description="Filter by mandal name"),
+    ctx: CurrentUserContext = Depends(require_permission("mandals:read")),
+    db: Session = Depends(get_db),
+):
+    items, total = service.list_mandals(
+        db,
+        ctx.user.org_id,
+        page,
+        page_size,
+        district_id=district_id,
+        district=district,
+        q=q,
+    )
+    return APIResponse(
+        data=MandalListResponse(
+            items=[MandalResponse.model_validate(item) for item in items],
+            total=total,
+            page=page,
+            page_size=page_size,
+        )
+    )
+
+
+@router.post("/mandals", response_model=APIResponse[MandalResponse], status_code=201)
+def create_mandal(
+    payload: MandalCreateRequest,
+    ctx: CurrentUserContext = Depends(require_permission("mandals:create")),
+    db: Session = Depends(get_db),
+):
+    mandal = service.create_mandal(db, ctx.user.org_id, payload, ctx.user.id)
+    return APIResponse(data=MandalResponse.model_validate(mandal))
+
+
+@router.patch("/mandals/{mandal_id}", response_model=APIResponse[MandalResponse])
+def update_mandal(
+    mandal_id: UUID,
+    payload: MandalUpdateRequest,
+    ctx: CurrentUserContext = Depends(require_permission("mandals:update")),
+    db: Session = Depends(get_db),
+):
+    mandal = service.update_mandal(db, ctx.user.org_id, mandal_id, payload, ctx.user.id)
+    return APIResponse(data=MandalResponse.model_validate(mandal))
+
+
+@router.delete("/mandals/{mandal_id}", response_model=APIResponse[MessageResponse])
+def delete_mandal(
+    mandal_id: UUID,
+    ctx: CurrentUserContext = Depends(require_permission("mandals:delete")),
+    db: Session = Depends(get_db),
+):
+    service.delete_mandal(db, ctx.user.org_id, mandal_id, ctx.user.id)
+    return APIResponse(data=MessageResponse(message="Mandal deleted"))
+
+
 @router.get("/villages", response_model=APIResponse[VillageListResponse])
 def list_villages(
     page: int = Query(default=1, ge=1),
-    page_size: int = Query(default=20, ge=1, le=100),
+    page_size: int = Query(default=20, ge=1, le=200),
+    district_id: UUID | None = Query(default=None),
+    mandal_id: UUID | None = Query(default=None),
+    district: str | None = Query(default=None, description="Filter by district name"),
+    mandal: str | None = Query(default=None, description="Filter by mandal name"),
+    q: str | None = Query(default=None, description="Filter by village name"),
     ctx: CurrentUserContext = Depends(require_permission("villages:read")),
     db: Session = Depends(get_db),
 ):
-    items, total = service.list_villages(db, ctx.user.org_id, page, page_size)
+    items, total = service.list_villages(
+        db,
+        ctx.user.org_id,
+        page,
+        page_size,
+        district_id=district_id,
+        mandal_id=mandal_id,
+        district=district,
+        mandal=mandal,
+        q=q,
+    )
     return APIResponse(
         data=VillageListResponse(
             items=[VillageResponse.model_validate(item) for item in items],

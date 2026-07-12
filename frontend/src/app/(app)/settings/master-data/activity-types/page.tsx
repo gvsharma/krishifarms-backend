@@ -20,7 +20,7 @@ export default function ActivityTypesPage() {
           key: "name",
           label: "Name",
           required: true,
-          placeholder: "e.g. Cultivator Work, Pump Work",
+          placeholder: "e.g. Cultivator Work, Fertilizer Pump Work",
         },
         { key: "code", label: "Code", required: true, createOnly: true },
         { key: "name_te", label: "Name (Telugu)", table: false },

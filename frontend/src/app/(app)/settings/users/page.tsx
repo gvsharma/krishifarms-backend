@@ -64,12 +64,19 @@ export default function SettingsUsersPage() {
   const usersQuery = useQuery({ queryKey: ["users"], queryFn: () => fetchUsers() });
   const rolesQuery = useQuery({ queryKey: ["roles"], queryFn: fetchRoles });
 
+  const phoneDigits = form.phone.replace(/\D/g, "");
+  const phoneValid = phoneDigits.length >= 10;
+
   const saveMutation = useMutation({
     mutationFn: async () => {
+      if (!phoneValid) {
+        throw new Error("Phone is required (at least 10 digits)");
+      }
+      const phone = phoneDigits;
       if (editing) {
         return updateUser(editing.id, {
           full_name: form.full_name.trim(),
-          phone: form.phone.trim() || null,
+          phone,
           role_id: form.role_id,
           preferred_locale: form.preferred_locale,
           is_active: form.is_active,
@@ -80,7 +87,7 @@ export default function SettingsUsersPage() {
         full_name: form.full_name.trim(),
         role_id: form.role_id,
         email: form.email.trim() || null,
-        phone: form.phone.trim() || null,
+        phone,
         password: form.password.trim() || null,
         preferred_locale: form.preferred_locale,
       });
@@ -118,10 +125,8 @@ export default function SettingsUsersPage() {
   const canSave =
     form.full_name.trim().length >= 2 &&
     form.role_id &&
-    (editing
-      ? true
-      : Boolean(form.email.trim() || form.phone.trim()) &&
-        (!form.email.trim() || form.password.trim().length >= 8));
+    phoneValid &&
+    (editing ? true : !form.email.trim() || form.password.trim().length >= 8);
 
   return (
     <MuiPageShell
@@ -245,8 +250,11 @@ export default function SettingsUsersPage() {
             <TextField
               label="Phone"
               fullWidth
+              required
               value={form.phone}
               onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))}
+              error={form.phone.length > 0 && !phoneValid}
+              helperText="Required for staff (10+ digits). Used for phone login and future OTP."
             />
             <TextField
               label={editing ? "New password (optional)" : "Password"}

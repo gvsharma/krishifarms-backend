@@ -5,8 +5,13 @@ Asset:
     asset_code: { type: string }
     name: { type: string }
     name_te: { type: string }
-    asset_category: { type: string, enum: [tractor, dcm, baler, air_machine, other] }
+    asset_category: { type: string, enum: [tractor, dcm, baler, air_machine, bolero, implement, other] }
+    vehicle_type_id: { $ref: 'common.yaml#/UUID' }
+    vehicle_type_name: { type: string }
+    vehicle_type_code: { type: string }
     registration_number: { type: string }
+    fuel_type: { type: string, enum: [tractor, diesel, implement] }
+    driver_name: { type: string }
     status: { type: string, enum: [active, maintenance, retired] }
     is_rentable: { type: boolean }
     hourly_rate: { $ref: 'common.yaml#/Money' }
@@ -40,9 +45,14 @@ AssetCreate:
   required: [name, asset_category]
   properties:
     name: { type: string }
+    asset_code: { type: string }
     name_te: { type: string }
-    asset_category: { type: string }
+    asset_category: { type: string, enum: [tractor, dcm, baler, air_machine, bolero, implement, other] }
+    vehicle_type_id: { $ref: 'common.yaml#/UUID' }
     registration_number: { type: string }
+    fuel_type: { type: string, enum: [tractor, diesel, implement] }
+    driver_name: { type: string }
+    status: { type: string, enum: [active, maintenance, retired] }
     is_rentable: { type: boolean }
     hourly_rate: { $ref: 'common.yaml#/Money' }
     daily_rate: { $ref: 'common.yaml#/Money' }

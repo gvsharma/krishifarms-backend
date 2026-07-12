@@ -5,6 +5,7 @@ from types import SimpleNamespace
 from app.modules.auth.permission_catalog import (
     EXPENSE_VIEW,
     FARMER_CREATE,
+    FARMER_DELETE,
     FARMER_VIEW,
     PROCUREMENT_VIEW,
     ROLE_MOBILE_PERMISSIONS,
@@ -25,11 +26,13 @@ def test_owner_has_user_manage():
     assert USER_MANAGE in perms
 
 
-def test_manager_lacks_user_manage():
+def test_manager_mobile_can_manage_users_without_deletes():
     perms = resolve_mobile_permissions(_user("MANAGER"))
-    assert USER_MANAGE not in perms
+    assert USER_MANAGE in perms
     assert FARMER_VIEW in perms
     assert PROCUREMENT_VIEW in perms
+    assert FARMER_CREATE in perms
+    assert FARMER_DELETE not in perms
 
 
 def test_worker_has_work_order_permissions_only():
@@ -61,6 +64,27 @@ def test_build_rbac_payload_shape():
 
 
 def test_all_catalog_roles_defined():
-    for role in ("OWNER", "MANAGER", "WORKER", "ACCOUNTANT", "AGENT", "DRIVER"):
+    for role in ("OWNER", "MANAGER", "WORKER", "ACCOUNTANT", "AGENT", "DRIVER", "SUPERVISOR", "FARMER"):
         assert role in ROLE_MOBILE_PERMISSIONS
         assert len(ROLE_MOBILE_PERMISSIONS[role]) > 0
+
+
+def test_agent_mobile_includes_field_services_and_farmer_view():
+    perms = resolve_mobile_permissions(_user("AGENT"))
+    assert FARMER_VIEW in perms
+    assert "FIELD_SERVICE_VIEW" in perms
+    assert "FIELD_SERVICE_CREATE" in perms
+
+
+def test_farmer_mobile_is_read_only():
+    perms = resolve_mobile_permissions(_user("FARMER"))
+    assert FARMER_VIEW in perms
+    assert FARMER_CREATE not in perms
+    assert USER_MANAGE not in perms
+    assert "FIELD_SERVICE_VIEW" in perms
+    assert "FIELD_SERVICE_CREATE" not in perms
+
+
+def test_accessible_modules_include_field_services_for_agent():
+    modules = derive_accessible_modules(resolve_mobile_permissions(_user("AGENT")))
+    assert "field_services" in modules

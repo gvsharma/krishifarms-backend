@@ -16,6 +16,7 @@ import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import { useState } from "react";
+import { CommentThread } from "@/components/comments/CommentThread";
 import { MuiPageShell } from "@/components/shell/mui-page-shell";
 import { fetchFieldService, updateFieldService } from "@/features/field-services/api";
 import { CATEGORY_FIELDS, categoryLabel, type ServiceCategory } from "@/features/field-services/constants";
@@ -25,7 +26,21 @@ import {
   recordToFormValues,
   type FieldServiceFormValues,
 } from "@/features/field-services/field-service-form";
+import {
+  CULTIVATION_STAGE_OPTIONS,
+  GOODS_TYPE_OPTIONS,
+  LOCALITY_OPTIONS,
+  SPRAY_TYPE_OPTIONS,
+  TROLLEY_MATERIAL_OPTIONS,
+  TROLLEY_PURPOSE_OPTIONS,
+  parseWorkDetailsFromComments,
+} from "@/features/field-services/work-details";
 import { formatInr } from "@/features/procurements/api";
+
+function labelFor(options: readonly { value: string; label: string }[], value?: string) {
+  if (!value) return "—";
+  return options.find((o) => o.value === value)?.label ?? value;
+}
 
 export default function FieldServiceDetailPage() {
   const params = useParams<{ id: string }>();
@@ -70,6 +85,7 @@ export default function FieldServiceDetailPage() {
 
   const category = data?.service_category as ServiceCategory | undefined;
   const visibleFields = category ? new Set(CATEGORY_FIELDS[category]) : new Set<string>();
+  const { details: workDetails, freeComments } = parseWorkDetailsFromComments(data?.comments);
 
   return (
     <MuiPageShell
@@ -207,7 +223,7 @@ export default function FieldServiceDetailPage() {
 
               {visibleFields.has("diesel_amount") && (
                 <Grid size={{ xs: 6, sm: 4 }}>
-                  <DetailField label="Diesel" value={formatInr(data.diesel_amount)} />
+                  <DetailField label="Diesel cost" value={formatInr(data.diesel_amount)} />
                 </Grid>
               )}
 
@@ -247,12 +263,118 @@ export default function FieldServiceDetailPage() {
                 </Grid>
               )}
 
-              {data.comments && (
+              {workDetails?.profile === "tractor" && (
+                <>
+                  <Grid size={{ xs: 6, sm: 4 }}>
+                    <DetailField label="Crop" value={workDetails.crop_name || workDetails.crop_code || "—"} />
+                  </Grid>
+                  <Grid size={{ xs: 6, sm: 4 }}>
+                    <DetailField label="Area (acres)" value={workDetails.area_acres || "—"} />
+                  </Grid>
+                  <Grid size={{ xs: 6, sm: 4 }}>
+                    <DetailField
+                      label="Cultivation stage"
+                      value={labelFor(CULTIVATION_STAGE_OPTIONS, workDetails.cultivation_stage)}
+                    />
+                  </Grid>
+                </>
+              )}
+
+              {workDetails?.profile === "trolley" && (
+                <>
+                  <Grid size={{ xs: 6, sm: 4 }}>
+                    <DetailField label="Trips" value={workDetails.trips || "—"} />
+                  </Grid>
+                  <Grid size={{ xs: 6, sm: 4 }}>
+                    <DetailField label="Purpose" value={labelFor(TROLLEY_PURPOSE_OPTIONS, workDetails.purpose)} />
+                  </Grid>
+                  <Grid size={{ xs: 6, sm: 4 }}>
+                    <DetailField label="Material" value={labelFor(TROLLEY_MATERIAL_OPTIONS, workDetails.material)} />
+                  </Grid>
+                </>
+              )}
+
+              {workDetails?.profile === "bolero" && (
+                <>
+                  <Grid size={{ xs: 6, sm: 4 }}>
+                    <DetailField label="Trips" value={workDetails.trips || "—"} />
+                  </Grid>
+                  <Grid size={{ xs: 6, sm: 4 }}>
+                    <DetailField label="Local / Non-local" value={labelFor(LOCALITY_OPTIONS, workDetails.locality)} />
+                  </Grid>
+                  <Grid size={{ xs: 6, sm: 4 }}>
+                    <DetailField label="Distance (km)" value={workDetails.distance_km || "—"} />
+                  </Grid>
+                  <Grid size={{ xs: 6, sm: 4 }}>
+                    <DetailField label="Weight (kg)" value={workDetails.weight_kg || "—"} />
+                  </Grid>
+                  <Grid size={{ xs: 6, sm: 4 }}>
+                    <DetailField label="Goods type" value={labelFor(GOODS_TYPE_OPTIONS, workDetails.goods_type)} />
+                  </Grid>
+                </>
+              )}
+
+              {workDetails?.profile === "dcm" && (
+                <>
+                  <Grid size={{ xs: 6, sm: 4 }}>
+                    <DetailField label="Trips" value={workDetails.trips || "—"} />
+                  </Grid>
+                  <Grid size={{ xs: 6, sm: 4 }}>
+                    <DetailField label="Distance (km)" value={workDetails.distance_km || "—"} />
+                  </Grid>
+                  <Grid size={{ xs: 6, sm: 4 }}>
+                    <DetailField label="Tonnes" value={workDetails.tonnes || "—"} />
+                  </Grid>
+                  <Grid size={{ xs: 6, sm: 6 }}>
+                    <DetailField label="Loading point" value={workDetails.loading_point || "—"} />
+                  </Grid>
+                  <Grid size={{ xs: 6, sm: 6 }}>
+                    <DetailField label="Unloading point" value={workDetails.unloading_point || "—"} />
+                  </Grid>
+                </>
+              )}
+
+              {workDetails?.profile === "pump" && (
+                <>
+                  <Grid size={{ xs: 6, sm: 4 }}>
+                    <DetailField label="Crop" value={workDetails.crop_name || workDetails.crop_code || "—"} />
+                  </Grid>
+                  <Grid size={{ xs: 6, sm: 4 }}>
+                    <DetailField label="Area (acres)" value={workDetails.area_acres || "—"} />
+                  </Grid>
+                  <Grid size={{ xs: 6, sm: 4 }}>
+                    <DetailField label="Litres applied" value={workDetails.litres || "—"} />
+                  </Grid>
+                </>
+              )}
+
+              {workDetails?.profile === "drone" && (
+                <>
+                  <Grid size={{ xs: 6, sm: 4 }}>
+                    <DetailField label="Crop" value={workDetails.crop_name || workDetails.crop_code || "—"} />
+                  </Grid>
+                  <Grid size={{ xs: 6, sm: 4 }}>
+                    <DetailField label="Area (acres)" value={workDetails.area_acres || "—"} />
+                  </Grid>
+                  <Grid size={{ xs: 6, sm: 4 }}>
+                    <DetailField
+                      label="Spray type"
+                      value={labelFor(SPRAY_TYPE_OPTIONS, workDetails.spray_type)}
+                    />
+                  </Grid>
+                </>
+              )}
+
+              {freeComments && (
                 <Grid size={{ xs: 12 }}>
-                  <DetailField label="Comments" value={data.comments} />
+                  <DetailField label="Comments" value={freeComments} />
                 </Grid>
               )}
             </Grid>
+          </Card>
+
+          <Card sx={{ p: 2 }}>
+            <CommentThread entityType="field_service" entityId={data.id} />
           </Card>
         </Stack>
       )}

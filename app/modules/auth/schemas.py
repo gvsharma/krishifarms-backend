@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 class LoginRequest(BaseModel):
     # Use str (not EmailStr) so seeded *.local demo/dev addresses are accepted.
     email: str | None = Field(default=None, max_length=255)
-    mobile: str | None = Field(default=None, min_length=10, max_length=15)
+    mobile: str | None = Field(default=None, min_length=10, max_length=20)
     password: str = Field(min_length=8)
 
     @model_validator(mode="after")
@@ -28,8 +28,12 @@ class LoginRequest(BaseModel):
     def normalize_mobile(cls, value: str | None) -> str | None:
         if value is None:
             return None
-        digits = "".join(ch for ch in value if ch.isdigit())
-        return digits or value
+        from app.modules.auth.phone import normalize_phone_for_lookup
+
+        normalized = normalize_phone_for_lookup(value)
+        if len(normalized) < 10:
+            raise ValueError("Mobile must be at least 10 digits")
+        return normalized
 
 
 class RefreshRequest(BaseModel):

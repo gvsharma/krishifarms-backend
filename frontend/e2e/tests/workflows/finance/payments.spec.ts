@@ -22,7 +22,9 @@ test.describe("finance — payments", () => {
       page.getByText(/Farmer payments, allocation, and settlement queue/i),
     ).toBeVisible();
 
-    await expectListOrEmptyOrError(page, { emptyTitle: /Payments — coming soon/i });
+    await expectListOrEmptyOrError(page, {
+      emptyTitle: /No farmer payments yet|Payments — coming soon/i,
+    });
     expectNoPageErrors(pageErrors);
   });
 

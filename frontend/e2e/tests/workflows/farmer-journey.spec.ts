@@ -39,8 +39,23 @@ test.describe("workflow — farmer journey", () => {
       const villageSelect = page.getByLabel("Village");
       await villageSelect.click();
       const firstOption = page.getByRole("option").first();
-      if (await firstOption.isVisible().catch(() => false)) {
-        await firstOption.click();
+      // Cascade requires District → Mandal before Village options appear.
+      if (!(await firstOption.isVisible().catch(() => false))) {
+        const district = page.getByLabel("District");
+        await district.click();
+        const districtOpt = page.getByRole("option").first();
+        if (await districtOpt.isVisible().catch(() => false)) {
+          await districtOpt.click();
+          await page.getByLabel("Mandal").click();
+          const mandalOpt = page.getByRole("option").first();
+          if (await mandalOpt.isVisible().catch(() => false)) {
+            await mandalOpt.click();
+            await villageSelect.click();
+          }
+        }
+      }
+      if (await page.getByRole("option").first().isVisible().catch(() => false)) {
+        await page.getByRole("option").first().click();
 
         const createBtn = page.getByRole("button", { name: /Create farmer/i });
         await expect(createBtn).toBeEnabled({ timeout: 5_000 });

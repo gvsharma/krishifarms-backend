@@ -78,6 +78,7 @@ docs/deploy/           → CI/CD details
 | Auth | ✅ | ✅ | — | `001` | `paths/auth.yaml` | 1 |
 | Users / Roles | ✅ | ✅ | ✅ | `001`, `002`, `015` | in `001` spec | 1 |
 | Villages / Crop types | ✅ | ✅ | ✅ | `001`, `003` | in master paths | 1 |
+| Districts / Mandals | ✅ | ✅ | ✅ | `023` | `paths/platform.yaml` | 1 |
 | Platform (buyers, agents, services, prices, payment modes, comments, tags) | ✅ | ✅ | ✅ | `003`, `017`, `018` | `paths/platform.yaml` | 1b |
 | Expense categories | ✅ | ✅ | ✅ | `001` | `paths/platform.yaml` | 1 |
 | Documents | 🟡 | ✅ | 🟡 | `001`, `007` | `paths/documents.yaml` | 1 |
@@ -86,12 +87,12 @@ docs/deploy/           → CI/CD details
 | Dashboard / Health | 🟡 | ✅ | — | — | in platform paths | 1 |
 | Farmers | ✅ | ✅ | ✅ | `004` | `paths/farmers.yaml` | 2a/2b (sub-resources) |
 | Field services | ✅ | ✅ | ✅ | `021`, `022` | `paths/field-services.yaml` | 2c |
-| Farms | ⬜ | — | — | `006` | `paths/farms.yaml` | 4 |
-| Procurements | ✅ | ✅ | ✅ | `008`, `019` | `paths/procurement.yaml` | 2b |
-| Farmer payments / Ledger | ⬜ | — | — | `008` | `paths/payments.yaml` | 2 |
+| Farms | 🟡 | ✅ thin CRUD + activities | Placeholder | `006` | `paths/farms.yaml` | Own-farming UI remaining |
+| Procurements | ✅ | ✅ | ✅ | `008`, `019`, `026` | `paths/procurement.yaml` | 2b (+ buyer/terms) |
+| Farmer payments / Ledger | ✅ | ✅ list/create/get/allocate/reverse | ✅ | `008` | `paths/payments.yaml` | Web settlement UI remaining |
 | Workers | ⬜ | — | — | `005` | `paths/workers.yaml` | 4 |
 | Work orders / Attendance | ⬜ | — | — | `009` | `paths/work-orders.yaml` | 4 |
-| Assets / Vehicle trips | ⬜ | — | — | `010` | `paths/assets.yaml`, `vehicles.yaml` | 5 |
+| Assets / Vehicle trips | ✅ | Assets + trips ✅ | Vehicles list | `010`, `025` | `paths/assets.yaml`, `vehicles.yaml` | Diesel expense posting deferred |
 | Rentals | ⬜ | — | — | `011` | `paths/rentals.yaml` | 5 |
 | Expenses | ⬜ | — | — | `012` | `paths/expenses.yaml` | 3 |
 | Collections / Payments | ⬜ | — | — | `012` | `paths/collections.yaml`, `payments.yaml` | 3 |
@@ -102,21 +103,21 @@ docs/deploy/           → CI/CD details
 
 | System | Status | Location |
 |--------|--------|----------|
-| Full DB schema | ✅ | `alembic/versions/202506210001`–`022` |
-| RBAC permissions (DB seed) | ✅ | Migration `015` |
-| RBAC permissions (Python seed) | 🟡 Phase 1 + platform subset | `app/shared/permissions.py` |
+| Full DB schema | ✅ | `alembic/versions/202506210001`–`026` |
+| RBAC permissions (DB seed) | ✅ | Migration `015` (+ `018`/`022`/`024`/`025`) |
+| RBAC permissions (Python seed) | 🟡 Phase 1 + platform + location/RBAC + assets | `app/shared/permissions.py` |
 | Reporting SQL (8 dashboards) | ✅ | `docs/reporting/sql/` |
 | Synthetic UAT data | ✅ | `scripts/synthetic_seed/` |
 | CI/CD pipeline | ✅ | `.github/workflows/` |
 | Cache layer | ✅ | `app/core/cache/` |
-| Unit tests | 🟡 | `tests/` (farmers, platform, procurements) |
-| Frontend | 🟡 | `frontend/` — MUI shell + settings master-data CRUD, farmers, procurement; Phase 2+ pages still placeholders — [ANDROID_CRM_PARITY.md](./modules/ANDROID_CRM_PARITY.md) |
+| Unit tests | 🟡 | `tests/` (farmers, platform, procurements, farmer_payments) |
+| Frontend | 🟡 | `frontend/` — MUI shell + master-data CRUD, farmers, location cascade, **procurement workflow** (submit→weigh→price→confirm), field services; Phase 3+ pages still placeholders — [ANDROID_CRM_PARITY.md](./modules/ANDROID_CRM_PARITY.md) |
 
 ### 3.3 Registered SQLAlchemy models (`app/models.py`)
 
-Phase 1–2b live models include: org/IAM, villages, crop types, expense categories, platform catalogs (`ActivityType`, `PaymentMode`, `Buyer`, `FieldAgent`, `VehicleType`, `CropPriceRule`, comments/tags), farmers (+ bank/land), procurements (+ ledger/deductions), documents, devices (`UserDeviceToken`), field services (`FieldServiceRecord`), audit/activity.
+Phase 1–2b live models include: org/IAM, districts, mandals, villages, crop types, expense categories, platform catalogs (`ActivityType`, `PaymentMode`, `Buyer`, `FieldAgent`, `VehicleType`, `CropPriceRule`, comments/tags), farmers (+ bank/land), procurements (+ ledger/deductions + buyer/payment terms), farmer payments (+ allocations), documents, devices (`UserDeviceToken`), field services (`FieldServiceRecord`), assets (`Asset`), vehicle trips (`VehicleTrip`), farms (`Farm`/`FarmActivity`), audit/activity.
 
-Phase 3–5 tables (workers, expenses, assets, trips, rentals, etc.) exist in DB but have **no Python models/routers yet**.
+Phase 3–5 tables (workers, expenses, rentals, etc.) exist in DB; thin routers now cover farms + vehicle trips; finance ops still deferred.
 
 ---
 
@@ -212,6 +213,10 @@ Full topology: [ARCHITECTURE.md](./ARCHITECTURE.md).
 | `016`–`020` | firebase, platform accountability/RBAC, procurements workflow, devices | Auth, catalogs, FCM |
 | `021` | `field_services` | `field_service_records`, `activity_types.service_category` |
 | `022` | `field_services_rbac` | `field_services:*` permissions |
+| `023` | `location_hierarchy` | `districts`, `mandals`, village FKs + cascade list APIs |
+| `024` | `rbac_role_alignment` | Location/domain perms, FARMER role, supervisor display names |
+| `025` | `assets_fleet_fields` | Asset `vehicle_type_id`/`fuel_type`/`driver_name`; DRIVER asset + FS write grants |
+| `026` | `procurement_buyer_payment_terms` | Procurement `buyer_id`, payment terms, expected/actual payment dates |
 
 See also [alembic/versions/README.md](../alembic/versions/README.md).
 
@@ -311,14 +316,14 @@ Error: `{ "success": false, "error": { "message": "...", "details": {...} } }`
 
 | File | Role |
 |------|------|
-| `router.py` | `POST /auth/login`, `/auth/firebase-login`, `/refresh`, `/logout`, `GET /auth/me` (binds `X-Device-Id` → refresh token) |
+| `router.py` | `POST /auth/login` (email **or** mobile + password), `/auth/firebase-login`, `/refresh`, `/logout`, `GET /auth/me` (binds `X-Device-Id` → refresh token) |
 | `firebase.py` | Firebase Admin SDK ID token verification (phone OTP) |
-| `phone.py` | E.164 → lookup normalization |
+| `phone.py` | E.164 → lookup normalization (shared by password mobile + Firebase) |
 | `rate_limit.py` | Firebase login rate limit (cache-backed) |
 | `service.py` | Credential check, token issue/revoke |
 | `schemas.py` | Login request, token response |
 
-Public endpoints (no `require_permission`). JWT access + refresh tokens.
+Public endpoints (no `require_permission`). JWT access + refresh tokens. OTP path: [FIREBASE_OTP.md](./modules/FIREBASE_OTP.md). Web `/login` is phone-or-email password; OTP button stubbed.
 
 ### 8.2 Users (`app/modules/users/`)
 
@@ -526,7 +531,7 @@ Current foundation release: **0.1.0** (2025-06-21, commit `60bb2b5`).
 | Phase | Scope | API status | DB status |
 |-------|-------|------------|-----------|
 | **1** ✅ | Auth, users, master data, expense categories, documents (partial), audit, dashboard | Live Python | ✅ |
-| **2** | Farmers, procurements, farmer ledger/payments | OpenAPI only | ✅ |
+| **2** | Farmers, procurements, farmer ledger/payments | Farmers + procurements ✅; farmer payments thin (list/create/get) | ✅ |
 | **3** | Expenses, collections, general payments | OpenAPI only | ✅ |
 | **4** | Farms, workers, work orders, attendance | OpenAPI only | ✅ |
 | **5+** | Fleet, rentals, AI/OCR, global search | OpenAPI only | ✅ |
@@ -566,6 +571,7 @@ Database migrations for Phases 2–5 already exist; Python routes follow increme
 | API contract | [API_CONTRACT.md](./api/API_CONTRACT.md) |
 | OpenAPI spec | [openapi.yaml](./api/openapi.yaml) |
 | Document management | [DOCUMENT_MANAGEMENT.md](./modules/DOCUMENT_MANAGEMENT.md) |
+| Firebase Phone OTP | [FIREBASE_OTP.md](./modules/FIREBASE_OTP.md) |
 | Android ↔ CRM parity | [ANDROID_CRM_PARITY.md](./modules/ANDROID_CRM_PARITY.md) |
 | Reporting | [REPORTING_ARCHITECTURE.md](./reporting/REPORTING_ARCHITECTURE.md) |
 | KPI definitions | [kpi_definitions.md](./reporting/kpi_definitions.md) |

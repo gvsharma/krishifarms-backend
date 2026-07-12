@@ -6,22 +6,43 @@ Org-scoped admin and field operations for KrishiFarms CRM. **Accountability** is
 
 | Role | Code | Capabilities |
 |------|------|--------------|
-| **Admin** | `OWNER` | Full access including user CRUD, all deletes, overrides |
-| **Manager** | `MANAGER` | Create/update operational and master data; **no** user create/delete; **no** delete on any resource |
-| **Agent** | `AGENT` | Read assigned modules; **comments only** (no create/delete on business records) |
-| **Driver** | `DRIVER` | Read fleet/trips; **comments only** |
-| **Supervisor** | `SUPERVISOR` | Field lead — create/update farmers, procurement, workforce (no delete) |
+| **Admin / Owner** | `OWNER` | Full access including user CRUD, all deletes, overrides (`approve`, `delete`) |
+| **Manager** | `MANAGER` | Create/update operational and master data; **no** user create/delete; **no** `:delete` |
+| **Farming Supervisor** | `SUPERVISOR` | Field lead — farmers, procurement, farming/field services (no delete) |
+| **Vehicle Supervisor** | `DRIVER` | Vehicles, assets, transport, diesel, field-service read/write; comments |
+| **Agent** | `AGENT` | Field services create/update; location + farmer read; comments |
+| **Farmer** | `FARMER` | Read-only soft-wire (farmers, procurements, farming, locations, dashboard) |
 | **Worker** | `WORKER` | Work orders, attendance, documents |
-| **Accountant** | `ACCOUNTANT` | Finance read/create/approve |
+| **Accountant** | `ACCOUNTANT` | Finance read/create/approve (mobile catalog; DB role optional) |
 
-Mobile maps the same role codes via `GET /auth/me` permissions.
+Mobile maps the same role codes via `GET /auth/me` permissions. Display names must match `ROLE_DEFINITIONS` in `app/shared/permissions.py` (Android `RoleLabels`, web UI labels).
+
+Field-service mobile permissions: `FIELD_SERVICE_VIEW` / `CREATE` / `UPDATE` / `DELETE` map from `field_services:*` and grant accessible module `field_services`.
+
+## Location hierarchy
+
+District → Mandal → Village masters (org-scoped). Villages keep denormalized `district` / `mandal` strings for backward-compatible clients and gain optional `district_id` / `mandal_id` FKs.
+
+| Feature | API | Permission |
+|---------|-----|------------|
+| Districts | `GET/POST /districts`, `PATCH/DELETE /districts/{id}` | `districts:*` |
+| Mandals | `GET/POST /mandals?district_id=`, `PATCH/DELETE /mandals/{id}` | `mandals:*` |
+| Villages | `GET/POST /villages?mandal_id=&district=`, `PATCH/DELETE /villages/{id}` | `villages:*` |
+
+Cascading dropdowns: list districts → list mandals by `district_id` → list villages by `mandal_id`.
+
+**Web:** searchable MUI Autocomplete cascade (`frontend/src/features/master-data/location-cascade.tsx`) on Settings → Villages (District → Mandal when creating villages), Add/Edit farmer, New procurement, and field-service location (DCM loading/unloading from village masters). No free-text district/mandal/village where masters exist.
+
+Seed: `python -m scripts.seed_locations` (Rangareddy: Keshampeta, Talakondapally, Maheshwaram, Kothur, Farooqnagar + villages/pincodes). Also invoked from `scripts/seed.py` on fresh orgs.
 
 ## Admin feature matrix
 
 | Feature | API prefix | DB table | Phase 1 Python | Mobile |
 |---------|------------|----------|------------------|--------|
 | Users & roles | `/users`, `/roles` | `users`, `roles` | ✅ list/create/patch | 🔲 P1 |
-| Villages | `/villages` | `villages` | ✅ CRUD | 🔲 P1 |
+| Districts | `/districts` | `districts` | ✅ CRUD | 🔲 P1 (web cascade ✅) |
+| Mandals | `/mandals` | `mandals` | ✅ CRUD | 🔲 P1 (web cascade ✅) |
+| Villages | `/villages` | `villages` | ✅ CRUD (+ filters) | 🔲 P1 (web cascade ✅) |
 | Crop types | `/crop-types` | `crop_types` | ✅ CRUD | 🔲 P1 |
 | Expense categories | `/expense-categories` | `expense_categories` | ✅ CRUD | 🔲 P1 |
 | Crop prices | `/crop-prices` | `crop_price_rules` | ✅ Phase 1b | 🔲 P2 |
@@ -78,6 +99,8 @@ List/detail responses include audit metadata where applicable:
 - [x] `activity_types` SQLAlchemy + REST API (table exists from migration 003)
 - [x] Client context (`X-Device-Id`, `X-Client-Type`) → audit logs
 - [x] RBAC migration: `AGENT`, `DRIVER`; manager no delete / no user create
+- [x] Location hierarchy: `districts` / `mandals` + village filters (migration `023`)
+- [x] RBAC alignment: Vehicle/Farming Supervisor labels, `FARMER` read-only, soft-wired domain perms (migration `024`)
 - [x] OpenAPI path stubs under `docs/api/paths/platform.yaml`
 
 ### Phase 2 — Operational CRUD (Python)
@@ -97,17 +120,29 @@ Next.js settings screens: users, master data, buyers, prices, audit viewer.
 
 ## Permission codes (new)
 
-| Code | OWNER | MANAGER | SUPERVISOR | AGENT | DRIVER |
-|------|:-----:|:-------:|:----------:|:-----:|:------:|
-| `comments:read` | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `comments:create` | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `buyers:*` CRUD | ✅ | create/update/read | read | read | — |
-| `agents:*` | ✅ | create/update/read | read | read | — |
-| `activity_types:*` | ✅ | create/update/read | read | read | — |
-| `vehicle_types:*` | ✅ | create/update/read | read | read | read |
-| `crop_prices:*` | ✅ | create/update/read | read | — | — |
-| `users:create` | ✅ | ❌ | ❌ | ❌ | ❌ |
-| `users:delete` | ✅ | ❌ | ❌ | ❌ | ❌ |
-| `*:delete` | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Code | OWNER | MANAGER | SUPERVISOR | AGENT | DRIVER | FARMER |
+|------|:-----:|:-------:|:----------:|:-----:|:------:|:------:|
+| `districts:*` / `mandals:*` | ✅ | create/update/read | read | read | read | read |
+| `villages:*` | ✅ | create/update/read | read | read | read | read |
+| `master_data:read` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `vehicles:read` | ✅ | ✅ | ✅ | — | ✅ | — |
+| `assets:*` | ✅ | create/update/read | read | — | create/update/read | — |
+| `transport:*` / `diesel:*` | ✅ | create/update/read | — | — | create/update/read | — |
+| `field_services:*` | ✅ | create/update/read | create/update/read | create/update/read | create/update/read | read |
+| `farming:*` | ✅ | create/update/read | create/update/read | read | — | read |
+| `finance:read` | ✅ | ✅ | — | — | — | — |
+| `approve` / `delete` | ✅ | approve only | — | — | — | — |
+| `comments:read` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `comments:create` | ✅ | ✅ | ✅ | ✅ | ✅ | — |
+| `buyers:*` CRUD | ✅ | create/update/read | read | — | — | — |
+| `agents:*` | ✅ | create/update/read | read | — | — | — |
+| `activity_types:*` | ✅ | create/update/read | read | — | — | — |
+| `vehicle_types:*` | ✅ | create/update/read | read | — | read | — |
+| `crop_prices:*` | ✅ | create/update/read | read | — | — | read |
+| `users:create` | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| `users:delete` | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| `*:delete` | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
 
 *Manager retains `users:read` and `users:update` for field staff edits, not account provisioning.*
+
+Soft-wired permissions (`transport:*`, `diesel:*`, `farming:*`, `finance:read`, `approve`, `delete`) remain for future trip/finance routers. Assets CRUD is live (`/assets`); do not assume other Phase 3+ endpoints exist until listed in `app/main.py`.

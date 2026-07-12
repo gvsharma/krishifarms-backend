@@ -6,7 +6,8 @@ export class LoginPage extends BasePage {
   readonly path = "/login";
   readonly pageName = "Login";
 
-  emailInput = this.page.getByLabel(/email/i);
+  /** Phone or email identifier (label: "Phone or email"). */
+  emailInput = this.page.getByLabel(/phone or email|email/i);
   passwordInput = this.page.getByLabel(/^password/i);
   submitButton = this.page.getByRole("button", { name: SELECTORS.roles.loginButton });
 
