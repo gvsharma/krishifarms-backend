@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Frontend Playwright foundation** — `@playwright/test`, `playwright.config.ts`, auth setup (`e2e/auth.setup.ts` + `e2e/fixtures/auth.ts` → `e2e/.auth/user.json`), dashboard smoke spec; `npm run test:e2e` / `test:e2e:ui` ([frontend/e2e/README.md](../frontend/e2e/README.md))
+- **Frontend e2e — finance smoke** — Playwright specs under `frontend/e2e/finance/` for `/expenses`, `/payments`, `/collections` (shell/title, empty/table/error content, no pageerror; create-dialog overlap check when present)
+- **Frontend e2e — operations smoke** — Playwright specs under `frontend/e2e/operations/` for `/farmers` (+ `/farmers/new`), `/procurement`, `/field-services` (+ `/field-services/new` category/form overlap), `/farms`, `/vehicles`, `/workers`; shared auth via `e2e/.auth/user.json` / UI login fallback
+- **Frontend e2e — settings/admin smoke** — Playwright specs under `frontend/e2e/settings/` for `/settings`, `/settings/users` (table or Alert), `/settings/villages`, `/settings/master-data` + all catalog routes; Add/Edit dialog label visibility + non-overlap checks (buyers emphasized)
 - **Frontend sign-out + login** — MUI user menu Sign out (clears `krishi-access-token`, revokes refresh token via `POST /auth/logout` when available); `/login` email/password page; `AuthBootstrap` skips dev auto-login after explicit sign-out (`sessionStorage` flag)
 - **Admin CRUD parity (web + Android)** — Web: `/auth/me` role hook; sidebar links for Users + Master data; dashboard admin shortcuts; delete hidden for MANAGER on `CatalogAdminPage`. Android: `feature/admin/` hub (More + Settings) with catalog list/create/edit for crop types, vehicle types, activity types, buyers, agents, expense categories, payment modes; villages read-only; users list/create/edit; EN + TE strings; `MenuRegistry` admin tile for OWNER/MANAGER
 - **RBAC: MANAGER admin without delete** — Backend `users:create` for MANAGER; mobile `SETTINGS_MANAGE` + `USER_MANAGE` + `admin` module in permission catalog; OWNER-only delete on web/Android UI
