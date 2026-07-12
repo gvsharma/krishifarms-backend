@@ -33,6 +33,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **Web login fields** — `/login` uses premium `components/ui/Input` (54px, 16px radius, soft `#E5E7EB` border, `#111827` focus ring); labeled fields + show-password a11y; no Material entrance animations on the Google-style card
+- **Web login UI** — Google-style centered card sign-in (`/login`): email + password fields, show/hide password, primary Next button
 - **Web login UI** — Dribbble-inspired split-screen sign-in (`/login`): Canopia brand plane + refined email/password form, show/hide password, Fraunces display type; no purple/cream chrome
 - **Supabase cutover runbook** — [docs/deploy/SUPABASE_CUTOVER_RUNBOOK.md](./deploy/SUPABASE_CUTOVER_RUNBOOK.md): GitHub secret + IAM attach script + deploy verify steps
 - **Deploy IAM policy** — `deploy/iam/github-backend-deploy-ssm-supabase.json` + `attach-github-deploy-iam-supabase-policy.sh` for one-time admin attach
