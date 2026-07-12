@@ -8,7 +8,7 @@ import {
   Chip,
   CircularProgress,
   Divider,
-  Grid,
+  Grid2 as Grid,
   Stack,
   Table,
   TableBody,
@@ -59,25 +59,25 @@ export default function FarmerDetailPage() {
       {data && (
         <Stack spacing={2}>
           <Grid container spacing={2}>
-            <Grid item xs={12} md={8}>
+            <Grid size={{ xs: 12, md: 8 }}>
               <Card sx={{ p: 2 }}>
                 <Typography variant="h6" gutterBottom>
                   Profile
                 </Typography>
                 <Grid container spacing={1}>
-                  <Grid item xs={6} sm={4}>
+                  <Grid size={{ xs: 6, sm: 4 }}>
                     <Field label="Phone" value={data.phone_primary} />
                   </Grid>
-                  <Grid item xs={6} sm={4}>
+                  <Grid size={{ xs: 6, sm: 4 }}>
                     <Field label="Secondary" value={data.phone_secondary ?? "—"} />
                   </Grid>
-                  <Grid item xs={6} sm={4}>
+                  <Grid size={{ xs: 6, sm: 4 }}>
                     <Field label="Status" value={data.status} />
                   </Grid>
-                  <Grid item xs={12}>
+                  <Grid size={{ xs: 12 }}>
                     <Field label="Address" value={data.address ?? "—"} />
                   </Grid>
-                  <Grid item xs={12}>
+                  <Grid size={{ xs: 12 }}>
                     <Stack direction="row" spacing={1} flexWrap="wrap">
                       {data.tags.map((tag) => (
                         <Chip key={tag} label={tag} size="small" />
@@ -87,7 +87,7 @@ export default function FarmerDetailPage() {
                 </Grid>
               </Card>
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <Card sx={{ p: 2 }}>
                 <Typography variant="overline" color="text.secondary">
                   Outstanding
