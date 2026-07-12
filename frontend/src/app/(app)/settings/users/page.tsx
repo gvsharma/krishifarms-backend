@@ -28,6 +28,7 @@ import { Add, EditOutlined } from "@mui/icons-material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { MuiPageShell } from "@/components/shell/mui-page-shell";
+import { useAuth } from "@/hooks/use-auth";
 import { createUser, fetchRoles, fetchUsers, updateUser, type User } from "@/features/settings/api";
 
 type FormState = {
@@ -52,6 +53,7 @@ const emptyForm = (): FormState => ({
 
 export default function SettingsUsersPage() {
   const queryClient = useQueryClient();
+  const { canManageUsers } = useAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<User | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
@@ -121,9 +123,11 @@ export default function SettingsUsersPage() {
       title="Users"
       description="Organization members, roles, and access. Requires users:read permission."
       actions={
-        <Button variant="contained" startIcon={<Add />} onClick={openCreate}>
-          Add user
-        </Button>
+        canManageUsers ? (
+          <Button variant="contained" startIcon={<Add />} onClick={openCreate}>
+            Add user
+          </Button>
+        ) : undefined
       }
     >
       <Card sx={{ overflow: "hidden" }}>

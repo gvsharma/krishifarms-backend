@@ -1,3 +1,4 @@
+import type { AuthMe } from "@/features/auth/types";
 import { fetchApi, setAccessToken } from "@/lib/api/client";
 
 export interface LoginResponse {
@@ -13,6 +14,10 @@ export async function loginWithPassword(email: string, password: string): Promis
   });
   setAccessToken(data.access_token);
   return data.access_token;
+}
+
+export function fetchAuthMe(): Promise<AuthMe> {
+  return fetchApi<AuthMe>("/auth/me", { method: "GET", clientHeaders: false });
 }
 
 /** Dev-only: seed token from env or password login once per session. */

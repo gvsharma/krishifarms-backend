@@ -37,9 +37,10 @@ import { useEffect, useState, type ReactNode } from "react";
 import {
   filterNavByRole,
   NAV_SECTIONS,
-  PLACEHOLDER_USER_ROLE,
+  type NavRole,
 } from "@/constants/nav-config";
 import { ROUTES, SITE_NAME } from "@/constants/routes";
+import { useAuth } from "@/hooks/use-auth";
 import { DRAWER_WIDTH, DRAWER_WIDTH_COLLAPSED } from "@/theme/material-theme";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -61,7 +62,8 @@ export function MuiAppShell({ children }: MuiAppShellProps) {
   useEffect(() => setMounted(true), []);
 
   const drawerWidth = collapsed && !isMobile ? DRAWER_WIDTH_COLLAPSED : DRAWER_WIDTH;
-  const navSections = filterNavByRole(NAV_SECTIONS, PLACEHOLDER_USER_ROLE);
+  const { user, role } = useAuth();
+  const navSections = filterNavByRole(NAV_SECTIONS, (role ?? "OWNER") as NavRole);
 
   const drawerContent = (
     <Box sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
@@ -228,7 +230,7 @@ export function MuiAppShell({ children }: MuiAppShellProps) {
             )}
             <IconButton onClick={(e) => setUserMenuAnchor(e.currentTarget)}>
               <Avatar sx={{ width: 32, height: 32, bgcolor: "primary.main", fontSize: 13 }}>
-                VG
+                {(user?.name ?? "U").slice(0, 2).toUpperCase()}
               </Avatar>
             </IconButton>
           </Stack>
@@ -243,10 +245,10 @@ export function MuiAppShell({ children }: MuiAppShellProps) {
         <MenuItem disabled>
           <Stack>
             <Typography variant="body2" fontWeight={600}>
-              Venkat Gorinta
+              {user?.name ?? "User"}
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              owner@krishifarms.local
+              {user?.email ?? user?.mobile ?? role ?? ""}
             </Typography>
           </Stack>
         </MenuItem>

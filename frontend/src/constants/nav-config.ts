@@ -4,15 +4,17 @@ import {
   AccountBalance,
   Agriculture,
   Dashboard,
+  Dataset,
   Handshake,
+  People,
   Settings,
   Spa,
 } from "@mui/icons-material";
 import type { SvgIconComponent } from "@mui/icons-material";
 import { ROUTES } from "@/constants/routes";
 
-/** Role codes aligned with backend RBAC (placeholder gating for W1). */
-export type NavRole = "OWNER" | "MANAGER" | "AGENT" | "DRIVER" | "ACCOUNTANT";
+/** Role codes aligned with backend RBAC. */
+export type NavRole = "OWNER" | "MANAGER" | "SUPERVISOR" | "AGENT" | "DRIVER" | "WORKER" | "ACCOUNTANT";
 
 export interface NavItem {
   href: string;
@@ -61,6 +63,18 @@ export const NAV_SECTIONS: NavSection[] = [
     title: "System",
     items: [
       {
+        href: ROUTES.settingsUsers,
+        label: "Users",
+        icon: People,
+        roles: ["OWNER", "MANAGER"],
+      },
+      {
+        href: ROUTES.settingsMasterData,
+        label: "Master data",
+        icon: Dataset,
+        roles: ["OWNER", "MANAGER"],
+      },
+      {
         href: ROUTES.settings,
         label: "Settings",
         icon: Settings,
@@ -69,9 +83,6 @@ export const NAV_SECTIONS: NavSection[] = [
     ],
   },
 ];
-
-/** W1 placeholder — replace with JWT role from auth context in W2. */
-export const PLACEHOLDER_USER_ROLE: NavRole = "OWNER";
 
 export function filterNavByRole(sections: NavSection[], role: NavRole): NavSection[] {
   return sections
