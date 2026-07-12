@@ -169,6 +169,8 @@ _MANAGER: frozenset[str] = frozenset(
         REPORT_VIEW,
         REPORT_EXPORT,
         SETTINGS_VIEW,
+        SETTINGS_MANAGE,
+        USER_MANAGE,
         SYNC_MANAGE,
         VEHICLE_VIEW,
         TRIP_VIEW,
@@ -376,6 +378,7 @@ MODULE_VIEW_PERMISSIONS: dict[str, frozenset[str]] = {
     "assets": frozenset({ASSET_VIEW}),
     "rentals": frozenset({RENTAL_VIEW}),
     "documents": frozenset({DOCUMENT_VIEW}),
+    "admin": frozenset({SETTINGS_MANAGE, USER_MANAGE}),
     "settings": frozenset({SETTINGS_VIEW}),
     "sync": frozenset({SYNC_MANAGE, SETTINGS_VIEW}),
 }
@@ -397,6 +400,7 @@ MODULE_ORDER: dict[str, int] = {
     "assets": 130,
     "rentals": 140,
     "documents": 150,
+    "admin": 155,
     "settings": 160,
     "sync": 170,
 }
