@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Premium form controls (Tailwind)** — opt-in Linear/Stripe-style primitives under `frontend/src/components/ui/premium/` (`Input`, `Textarea`, `Label`, `Field`, `Button`, `Scope`); scoped tokens in `styles/premium.css` + `@/lib/design/premium`; Plus Jakarta Sans / Inter as CSS variables only (MUI shell unchanged). Usage: [premium/README.md](../frontend/src/components/ui/premium/README.md)
+- **Admin form chrome** — shared `PremiumDialog` (blur backdrop, 24px radius, MUI focus trap) + `SoftAlert` for settings/catalog save failures; wired into `CatalogAdminPage` and Settings → Users
 - **Frontend e2e — operations smoke** — Playwright specs under `frontend/e2e/operations/` for `/farmers` (+ `/farmers/new`), `/procurement`, `/field-services` (+ `/field-services/new` category/form overlap), `/farms`, `/vehicles`, `/workers`; shared auth via `e2e/.auth/user.json` / UI login fallback
 - **Frontend Playwright foundation** — `@playwright/test`, `playwright.config.ts`, auth setup (`e2e/auth.setup.ts` + `e2e/fixtures/auth.ts` → `e2e/.auth/user.json`), dashboard smoke spec; `npm run test:e2e` / `test:e2e:ui` ([frontend/e2e/README.md](../frontend/e2e/README.md))
 - **Frontend e2e — finance smoke** — Playwright specs under `frontend/e2e/finance/` for `/expenses`, `/payments`, `/collections` (shell/title, empty/table/error content, no pageerror; create-dialog overlap check when present)

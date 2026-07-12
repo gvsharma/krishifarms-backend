@@ -59,6 +59,18 @@ const config: Config = {
           DEFAULT: "hsl(var(--destructive) / <alpha-value>)",
           foreground: "hsl(var(--destructive-foreground) / <alpha-value>)",
         },
+        premium: {
+          bg: "var(--kf-bg, #FAFAFA)",
+          surface: "var(--kf-surface, #FFFFFF)",
+          primary: "var(--kf-primary, #111827)",
+          accent: "var(--kf-accent, #E11D48)",
+          "secondary-accent": "var(--kf-secondary-accent, #C084FC)",
+          border: "var(--kf-border, #E5E7EB)",
+          muted: "var(--kf-muted, #F3F4F6)",
+          "muted-fg": "var(--kf-muted-fg, #6B7280)",
+          success: "var(--kf-success, #16A34A)",
+          error: "var(--kf-error, #DC2626)",
+        },
       },
       fontFamily: {
         sans: [
@@ -71,6 +83,14 @@ const config: Config = {
         display: ["Helvetica Neue", "Helvetica", "Arial", "sans-serif"],
         helvetica: ["Helvetica Neue", "Helvetica", "Arial", "sans-serif"],
         telugu: ["var(--font-noto-telugu)", "Noto Sans", "sans-serif"],
+        /** Premium form scope (`.kf-premium`) */
+        "premium-sans": ["var(--font-inter)", "ui-sans-serif", "system-ui", "sans-serif"],
+        "premium-display": [
+          "var(--font-plus-jakarta)",
+          "ui-sans-serif",
+          "system-ui",
+          "sans-serif",
+        ],
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -78,11 +98,24 @@ const config: Config = {
         sm: "calc(var(--radius) - 4px)",
         xl: "calc(var(--radius) + 4px)",
         "2xl": "calc(var(--radius) + 8px)",
+        /** Premium controls — 16px textbox / 14px button */
+        "premium-control": "16px",
+        "premium-btn": "14px",
       },
       boxShadow: {
         card: "0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(45,106,79,0.06)",
         "card-hover": "0 4px 12px rgba(0,0,0,0.06), 0 8px 24px rgba(45,106,79,0.08)",
         sidebar: "2px 0 12px rgba(0,0,0,0.03)",
+        "premium-soft": "0 0 0 3px var(--kf-focus-ring, rgba(17,24,39,0.12))",
+        "premium-error": "0 0 0 3px var(--kf-focus-ring-accent, rgba(225,29,72,0.18))",
+      },
+      height: {
+        "premium-control": "52px",
+        "premium-btn": "48px",
+      },
+      minHeight: {
+        "premium-control": "52px",
+        "premium-btn": "48px",
       },
       spacing: {
         sidebar: "260px",

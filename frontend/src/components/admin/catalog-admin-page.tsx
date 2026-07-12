@@ -1,18 +1,12 @@
 "use client";
 
 import {
-  Alert,
   Box,
   Button,
   Card,
   CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   FormControlLabel,
   IconButton,
-  MenuItem,
   Switch,
   Table,
   TableBody,
@@ -20,14 +14,29 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  TextField,
   Typography,
 } from "@mui/material";
 import { Add, DeleteOutline, EditOutlined } from "@mui/icons-material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { MuiPageShell } from "@/components/shell/mui-page-shell";
+import {
+  Button as PremiumButton,
+  Field,
+  Input,
+  PREMIUM_SCOPE,
+  Textarea,
+} from "@/components/ui/premium";
+import { controlBase, controlHeight, controlPadding } from "@/components/ui/premium/styles";
+import {
+  PremiumDialog,
+  PremiumDialogActions,
+  PremiumDialogContent,
+  PremiumDialogTitle,
+} from "@/components/ui/premium-dialog";
+import { SoftAlert } from "@/components/ui/soft-alert";
 import { useAuth } from "@/hooks/use-auth";
+import { cn } from "@/lib/utils";
 
 export type CatalogFieldType = "text" | "number" | "boolean" | "select" | "date";
 
@@ -115,6 +124,15 @@ function defaultToPayload(
   return payload;
 }
 
+/** Plural page titles → singular dialog entity label. */
+function singularEntity(title: string): string {
+  if (/ies$/i.test(title)) return title.replace(/ies$/i, "y");
+  if (/s$/i.test(title)) return title.replace(/s$/i, "");
+  return title;
+}
+
+const MULTILINE_KEYS = /^(notes|address|description)$/i;
+
 export function CatalogAdminPage<T extends { id: string }>({
   title,
   description,
@@ -140,6 +158,7 @@ export function CatalogAdminPage<T extends { id: string }>({
     () => fields.filter((f) => !(editing && f.createOnly)),
     [fields, editing],
   );
+  const entityLabel = useMemo(() => singularEntity(title), [title]);
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: [queryKey],
@@ -178,12 +197,14 @@ export function CatalogAdminPage<T extends { id: string }>({
   const openCreate = () => {
     setEditing(null);
     setForm(defaultForm(fields));
+    saveMutation.reset();
     setDialogOpen(true);
   };
 
   const openEdit = (row: T) => {
     setEditing(row);
     setForm(toFormValues ? toFormValues(row) : defaultToFormValues(row, fields));
+    saveMutation.reset();
     setDialogOpen(true);
   };
 
@@ -194,6 +215,8 @@ export function CatalogAdminPage<T extends { id: string }>({
       if (f.type === "boolean") return true;
       return typeof v === "string" && v.trim().length > 0;
     });
+
+  const firstFocusable = dialogFields.find((f) => f.type !== "boolean");
 
   return (
     <MuiPageShell
@@ -213,9 +236,9 @@ export function CatalogAdminPage<T extends { id: string }>({
         )}
 
         {isError && (
-          <Alert severity="warning" sx={{ m: 2 }}>
+          <SoftAlert severity="warning" sx={{ m: 2 }}>
             {error instanceof Error ? error.message : `Could not load ${title.toLowerCase()}`}
-          </Alert>
+          </SoftAlert>
         )}
 
         {!isLoading && data && (
@@ -271,108 +294,166 @@ export function CatalogAdminPage<T extends { id: string }>({
         )}
       </Card>
 
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>{editing ? `Edit ${title.slice(0, -1) || title}` : `Add ${title.slice(0, -1) || title}`}</DialogTitle>
-        <DialogContent>
-          {dialogFields.map((field) => {
-            if (field.type === "boolean") {
-              return (
-                <FormControlLabel
-                  key={field.key}
-                  sx={{ mt: 1, display: "block" }}
-                  control={
-                    <Switch
-                      checked={Boolean(form[field.key])}
-                      onChange={(e) => setForm((prev) => ({ ...prev, [field.key]: e.target.checked }))}
+      <PremiumDialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm">
+        <PremiumDialogTitle>
+          {editing ? `Edit ${entityLabel}` : `Add ${entityLabel}`}
+        </PremiumDialogTitle>
+        <PremiumDialogContent sx={{ overflow: "visible", pt: 0.5 }}>
+          <div className={cn(PREMIUM_SCOPE, "flex flex-col gap-4 bg-transparent")}>
+            {dialogFields.map((field) => {
+              if (field.type === "boolean") {
+                return (
+                  <FormControlLabel
+                    key={field.key}
+                    sx={{ display: "block", ml: 0, mr: 0 }}
+                    control={
+                      <Switch
+                        checked={Boolean(form[field.key])}
+                        onChange={(e) =>
+                          setForm((prev) => ({ ...prev, [field.key]: e.target.checked }))
+                        }
+                      />
+                    }
+                    label={field.label}
+                  />
+                );
+              }
+
+              if (field.type === "select" && field.options) {
+                return (
+                  <Field key={field.key} label={field.label} required={field.required}>
+                    <select
+                      className={cn(controlBase, controlHeight, controlPadding, "pr-10")}
+                      required={field.required}
+                      value={String(form[field.key] ?? "")}
+                      onChange={(e) =>
+                        setForm((prev) => ({ ...prev, [field.key]: e.target.value }))
+                      }
+                      autoFocus={field === firstFocusable}
+                      style={{
+                        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
+                        backgroundRepeat: "no-repeat",
+                        backgroundPosition: "right 14px center",
+                      }}
+                    >
+                      {!field.required && <option value="">—</option>}
+                      {field.options.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                );
+              }
+
+              if (MULTILINE_KEYS.test(field.key)) {
+                return (
+                  <Field key={field.key} label={field.label} required={field.required} optional={!field.required}>
+                    <Textarea
+                      autoFocus={field === firstFocusable}
+                      required={field.required}
+                      placeholder={field.placeholder}
+                      rows={3}
+                      value={String(form[field.key] ?? "")}
+                      onChange={(e) =>
+                        setForm((prev) => ({ ...prev, [field.key]: e.target.value }))
+                      }
                     />
-                  }
-                  label={field.label}
-                />
-              );
-            }
-            if (field.type === "select" && field.options) {
+                  </Field>
+                );
+              }
+
               return (
-                <TextField
+                <Field
                   key={field.key}
-                  select
-                  margin="dense"
                   label={field.label}
-                  fullWidth
                   required={field.required}
-                  value={String(form[field.key] ?? "")}
-                  onChange={(e) => setForm((prev) => ({ ...prev, [field.key]: e.target.value }))}
+                  optional={!field.required}
                 >
-                  {!field.required && <MenuItem value="">—</MenuItem>}
-                  {field.options.map((opt) => (
-                    <MenuItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </MenuItem>
-                  ))}
-                </TextField>
+                  <Input
+                    autoFocus={field === firstFocusable}
+                    required={field.required}
+                    type={
+                      field.type === "number" ? "number" : field.type === "date" ? "date" : "text"
+                    }
+                    placeholder={field.placeholder}
+                    value={String(form[field.key] ?? "")}
+                    onChange={(e) =>
+                      setForm((prev) => ({ ...prev, [field.key]: e.target.value }))
+                    }
+                  />
+                </Field>
               );
-            }
-            return (
-              <TextField
-                key={field.key}
-                autoFocus={field === dialogFields[0]}
-                margin="dense"
-                label={field.label}
-                fullWidth
-                required={field.required}
-                type={field.type === "number" ? "number" : field.type === "date" ? "date" : "text"}
-                InputLabelProps={field.type === "date" ? { shrink: true } : undefined}
-                placeholder={field.placeholder}
-                value={String(form[field.key] ?? "")}
-                onChange={(e) => setForm((prev) => ({ ...prev, [field.key]: e.target.value }))}
-              />
-            );
-          })}
-          {saveMutation.isError && (
-            <Alert severity="error" sx={{ mt: 1 }}>
-              {saveMutation.error instanceof Error ? saveMutation.error.message : "Save failed"}
-            </Alert>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
-          <Button
-            variant="contained"
+            })}
+            {saveMutation.isError && (
+              <SoftAlert severity="error">
+                {saveMutation.error instanceof Error ? saveMutation.error.message : "Save failed"}
+              </SoftAlert>
+            )}
+          </div>
+        </PremiumDialogContent>
+        <PremiumDialogActions className={PREMIUM_SCOPE}>
+          <PremiumButton variant="secondary" size="sm" onClick={() => setDialogOpen(false)}>
+            Cancel
+          </PremiumButton>
+          <PremiumButton
+            variant="primary"
+            size="sm"
             disabled={!canSave || saveMutation.isPending}
             onClick={() => saveMutation.mutate()}
           >
             {saveMutation.isPending ? "Saving…" : "Save"}
-          </Button>
-        </DialogActions>
-      </Dialog>
+          </PremiumButton>
+        </PremiumDialogActions>
+      </PremiumDialog>
 
-      <Dialog open={Boolean(deleteId) && showDelete} onClose={() => setDeleteId(null)} maxWidth="xs" fullWidth>
-        <DialogTitle>Delete record?</DialogTitle>
-        <DialogContent>
-                      <Typography variant="body2">
-                        {(() => {
-                          const row = data?.items.find((r) => r.id === deleteId);
-                          if (row && rowLabel) return `Soft-delete ${rowLabel(row)}?`;
-                          return "This soft-deletes the record. It will no longer appear in lists.";
-                        })()}
-                      </Typography>
+      <PremiumDialog
+        open={Boolean(deleteId) && showDelete}
+        onClose={() => {
+          setDeleteId(null);
+          deleteMutation.reset();
+        }}
+        maxWidth="xs"
+      >
+        <PremiumDialogTitle>Delete record?</PremiumDialogTitle>
+        <PremiumDialogContent>
+          <Typography variant="body2" sx={{ color: "text.secondary" }}>
+            {(() => {
+              const row = data?.items.find((r) => r.id === deleteId);
+              if (row && rowLabel) return `Soft-delete ${rowLabel(row)}?`;
+              return "This soft-deletes the record. It will no longer appear in lists.";
+            })()}
+          </Typography>
           {deleteMutation.isError && (
-            <Alert severity="error" sx={{ mt: 1 }}>
-              {deleteMutation.error instanceof Error ? deleteMutation.error.message : "Delete failed"}
-            </Alert>
+            <SoftAlert severity="error" sx={{ mt: 1.5 }}>
+              {deleteMutation.error instanceof Error
+                ? deleteMutation.error.message
+                : "Delete failed"}
+            </SoftAlert>
           )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteId(null)}>Cancel</Button>
-          <Button
-            color="error"
-            variant="contained"
+        </PremiumDialogContent>
+        <PremiumDialogActions className={PREMIUM_SCOPE}>
+          <PremiumButton
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              setDeleteId(null);
+              deleteMutation.reset();
+            }}
+          >
+            Cancel
+          </PremiumButton>
+          <PremiumButton
+            variant="danger"
+            size="sm"
             disabled={!deleteId || deleteMutation.isPending}
             onClick={() => deleteId && deleteMutation.mutate(deleteId)}
           >
             {deleteMutation.isPending ? "Deleting…" : "Delete"}
-          </Button>
-        </DialogActions>
-      </Dialog>
+          </PremiumButton>
+        </PremiumDialogActions>
+      </PremiumDialog>
     </MuiPageShell>
   );
 }
