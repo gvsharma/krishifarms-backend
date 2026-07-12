@@ -27,6 +27,7 @@ import { Add, DeleteOutline, EditOutlined } from "@mui/icons-material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { MuiPageShell } from "@/components/shell/mui-page-shell";
+import { useAuth } from "@/hooks/use-auth";
 
 export type CatalogFieldType = "text" | "number" | "boolean" | "select" | "date";
 
@@ -128,6 +129,7 @@ export function CatalogAdminPage<T extends { id: string }>({
   toPayload,
 }: CatalogAdminPageProps<T>) {
   const queryClient = useQueryClient();
+  const { canDelete } = useAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<T | null>(null);
   const [form, setForm] = useState<Record<string, string | boolean>>(() => defaultForm(fields));
@@ -170,6 +172,8 @@ export function CatalogAdminPage<T extends { id: string }>({
       queryClient.invalidateQueries({ queryKey: [queryKey] });
     },
   });
+
+  const showDelete = Boolean(remove) && canDelete;
 
   const openCreate = () => {
     setEditing(null);
@@ -239,7 +243,7 @@ export function CatalogAdminPage<T extends { id: string }>({
                       <IconButton size="small" aria-label="Edit" onClick={() => openEdit(row)}>
                         <EditOutlined fontSize="small" />
                       </IconButton>
-                      {remove && (
+                      {showDelete && (
                         <IconButton
                           size="small"
                           aria-label="Delete"
@@ -341,7 +345,7 @@ export function CatalogAdminPage<T extends { id: string }>({
         </DialogActions>
       </Dialog>
 
-      <Dialog open={Boolean(deleteId)} onClose={() => setDeleteId(null)} maxWidth="xs" fullWidth>
+      <Dialog open={Boolean(deleteId) && showDelete} onClose={() => setDeleteId(null)} maxWidth="xs" fullWidth>
         <DialogTitle>Delete record?</DialogTitle>
         <DialogContent>
                       <Typography variant="body2">
