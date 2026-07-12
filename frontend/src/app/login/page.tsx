@@ -1,45 +1,48 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Alert,
   Box,
   Button,
   CircularProgress,
-  IconButton,
-  InputAdornment,
   Stack,
-  TextField,
   Typography,
 } from "@mui/material";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
-import { Fraunces } from "next/font/google";
 import { loginWithPassword } from "@/features/auth/api";
 import { clearSignedOutFlag, wasExplicitlySignedOut } from "@/features/auth/session";
 import { getAccessToken } from "@/lib/api/client";
 import { ROUTES, SITE_NAME } from "@/constants/routes";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
-const brandDisplay = Fraunces({
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
-  display: "swap",
-});
+/** Login field: 54px / 16px radius, soft border + clear focus — no Material motion. */
+const loginFieldClassName = cn(
+  "h-[54px] rounded-2xl border border-[#E5E7EB] bg-white px-4 py-3.5 text-base leading-normal text-[#111827] shadow-none",
+  "placeholder:text-[#9CA3AF]",
+  "transition-none",
+  "hover:border-[#D1D5DB]",
+  "focus-visible:border-[#111827] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#111827]/12 focus-visible:ring-offset-0",
+  "disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:border-[#E5E7EB]",
+);
 
-/**
- * Split-screen login — Dribbble farm-SaaS inspiration (brand plane + calm form).
- * Canopia greens only; no purple / cream / card-heavy chrome.
- */
+const fieldLabelClassName = "mb-2 block text-sm font-medium leading-none text-[#374151]";
+
+/** Simple Google-style email + password sign-in. */
 export default function LoginPage() {
   const router = useRouter();
+  const emailId = useId();
+  const passwordId = useId();
+  const errorId = useId();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
-  const [entered, setEntered] = useState(false);
 
   useEffect(() => {
     if (getAccessToken() && !wasExplicitlySignedOut()) {
@@ -47,22 +50,18 @@ export default function LoginPage() {
       return;
     }
     setCheckingSession(false);
-    const id = window.requestAnimationFrame(() => setEntered(true));
-    return () => window.cancelAnimationFrame(id);
   }, [router]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError(null);
     setSubmitting(true);
-
     try {
       clearSignedOutFlag();
       await loginWithPassword(email.trim(), password);
       router.replace(ROUTES.dashboard);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Login failed";
-      setError(message);
+      setError(err instanceof Error ? err.message : "Login failed");
     } finally {
       setSubmitting(false);
     }
@@ -70,16 +69,8 @@ export default function LoginPage() {
 
   if (checkingSession) {
     return (
-      <Box
-        sx={{
-          minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          bgcolor: "#F4F7F0",
-        }}
-      >
-        <CircularProgress size={32} sx={{ color: "#2D6A4F" }} />
+      <Box sx={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>
+        <CircularProgress size={28} />
       </Box>
     );
   }
@@ -89,273 +80,130 @@ export default function LoginPage() {
       sx={{
         minHeight: "100vh",
         display: "grid",
-        gridTemplateColumns: { xs: "1fr", md: "1.05fr 0.95fr" },
-        bgcolor: "#F4F7F0",
+        placeItems: "center",
+        px: 2,
+        bgcolor: "#f8faf8",
       }}
     >
-      {/* Brand plane — full-bleed on the left */}
       <Box
         sx={{
-          position: "relative",
-          overflow: "hidden",
-          minHeight: { xs: 220, md: "100vh" },
-          color: "#F4F7F0",
-          background: `
-            radial-gradient(ellipse 80% 60% at 20% 20%, rgba(82, 183, 136, 0.35), transparent 55%),
-            radial-gradient(ellipse 70% 50% at 85% 75%, rgba(42, 157, 143, 0.28), transparent 50%),
-            linear-gradient(155deg, #0F2E1F 0%, #1B4332 48%, #2D6A4F 100%)
-          `,
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "space-between",
-          px: { xs: 3, md: 7 },
-          py: { xs: 4, md: 7 },
-          opacity: entered ? 1 : 0,
-          transform: entered ? "translateX(0)" : "translateX(-12px)",
-          transition: "opacity 500ms cubic-bezier(0.22, 1, 0.36, 1), transform 500ms cubic-bezier(0.22, 1, 0.36, 1)",
+          width: "100%",
+          maxWidth: 450,
+          bgcolor: "#fff",
+          border: "1px solid #dadce0",
+          borderRadius: 3,
+          px: { xs: 3, sm: 5 },
+          py: { xs: 4, sm: 5 },
         }}
       >
-        {/* Soft field lines */}
-        <Box
-          aria-hidden
-          sx={{
-            position: "absolute",
-            inset: 0,
-            opacity: 0.14,
-            backgroundImage: `
-              repeating-linear-gradient(
-                -12deg,
-                transparent,
-                transparent 28px,
-                rgba(255,255,255,0.35) 28px,
-                rgba(255,255,255,0.35) 29px
-              )
-            `,
-            pointerEvents: "none",
-          }}
-        />
-
-        <Typography
-          className={brandDisplay.className}
-          sx={{
-            position: "relative",
-            fontWeight: 600,
-            fontSize: { xs: "1.35rem", md: "1.5rem" },
-            letterSpacing: "-0.02em",
-            zIndex: 1,
-          }}
-        >
-          {SITE_NAME}
-        </Typography>
-
-        <Stack spacing={2} sx={{ position: "relative", zIndex: 1, maxWidth: 440, mt: { xs: 3, md: 0 } }}>
-          <Typography
-            className={brandDisplay.className}
-            component="h1"
+        <Stack spacing={1} alignItems="center" sx={{ mb: 3 }}>
+          <Box
             sx={{
-              fontWeight: 600,
-              fontSize: { xs: "2rem", sm: "2.5rem", md: "3.25rem" },
-              lineHeight: 1.08,
-              letterSpacing: "-0.03em",
+              width: 40,
+              height: 40,
+              borderRadius: "50%",
+              bgcolor: "primary.main",
+              color: "#fff",
+              display: "grid",
+              placeItems: "center",
+              fontWeight: 700,
+              fontSize: 14,
             }}
+            aria-hidden
           >
-            Field operations,
-            <Box component="span" sx={{ display: "block", color: "#B7E4C7" }}>
-              calmly in control.
-            </Box>
+            KF
+          </Box>
+          <Typography variant="h5" fontWeight={400} component="h1">
+            Sign in
           </Typography>
-          <Typography
-            sx={{
-              color: "rgba(244, 247, 240, 0.78)",
-              fontSize: { xs: "0.95rem", md: "1.05rem" },
-              lineHeight: 1.55,
-              maxWidth: 380,
-            }}
-          >
-            Sign in to manage procurement, farmers, and finance for your farm network.
+          <Typography variant="body2" color="text.secondary">
+            to continue to {SITE_NAME}
           </Typography>
         </Stack>
 
-        <Typography
-          variant="caption"
-          sx={{
-            position: "relative",
-            zIndex: 1,
-            color: "rgba(244, 247, 240, 0.55)",
-            letterSpacing: "0.04em",
-            textTransform: "uppercase",
-            display: { xs: "none", md: "block" },
-          }}
-        >
-          Bhairkhanpally · Telangana
-        </Typography>
-      </Box>
+        <Box component="form" onSubmit={(e) => void handleSubmit(e)} noValidate>
+          <Stack spacing={2.5}>
+            {error && (
+              <Alert severity="error" id={errorId} role="alert">
+                {error}
+              </Alert>
+            )}
 
-      {/* Form plane */}
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          px: { xs: 3, sm: 5 },
-          py: { xs: 5, md: 7 },
-          opacity: entered ? 1 : 0,
-          transform: entered ? "translateY(0)" : "translateY(16px)",
-          transition:
-            "opacity 550ms 80ms cubic-bezier(0.22, 1, 0.36, 1), transform 550ms 80ms cubic-bezier(0.22, 1, 0.36, 1)",
-        }}
-      >
-        <Box sx={{ width: "100%", maxWidth: 400 }}>
-          <Stack spacing={1} sx={{ mb: 4 }}>
-            <Typography
-              variant="overline"
-              sx={{ color: "#2D6A4F", letterSpacing: "0.12em", fontWeight: 600 }}
-            >
-              Welcome back
-            </Typography>
-            <Typography
-              className={brandDisplay.className}
-              variant="h4"
-              sx={{ fontWeight: 600, color: "#1A1F16", letterSpacing: "-0.02em" }}
-            >
-              Sign in
-            </Typography>
-            <Typography variant="body2" sx={{ color: "#5C6B5E" }}>
-              Use your organization email and password.
-            </Typography>
-          </Stack>
-
-          <Box component="form" onSubmit={(e) => void handleSubmit(e)} noValidate>
-            <Stack spacing={2.5}>
-              {error && (
-                <Alert
-                  severity="error"
-                  sx={{
-                    borderRadius: 2,
-                    bgcolor: "rgba(186, 26, 26, 0.06)",
-                    border: "1px solid rgba(186, 26, 26, 0.2)",
-                  }}
-                >
-                  {error}
-                </Alert>
-              )}
-
-              <TextField
-                label="Email"
+            <div>
+              <label htmlFor={emailId} className={fieldLabelClassName}>
+                Email
+              </label>
+              <Input
+                id={emailId}
+                name="email"
                 type="email"
                 autoComplete="email"
                 autoFocus
                 required
-                fullWidth
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={submitting}
-                placeholder="you@krishifarms.com"
-                sx={fieldSx}
+                aria-invalid={error ? true : undefined}
+                aria-describedby={error ? errorId : undefined}
+                className={loginFieldClassName}
               />
+            </div>
 
-              <TextField
-                label="Password"
-                type={showPassword ? "text" : "password"}
-                autoComplete="current-password"
-                required
-                fullWidth
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={submitting}
-                placeholder="Enter your password"
-                sx={fieldSx}
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton
-                        aria-label={showPassword ? "Hide password" : "Show password"}
-                        onClick={() => setShowPassword((v) => !v)}
-                        edge="end"
-                        disabled={submitting}
-                        size="small"
-                      >
-                        {showPassword ? <VisibilityOff /> : <Visibility />}
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-              />
+            <div>
+              <label htmlFor={passwordId} className={fieldLabelClassName}>
+                Password
+              </label>
+              <div className="relative">
+                <Input
+                  id={passwordId}
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={submitting}
+                  aria-invalid={error ? true : undefined}
+                  aria-describedby={error ? errorId : undefined}
+                  className={cn(loginFieldClassName, "pr-12")}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  disabled={submitting}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-pressed={showPassword}
+                  className="absolute right-1.5 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-xl text-[#6B7280] transition-none hover:bg-[#F3F4F6] hover:text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#111827]/20 disabled:opacity-50"
+                >
+                  {showPassword ? (
+                    <VisibilityOff fontSize="small" aria-hidden />
+                  ) : (
+                    <Visibility fontSize="small" aria-hidden />
+                  )}
+                </button>
+              </div>
+            </div>
 
+            <Box sx={{ display: "flex", justifyContent: "flex-end", pt: 1 }}>
               <Button
                 type="submit"
                 variant="contained"
-                size="large"
-                fullWidth
+                disableElevation
                 disabled={submitting || !email.trim() || !password}
                 sx={{
-                  mt: 1,
-                  py: 1.5,
-                  borderRadius: 2.5,
-                  fontWeight: 600,
-                  fontSize: "1rem",
+                  minWidth: 96,
+                  minHeight: 40,
                   textTransform: "none",
-                  bgcolor: "#1B4332",
-                  boxShadow: "0 10px 28px rgba(27, 67, 50, 0.28)",
-                  transition: "transform 180ms ease, box-shadow 180ms ease, background-color 180ms ease",
-                  "&:hover": {
-                    bgcolor: "#2D6A4F",
-                    boxShadow: "0 14px 32px rgba(27, 67, 50, 0.34)",
-                    transform: "translateY(-1px)",
-                  },
-                  "&:active": {
-                    transform: "translateY(0)",
-                  },
-                  "&.Mui-disabled": {
-                    bgcolor: "rgba(27, 67, 50, 0.35)",
-                    color: "#fff",
-                  },
+                  fontWeight: 600,
+                  transition: "none",
                 }}
               >
-                {submitting ? (
-                  <Stack direction="row" spacing={1.5} alignItems="center">
-                    <CircularProgress size={18} sx={{ color: "#fff" }} />
-                    <span>Signing in…</span>
-                  </Stack>
-                ) : (
-                  "Sign in"
-                )}
+                {submitting ? <CircularProgress size={18} color="inherit" /> : "Next"}
               </Button>
-            </Stack>
-          </Box>
-
-          <Typography
-            variant="caption"
-            sx={{ display: "block", mt: 4, color: "#5C6B5E", textAlign: "center" }}
-          >
-            Access is provisioned by your KrishiFarms administrator.
-          </Typography>
+            </Box>
+          </Stack>
         </Box>
       </Box>
     </Box>
   );
 }
-
-const fieldSx = {
-  "& .MuiOutlinedInput-root": {
-    borderRadius: 2.5,
-    bgcolor: "#FFFFFF",
-    transition: "box-shadow 180ms ease, border-color 180ms ease",
-    "& fieldset": {
-      borderColor: "rgba(184, 196, 184, 0.9)",
-    },
-    "&:hover fieldset": {
-      borderColor: "#40916C",
-    },
-    "&.Mui-focused": {
-      boxShadow: "0 0 0 4px rgba(45, 106, 79, 0.12)",
-      "& fieldset": {
-        borderColor: "#2D6A4F",
-        borderWidth: 1.5,
-      },
-    },
-  },
-  "& .MuiInputLabel-root.Mui-focused": {
-    color: "#2D6A4F",
-  },
-} as const;

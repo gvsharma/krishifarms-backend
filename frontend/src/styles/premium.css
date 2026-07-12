@@ -1,0 +1,69 @@
+/**
+ * Premium form design tokens — scoped under `.kf-premium` so the MUI shell
+ * (Helvetica + green MD3 theme) is unaffected until pages opt in.
+ */
+.kf-premium {
+  --kf-bg: #fafafa;
+  --kf-surface: #ffffff;
+  --kf-primary: #111827;
+  --kf-primary-fg: #ffffff;
+  --kf-accent: #e11d48;
+  --kf-accent-fg: #ffffff;
+  --kf-secondary-accent: #c084fc;
+  --kf-border: #e5e7eb;
+  --kf-border-strong: #d1d5db;
+  --kf-muted: #f3f4f6;
+  --kf-muted-fg: #6b7280;
+  --kf-placeholder: #9ca3af;
+  --kf-success: #16a34a;
+  --kf-error: #dc2626;
+  --kf-focus-ring: rgba(17, 24, 39, 0.12);
+  --kf-focus-ring-accent: rgba(225, 29, 72, 0.18);
+  --kf-control-h: 52px;
+  --kf-control-radius: 16px;
+  --kf-control-px: 16px;
+  --kf-btn-h: 48px;
+  --kf-btn-radius: 14px;
+  --kf-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  color: var(--kf-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.kf-premium .kf-heading,
+.kf-premium h1,
+.kf-premium h2,
+.kf-premium h3 {
+  font-family: var(--font-plus-jakarta), ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+}
+
+/* Soft focus ring — Linear/Stripe style (keyboard / :focus-visible only) */
+.kf-premium .kf-focus-ring:focus {
+  outline: none;
+}
+
+.kf-premium .kf-focus-ring:focus-visible {
+  border-color: var(--kf-primary);
+  box-shadow:
+    0 0 0 3px var(--kf-focus-ring),
+    0 1px 2px rgba(17, 24, 39, 0.04);
+}
+
+.kf-premium .kf-focus-ring[aria-invalid="true"]:focus-visible,
+.kf-premium .kf-focus-ring-error:focus-visible {
+  border-color: var(--kf-error);
+  box-shadow:
+    0 0 0 3px var(--kf-focus-ring-accent),
+    0 1px 2px rgba(220, 38, 38, 0.06);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kf-premium .kf-focus-ring,
+  .kf-premium button {
+    transition: none !important;
+  }
+}
