@@ -14,12 +14,12 @@ Status legend: **Done** | **Partial** | **Missing**
 
 | Priority | Gap | Impact |
 |----------|-----|--------|
-| **P0** | Procurement web workflow (submit → weighment → price → confirm) | **Done (web + Android)** — web full actions; Android submit/weigh/price/confirm when synced; cancel/reverse Android still web-only |
-| **P0** | Farmer payments / ledger settlement | **Partial** — API allocate/reverse live; web thin list/create on `/payments`; allocate UI deferred |
+| **P0** | Procurement web workflow (submit → weighment → price → confirm) | **Done (web + Android)** — web + Android full actions including cancel/reverse |
+| **P0** | Farmer payments / ledger settlement | **Done (web)** — API allocate/reverse + `/payments` list/create + allocate/reverse settlement UI with procurement status chips |
 | **P0** | Phone-first login + OTP UI | **Partial** — web phone-or-email password login + **API mandatory phone** on user create/update (10+ digits); Firebase OTP stub + [FIREBASE_OTP.md](./modules/FIREBASE_OTP.md); full web OTP still TODO |
 | **P0** | District → Mandal → Village cascaded dropdowns | **Done (web + Android)** — web `LocationCascade`; Android procurement + farmer form |
-| **P0** | Individual vehicle/asset registry + trips/diesel | **Partial** — assets CRUD + **`/vehicle-trips` API**; diesel primarily via field services; expense posting deferred |
-| **P0** | Android field-service + procurement workflow parity | **Partial** — field-services list/create live; procurement workflow on synced tickets; cancel/reverse + rich vehicle questions still open |
+| **P0** | Individual vehicle/asset registry + trips/diesel | **Partial** — assets CRUD + **`/vehicle-trips`** + diesel→Fuel expense posting (`027`); trip UI still thin |
+| **P0** | Android field-service + procurement workflow parity | **Done** — field-services list/create + `[kf:work]` vehicle profiles; procurement submit→confirm + cancel/reverse |
 
 ---
 
@@ -27,15 +27,15 @@ Status legend: **Done** | **Partial** | **Missing**
 
 | Requirement | Status | Evidence | Next action |
 |-------------|--------|----------|-------------|
-| **Business units:** tractor/cultivator/rotavator/baler/trolley/weeder/pump/Bolero/DCM | **Partial** | Fleet seeds + assets + `/vehicle-trips`; field-service categories | Wire asset picker on field services; diesel expense posting |
-| **Business units:** finance | **Missing** | `alembic/versions/202506210012_financial_core.py`; `app/modules/financial/` (expense-categories only); web `/payments` thin farmer-payments; placeholders expenses/collections | Expenses/collections routers + allocate UI |
+| **Business units:** tractor/cultivator/rotavator/baler/trolley/weeder/pump/Bolero/DCM | **Partial** | Fleet seeds + assets + `/vehicle-trips` + diesel expense link | Wire asset picker on field services; trip UI |
+| **Business units:** finance | **Partial** | Expenses + collections CRUD (`app/modules/financial/`); migration `027` source link; web `/payments` farmer settlement; web expenses/collections still placeholders | Wire expenses/collections UI; general `/payments` + financial_transactions |
 | **Business units:** seeds | **Partial** | `field_service_records.service_category=seeds`; seeds activity types in `scripts/data/fleet_inventory.py` | Inventory/stock tracking if required beyond service records |
 | **Business units:** fertilizer | **Partial** | `service_category=fertiliser`; activity types `FERT_*` in fleet seed | Same as seeds — confirm if inventory module needed |
-| **Business units:** procurement | **Done (web)** | Full backend + web workflow; `buyer_id`/terms (`026`); entity document gallery | Android cancel/reverse; optional deductions polish |
+| **Business units:** procurement | **Done (web + Android)** | Full backend + web/Android workflow incl. cancel/reverse; `buyer_id`/terms (`026`); entity document gallery | Optional deductions polish; Android photo attach |
 | **Business units:** own farming | **Partial** | Thin API `app/modules/farms/` (CRUD + activities); web placeholder | Own-farming UI |
 | **Roles:** Admin | **Done** | `OWNER` display “Admin / Owner” in `ROLE_DEFINITIONS` + migration `024` | — |
 | **Roles:** Manager | **Done** | `MANAGER` in `app/shared/permissions.py`, migration `018`/`024` delete restrictions | — |
-| **Roles:** Vehicle Supervisor | **Done** | `DRIVER` + `transport:*` / `assets:*`; trips API live | Trip UI / diesel expense posting |
+| **Roles:** Vehicle Supervisor | **Done** | `DRIVER` + `transport:*` / `assets:*`; trips API + auto diesel expense | Trip UI |
 | **Roles:** Farming Supervisor | **Done** | `SUPERVISOR` code; display “Farming Supervisor”; `farming:*` + field ops in `permissions.py` | — |
 | **Roles:** Agent | **Done** | `AGENT` + location/farmer/field-service perms in `permissions.py` + `024` | Expand if ERP needs procurement create |
 | **Roles:** Farmer (login) | **Done** | `FARMER` in `ROLE_DEFINITIONS` / `ROLE_PERMISSIONS` (read-only) + mobile `_FARMER`; migration `024` seeds role | Portal login UX still future |
@@ -54,17 +54,17 @@ Status legend: **Done** | **Partial** | **Missing**
 | **Procurement:** payment terms | **Done** | Columns + API (`026`); web create/detail | — |
 | **Procurement:** photos | **Done (web)** | Upload + entity gallery via `GET /documents?entity_type=&entity_id=` | Android photo attach optional |
 | **Procurement:** transport | **Missing** | Transport is separate field-service category, not on procurement ticket | Add transport fields or link to field service / trip |
-| **Procurement:** status workflow | **Done** | Web full; Android submit/weigh/price/confirm (cancel/reverse web) | Deductions UI optional |
+| **Procurement:** status workflow | **Done** | Web + Android submit/weigh/price/confirm/cancel/reverse | Deductions UI optional |
 | **Farming module fields** | **Partial** | Thin API `app/modules/farms/` against migration `006`; no web UI yet | Own-farming UI |
-| **Vehicle service module + vehicle-type-specific questions** | **Partial** | Web: Tractor+implements/Harvester, Trolley, Bolero, DCM, Pump, Drone (`[kf:work]`); not first-class schema fields | Persist type-specific fields in structured JSON/columns |
-| **Diesel tracking** | **Partial** | Field-service `diesel_amount` + `/vehicle-trips` fuel liters/cost | Expense posting from trips; richer diesel ledger UI |
-| **Finance module** | **Missing** | Tables in migration `012`; `app/modules/financial/` = expense-categories catalog only; web placeholders for expenses/payments/collections | Phase 3 Python routers + approval workflows |
-| **Payments (farmer settlement)** | **Partial** | API + web list/create on `/payments`; allocate/reverse API live | Web allocate UI |
+| **Vehicle service module + vehicle-type-specific questions** | **Done (web + Android create)** | Web + Android: Tractor+implements/Harvester, Trolley, Bolero, DCM, Pump, Drone (`[kf:work]`); not first-class schema fields | Optional first-class JSON/columns |
+| **Diesel tracking** | **Partial** | Field-service `diesel_amount` + trip fuel + auto Fuel expense (`source_type=vehicle_trip`) | Richer diesel ledger UI |
+| **Finance module** | **Partial** | Expenses CRUD + collections list/create/get; `027` RBAC; no `financial_transactions` posting yet | Approval workflows; general payments; web UI |
+| **Payments (farmer settlement)** | **Done (web)** | API + `/payments` list/create/allocate/reverse; settlement status chips for `paid_*` / `confirmed` | Android payments parity |
 | **Comments timeline** | **Partial** | API + web `CommentThread` on procurement/farmer/field-service detail | Unified activity timeline merging comments + audit + status changes |
 | **Audit trail** | **Partial** | API: `app/modules/audit/router.py` (`/audit-logs`, `/activity-feed`); no web UI | Admin audit viewer; surface on entity detail pages |
-| **Role dashboards** | **Partial** | Home wires `/dashboard/summary` counts + role welcome hints; admin shortcut grid | Role-specific KPI widgets using `docs/reporting/sql/` |
-| **Android parity** | **Partial** | Field services + farmer village_id + procurement workflow done; finance/fleet stubs | Cancel/reverse; payments Android; expenses API |
-| **Reports list** | **Partial** | SQL dashboards documented: `docs/reporting/REPORTING_ARCHITECTURE.md`, `docs/reporting/sql/*.sql`; web `frontend/src/app/(app)/reports/page.tsx` placeholder; no report API endpoints | Report registry UI + `/dashboard/*` or dedicated report routes |
+| **Role dashboards** | **Partial** | Home + Reports wire `/dashboard/summary` ops counts + role welcome hints; admin shortcut grid | Role-specific KPI widgets executing `docs/reporting/sql/` |
+| **Android parity** | **Partial** | Field services + `[kf:work]` + farmer village_id + procurement full workflow; expenses/collections API ready for sync | Payments Android; wire expenses client |
+| **Reports list** | **Partial** | Web `/reports` registry (8 ERP types) + `GET /dashboard/reports` catalog + extended `/dashboard/summary` KPIs; SQL still in `docs/reporting/sql/` | Period KPI endpoints (procurement/village/crop, outstanding, diesel rollup, vehicle earnings, supervisor productivity) |
 
 ---
 
@@ -72,20 +72,20 @@ Status legend: **Done** | **Partial** | **Missing**
 
 | Layer | Done | Partial | Missing |
 |-------|------|---------|---------|
-| **Backend API** | Auth, masters, buyers, farmers, procurement (+ buyer/terms `026`), field services, assets, vehicle trips, farms thin, farmer payments allocate/reverse, documents entity filter, comments, audit, RBAC (`024`/`025`) | Dashboard KPIs, expense-categories; docs OCR/archive beyond thin API | Finance ops, WhatsApp |
-| **Frontend web** | Admin CRUD, farmers, location cascade, procurement workflow + doc gallery, field services, vehicles/assets, phone-or-email login, farmer-payments list/create, comments, dashboard | Finance placeholders; OTP stub | Farms/trips UI, allocate UI, reports, audit; full Firebase Web OTP |
-| **Android** | Admin, farmers (`village_id`), field-services list/create, procurement create + workflow | Cancel/reverse | Finance, fleet, payments |
-| **Schema** | Broad Phase 1–5; districts/mandals (`023`); procurement buyer/terms (`026`) | Transport on ticket; village dual text+FK | — |
+| **Backend API** | Auth, masters, buyers, farmers, procurement (+ buyer/terms `026`), field services, assets, vehicle trips (+ diesel expense), farms thin, farmer payments allocate/reverse, **expenses/collections**, documents entity filter, comments, audit, RBAC (`024`/`025`/`027`) | Dashboard KPIs; docs OCR/archive beyond thin API; no financial_transactions posting | General payments, WhatsApp |
+| **Frontend web** | Admin CRUD, farmers, location cascade, procurement workflow + doc gallery, field services, vehicles/assets, phone-or-email login, farmer-payments list/create/**allocate/reverse**, comments, dashboard, **reports registry** | Finance placeholders; OTP stub | Farms/trips UI, audit; full Firebase Web OTP; runnable report charts |
+| **Android** | Admin, farmers (`village_id`), field-services list/create + `[kf:work]`, procurement create + full workflow (cancel/reverse) | — | Finance, fleet, payments |
+| **Schema** | Broad Phase 1–5; districts/mandals (`023`); procurement buyer/terms (`026`); expenses source link (`027`) | Transport on ticket; village dual text+FK | — |
 
 ---
 
 ## Recommended implementation order
 
-1. **Web farmer-payment allocate/reverse UI** — APIs live; thin create shipped  
-2. **Android cancel/reverse + richer field-service questions**  
-3. **Phase 3 finance APIs** (expenses, collections) for Android sync  
-4. **Diesel expense posting from vehicle trips**  
-5. **Reports UI** wired to existing SQL dashboards  
+1. ~~**Web farmer-payment allocate/reverse UI**~~ — **Done** (`/payments` settlement dialogs)  
+2. ~~**Android cancel/reverse + richer field-service questions**~~ — **Done**  
+3. ~~**Phase 3 finance APIs** (expenses, collections)~~ — **Done** (CRUD; general `/payments` + ledger posting still open)  
+4. ~~**Diesel expense posting from vehicle trips**~~ — **Done** (`fuel_cost` → Fuel expense, `source_type=vehicle_trip`)  
+5. **Reports UI** — registry + summary KPIs shipped; still need period KPI APIs over `docs/reporting/sql/`  
 6. Optional: seed `ACCOUNTANT` role in DB (mobile catalog already has it)
 
 ---
@@ -115,6 +115,7 @@ Status legend: **Done** | **Partial** | **Missing**
 | Phone-first web login + mandatory user phone | `frontend/src/app/login/page.tsx`; Settings → Users; API `UserCreateRequest.phone` required; `docs/modules/FIREBASE_OTP.md` |
 | Farmer payments thin API | `app/modules/farmer_payments/`; `tests/test_farmer_payments.py` |
 | Farmer payments allocate/reverse → `paid_*` | `app/modules/farmer_payments/service.py` allocate/reverse; OpenAPI `paths/payments.yaml`; status sync tests in `tests/test_farmer_payments.py` |
+| Farmer payments web settlement UI | `frontend/src/features/farmer-payments/settlement-actions.tsx` + `/payments` Actions column |
 | Vehicle trips thin API | `app/modules/assets/vehicle_trip_*.py`; `transport:*`; mounted in `app/main.py` |
 | Farms thin API | `app/modules/farms/`; migration `006` |
 | Procurement buyer/terms (`026`) | `alembic/versions/202506210026_procurement_buyer_payment_terms.py`; wired in models/schemas/service/OpenAPI |
@@ -123,7 +124,9 @@ Status legend: **Done** | **Partial** | **Missing**
 | Procurement backend + web workflow UI | `app/modules/procurements/`; frontend detail workflow actions |
 | Field services backend + expanded vehicle profiles | `app/modules/field_services/`; frontend work profiles |
 | Android field-services list/create + farmer village_id + procurement workflow | External `krishifarms-mobile` — `ANDROID_CRM_PARITY.md` |
+| Android procurement cancel/reverse + `[kf:work]` vehicle profiles | External `krishifarms-mobile` — detail cancel/reverse; field-service create work questions |
 | Crop / fleet master seeds | `scripts/data/crop_catalog.py`, `scripts/data/fleet_inventory.py` |
+| Reports registry UI + thin dashboard APIs | `/reports` page; `GET /dashboard/summary` ops counts; `GET /dashboard/reports` catalog; `docs/api/paths/dashboard.yaml` |
 
 ### Needs manual verification
 
@@ -135,9 +138,11 @@ Status legend: **Done** | **Partial** | **Missing**
 | Procurement web workflow buttons | Detail: submit → weighment → apply-price → confirm / cancel |
 | Assets list on `/vehicles` | Live vehicle-types chips + asset instances after seed |
 | Farmer payments create | `POST /farmer-payments` + ledger credit |
+| Farmer payments allocate / reverse (web) | `/payments` → Allocate (select procurements + amounts) / Reverse (reason); confirm chips show `paid_partial` / `paid_full` / `confirmed` |
 | Procurement draft extras round-trip | Create with buyer/terms/moisture; confirm notes contain `[kf:proc]` JSON |
-| Field-service vehicle-type questions | Web create Tractor/Trolley/Bolero/DCM; comments `[kf:work]` |
+| Field-service vehicle-type questions | Web + Android create Tractor/Trolley/Bolero/DCM; comments `[kf:work]` |
 | Android procurement create | Buyer, terms, moisture, cascade; sync draft to API |
+| Android procurement cancel/reverse | Detail: Cancel (draft/weighment/weighed) + Reverse (confirmed, OWNER) |
 | Android AGENT field services list/create | Login as AGENT → More → Field services → list + FAB create |
 | Android role labels | Settings shows “Admin / Owner”, “Vehicle Supervisor”, etc. |
 | Seeded Rangareddy villages in target env | After `seed.py` / `seed_locations`, `GET /districts` + mandals for Rangareddy |

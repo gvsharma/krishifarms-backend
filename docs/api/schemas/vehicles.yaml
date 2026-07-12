@@ -19,6 +19,12 @@ VehicleTrip:
     other_charges: { $ref: 'common.yaml#/Money' }
     total_cost: { $ref: 'common.yaml#/Money' }
     status: { type: string }
+    notes: { type: string }
+    diesel_expense_id:
+      type: string
+      format: uuid
+      nullable: true
+      description: Linked Fuel expense when trip fuel_cost > 0
 
 VehicleTripCreate:
   type: object

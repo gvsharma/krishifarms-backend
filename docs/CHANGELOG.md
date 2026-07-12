@@ -6,11 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Payment modes settings 403** — production `/settings/master-data/payment-modes` failed with `Missing permission: payment_modes:read` because `payment_modes:*` was defined in code/`seed.py` but never inserted by Alembic (omitted from migration `018`). Migration `028` seeds and grants those permissions to OWNER / MANAGER / SUPERVISOR.
+
 ### Added
 
+- **Android cancel/reverse + `[kf:work]` field-service profiles** — external `krishifarms-mobile`: procurement detail Cancel/Reverse wired to CRM APIs; vehicle-type work questions persisted as `[kf:work]` comments (see `ANDROID_CRM_PARITY.md`)
+- **Phase 3 finance APIs + trip diesel posting** — `GET/POST/PATCH/DELETE /expenses` and `GET/POST /collections` (+ get by id) in `app/modules/financial/`; migration `027` adds `expenses.source_type`/`source_id` + `expenses:*`/`collections:*` RBAC; `POST/PATCH /vehicle-trips` with `fuel_cost > 0` posts/updates Fuel expense (`source_type=vehicle_trip`); trip responses include `diesel_expense_id`; tests in `tests/test_expenses.py`
+- **Reports UI + thin dashboard catalog (Ralph priority 5)** — `/reports` registry lists 8 ERP report types (Vehicle Utilization, Diesel Expenses, Procurement Summary, Farmer Ledger, Outstanding Payments, Crop/Village Wise Procurement, Vehicle Earnings, Supervisor Productivity) with available/partial/coming-soon status, module deep-links, and live KPI strip from extended `GET /dashboard/summary`; new `GET /dashboard/reports` metadata catalog; OpenAPI `paths/dashboard.yaml`; period analytic APIs still documented as gaps in `ERP_UPGRADE_CHECKLIST.md`
+- **Farmer payment settlement UI (web)** — `/payments` Allocate / Reverse / Details with confirmation warnings; shows linked procurement `paid_partial` / `paid_full` / `confirmed` after settle; `PermissionGuard` on `farmer_payments:create|reverse`
 - **Ralph Loop 2 final (web + Android parity)** — `/payments` thin farmer-payment list/create UI; procurement document gallery uses `GET /documents?entity_type=&entity_id=`; Android field-services list/create, farmer `village_id` cascade, procurement detail workflow actions (see `ANDROID_CRM_PARITY.md`)
 - **Documents list-by-entity (Ralph Loop 2 final backend)** — `GET /documents?entity_type=&entity_id=` joins `document_links` for procurement/field-service photo galleries; both params required together; tests in `tests/test_documents.py`
-- **Farmer payments web UI (Ralph Loop 2 final)** — `/payments` list + Record payment dialog wired to `GET/POST /farmer-payments` (`features/farmer-payments/api.ts`); allocate/reverse UI deferred
+- **Farmer payments web UI (Ralph Loop 2 final)** — `/payments` list + Record payment dialog wired to `GET/POST /farmer-payments` (`features/farmer-payments/api.ts`); allocate/reverse settlement dialogs shipped
 - **Staff phone mandatory (API)** — `UserCreateRequest.phone` required (10+ digits, normalized); `UserUpdateRequest` rejects clearing/short phone; historical null phones remain until updated
 - **Farmer payment status sync tests** — allocate/reverse helpers cover `paid_partial` / `paid_full` / revert-to-`confirmed` in `tests/test_farmer_payments.py`
 - **Farmer payments allocate/reverse + farms/trips (Ralph Loop 3 backend)** — `POST /farmer-payments/{id}/allocate|reverse` (partition `payment_date`) links procurements to `paid_partial`/`paid_full` and posts reversing ledger debit; thin `GET/POST/PATCH /vehicle-trips`; thin `GET/POST/PATCH/DELETE /farms` + activities; models registered in `app/models.py`

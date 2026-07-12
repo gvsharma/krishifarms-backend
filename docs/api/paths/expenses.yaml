@@ -2,6 +2,8 @@ expenses:
   get:
     tags: [Expenses]
     operationId: listExpenses
+    summary: List expenses
+    description: Org-scoped expense list. Filter by category, farm, asset, status, dates, or source linkage.
     parameters:
       - $ref: '../openapi.yaml#/components/parameters/Page'
       - $ref: '../openapi.yaml#/components/parameters/PageSize'
@@ -20,6 +22,13 @@ expenses:
       - name: status
         in: query
         schema: { type: string, enum: [draft, posted, reversed] }
+      - name: source_type
+        in: query
+        schema: { type: string }
+        description: e.g. vehicle_trip
+      - name: source_id
+        in: query
+        schema: { type: string, format: uuid }
     responses:
       '200':
         content:
@@ -32,6 +41,7 @@ expenses:
   post:
     tags: [Expenses]
     operationId: createExpense
+    summary: Create expense
     parameters:
       - $ref: '../openapi.yaml#/components/parameters/IdempotencyKey'
     requestBody:
@@ -39,7 +49,15 @@ expenses:
         application/json:
           schema: { $ref: '../schemas/expenses.yaml#/ExpenseCreate' }
     responses:
-      '201': { description: Created }
+      '201':
+        description: Created
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean }
+                data: { $ref: '../schemas/expenses.yaml#/Expense' }
 
 expenseById:
   get:
@@ -51,7 +69,15 @@ expenseById:
         required: true
         schema: { type: string, format: uuid }
     responses:
-      '200': { description: OK }
+      '200':
+        description: OK
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean }
+                data: { $ref: '../schemas/expenses.yaml#/Expense' }
   patch:
     tags: [Expenses]
     operationId: updateExpense
@@ -61,8 +87,20 @@ expenseById:
         in: path
         required: true
         schema: { type: string, format: uuid }
+    requestBody:
+      content:
+        application/json:
+          schema: { $ref: '../schemas/expenses.yaml#/ExpenseUpdate' }
     responses:
-      '200': { description: Updated }
+      '200':
+        description: Updated
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean }
+                data: { $ref: '../schemas/expenses.yaml#/Expense' }
   delete:
     tags: [Expenses]
     operationId: deleteExpense

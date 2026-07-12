@@ -44,6 +44,7 @@ tags:
   - name: Documents
   - name: Devices
   - name: Search
+  - name: Dashboard
 
 security:
   - BearerAuth: []
@@ -59,6 +60,13 @@ paths:
     $ref: paths/auth.yaml#/logout
   /auth/me:
     $ref: paths/auth.yaml#/me
+
+  /health:
+    $ref: paths/dashboard.yaml#/health
+  /dashboard/summary:
+    $ref: paths/dashboard.yaml#/dashboardSummary
+  /dashboard/reports:
+    $ref: paths/dashboard.yaml#/dashboardReports
 
   /devices/push-tokens:
     $ref: paths/devices.yaml#/pushTokens

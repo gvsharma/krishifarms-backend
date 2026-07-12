@@ -86,3 +86,70 @@ export function fetchFarmerPayment(
     `/farmer-payments/${id}?payment_date=${encodeURIComponent(paymentDate)}`,
   );
 }
+
+export interface AllocatePaymentItem {
+  procurement_id: string;
+  procurement_date: string;
+  allocated_amount: string;
+}
+
+export interface AllocateFarmerPaymentPayload {
+  allocations: AllocatePaymentItem[];
+}
+
+export function allocateFarmerPayment(
+  id: string,
+  paymentDate: string,
+  payload: AllocateFarmerPaymentPayload,
+): Promise<FarmerPayment> {
+  return fetchApi<FarmerPayment>(
+    `/farmer-payments/${id}/allocate?payment_date=${encodeURIComponent(paymentDate)}`,
+    {
+      method: "POST",
+      body: payload,
+      clientHeaders: true,
+    },
+  );
+}
+
+export function reverseFarmerPayment(
+  id: string,
+  paymentDate: string,
+  reason: string,
+): Promise<FarmerPayment> {
+  return fetchApi<FarmerPayment>(
+    `/farmer-payments/${id}/reverse?payment_date=${encodeURIComponent(paymentDate)}`,
+    {
+      method: "POST",
+      body: { reason },
+      clientHeaders: true,
+    },
+  );
+}
+
+export const PAYMENT_STATUS_LABELS: Record<string, string> = {
+  pending: "Pending",
+  completed: "Completed",
+  failed: "Failed",
+  reversed: "Reversed",
+};
+
+export const PAYMENT_STATUS_COLORS: Record<
+  string,
+  "default" | "primary" | "secondary" | "error" | "info" | "success" | "warning"
+> = {
+  pending: "warning",
+  completed: "success",
+  failed: "error",
+  reversed: "error",
+};
+
+/** Sum allocated amounts on a payment (string Decimal values). */
+export function allocatedTotal(payment: FarmerPayment): number {
+  return payment.allocations.reduce((sum, a) => sum + Number(a.allocated_amount || 0), 0);
+}
+
+export function unallocatedRemainder(payment: FarmerPayment): number {
+  const rem = Number(payment.amount) - allocatedTotal(payment);
+  return Number.isFinite(rem) ? Math.max(0, Math.round(rem * 100) / 100) : 0;
+}

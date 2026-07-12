@@ -87,12 +87,14 @@ export function fetchProcurements(params?: {
   page?: number;
   pageSize?: number;
   status?: ProcurementStatus;
+  farmer_id?: string;
 }): Promise<ProcurementListData> {
   const search = new URLSearchParams({
     page: String(params?.page ?? 1),
     page_size: String(params?.pageSize ?? 20),
   });
   if (params?.status) search.set("status", params.status);
+  if (params?.farmer_id) search.set("farmer_id", params.farmer_id);
   return fetchApi<ProcurementListData>(`/procurements?${search}`, {
     method: "GET",
     clientHeaders: false,

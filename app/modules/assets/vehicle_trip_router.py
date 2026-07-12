@@ -17,6 +17,12 @@ from app.shared.schemas.common import APIResponse
 router = APIRouter(tags=["Vehicles"])
 
 
+def _trip_response(db, org_id: UUID, row) -> VehicleTripResponse:
+    data = VehicleTripResponse.model_validate(row).model_dump()
+    data["diesel_expense_id"] = service.diesel_expense_id_for_trip(db, org_id, row.id)
+    return VehicleTripResponse.model_validate(data)
+
+
 @router.get("/vehicle-trips", response_model=APIResponse[VehicleTripListResponse])
 def list_vehicle_trips(
     page: int = Query(default=1, ge=1),
@@ -40,7 +46,7 @@ def list_vehicle_trips(
     )
     return APIResponse(
         data=VehicleTripListResponse(
-            items=[VehicleTripResponse.model_validate(item) for item in items],
+            items=[_trip_response(db, ctx.user.org_id, item) for item in items],
             total=total,
             page=page,
             page_size=page_size,
@@ -55,7 +61,7 @@ def create_vehicle_trip(
     db: Session = Depends(get_db),
 ):
     row = service.create_trip(db, ctx.user.org_id, payload, ctx.user.id)
-    return APIResponse(data=VehicleTripResponse.model_validate(row))
+    return APIResponse(data=_trip_response(db, ctx.user.org_id, row))
 
 
 @router.get("/vehicle-trips/{trip_id}", response_model=APIResponse[VehicleTripResponse])
@@ -66,7 +72,7 @@ def get_vehicle_trip(
     db: Session = Depends(get_db),
 ):
     row = service.get_trip(db, ctx.user.org_id, trip_id, trip_date)
-    return APIResponse(data=VehicleTripResponse.model_validate(row))
+    return APIResponse(data=_trip_response(db, ctx.user.org_id, row))
 
 
 @router.patch("/vehicle-trips/{trip_id}", response_model=APIResponse[VehicleTripResponse])
@@ -78,4 +84,4 @@ def update_vehicle_trip(
     db: Session = Depends(get_db),
 ):
     row = service.update_trip(db, ctx.user.org_id, trip_id, trip_date, payload, ctx.user.id)
-    return APIResponse(data=VehicleTripResponse.model_validate(row))
+    return APIResponse(data=_trip_response(db, ctx.user.org_id, row))

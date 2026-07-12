@@ -18,6 +18,9 @@ vehicleTrips:
   post:
     tags: [Vehicles]
     operationId: createVehicleTrip
+    description: >
+      Creates a trip. When fuel_cost > 0, posts a Fuel expense linked via
+      source_type=vehicle_trip / source_id=trip id (requires seeded Fuel category + payment mode).
     requestBody:
       content:
         application/json:

@@ -14,6 +14,8 @@ Expense:
     description: { type: string }
     description_te: { type: string }
     status: { type: string, enum: [draft, posted, reversed] }
+    source_type: { type: string, description: 'e.g. vehicle_trip when posted from diesel on a trip' }
+    source_id: { $ref: 'common.yaml#/UUID' }
 
 ExpenseCreate:
   type: object
@@ -28,9 +30,24 @@ ExpenseCreate:
     asset_id: { $ref: 'common.yaml#/UUID' }
     description: { type: string }
     description_te: { type: string }
+    status: { type: string, enum: [draft, posted], default: posted }
     document_ids:
       type: array
       items: { $ref: 'common.yaml#/UUID' }
+
+ExpenseUpdate:
+  type: object
+  description: Draft expenses only.
+  properties:
+    category_id: { $ref: 'common.yaml#/UUID' }
+    expense_date: { type: string, format: date }
+    amount: { $ref: 'common.yaml#/Money' }
+    vendor_name: { type: string }
+    payment_mode_id: { $ref: 'common.yaml#/UUID' }
+    farm_id: { $ref: 'common.yaml#/UUID' }
+    asset_id: { $ref: 'common.yaml#/UUID' }
+    description: { type: string }
+    description_te: { type: string }
 
 ExpenseList:
   type: object

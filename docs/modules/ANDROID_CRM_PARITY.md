@@ -4,7 +4,7 @@ Inventory of create/update/delete (and admin management) capabilities across the
 
 **Android repo path (external):** `/Users/venkatgorinta/StudioProjects/krishifarms-mobile`  
 **Branch reviewed:** `feature/device-push-notifications`  
-**Last reviewed:** 2026-07-12 (Ralph Loop 2 final — Frontend + Android)
+**Last reviewed:** 2026-07-12 (Android cancel/reverse + field-service `[kf:work]` profiles)
 
 ## Summary
 
@@ -12,10 +12,10 @@ Inventory of create/update/delete (and admin management) capabilities across the
 |------|---------|---------|---------------|
 | Master data (villages, crops, buyers, agents, prices, vehicle types, activity types, expense categories, payment modes) | ✅ Admin hub (catalog CRUD; villages read-only) | ✅ Live | ✅ Settings → Master data + sidebar |
 | Location cascade (District → Mandal → Village) | ✅ Shared `LocationCascade`; procurement + farmer form + field-service create | ✅ `/districts`, `/mandals`, filtered `/villages` | ✅ Wired on villages / farmer / procurement / field-service forms |
-| Field services (tractor, transport, fertiliser, seeds, agri-finance, vehicle/godown ops) | ✅ List + create (`feature/fieldservices/`); category filter; location cascade; large buttons | ✅ `/field-services` CRUD | ✅ List + create form with vehicle-type questions |
+| Field services (tractor, transport, fertiliser, seeds, agri-finance, vehicle/godown ops) | ✅ List + create; vehicle-type work profiles (Tractor/Trolley/Bolero/DCM/Pump/Drone) via `[kf:work]` comments | ✅ `/field-services` CRUD | ✅ List + create form with vehicle-type questions |
 | Users / roles | ✅ Admin hub; display labels via `RoleLabels` | ✅ Live | ✅ Settings → Users + sidebar |
 | Farmers | CRU (+ offline); form sends `village_id` (Room `village_id` col v7) | ✅ Live | ✅ List / detail / create |
-| Procurements | ✅ Create + list/detail; draft extras; **workflow** submit / weigh / price / confirm on detail; cancel/reverse → web | ✅ Full workflow | ✅ List / create / detail + workflow actions |
+| Procurements | ✅ Create + list/detail; draft extras; **full workflow** submit / weigh / price / confirm / **cancel** / **reverse** on detail | ✅ Full workflow | ✅ List / create / detail + workflow actions |
 | Workers / work orders / attendance | CRU / CR / CU | 📋 Schema + OpenAPI only | ⬜ Placeholder |
 | Expenses | Create + list/detail | 📋 Schema + OpenAPI only | ⬜ Placeholder |
 | Farmer payments | Stub | ✅ Thin list/create/allocate/reverse | ✅ List + create on `/payments` (allocate UI deferred) |
@@ -58,24 +58,22 @@ Inventory of create/update/delete (and admin management) capabilities across the
 
 | Priority | Item | Target files (Android) | Depends on CRM |
 |----------|------|------------------------|----------------|
-| **P1** | Procurement cancel / reverse | `ProcurementApi` + detail | ✅ backend |
 | **P1** | Procurement photos (reuse expense `BillAttachmentPicker`) | `ProcurementFormScreen` | documents API partial |
 | **P1** | Crop price rules admin catalog | `AdminCatalogType`, `AdminApi` | ✅ `/crop-prices` |
 | **P2** | GPS capture on field forms | CameraX / FusedLocation | optional |
 | **P2** | Workers / expenses live sync when CRM routers land | existing feature packages | 📋 schema only |
 | **P2** | Farmer payments Android | stub → thin API | ✅ `/farmer-payments` |
 
-### Done this iteration (Android — Ralph Loop 2 final)
+### Done this iteration (Android)
 
-- Field-services list + create (`feature/fieldservices/`) replacing stub; location cascade; `FIELD_SERVICE_*` nav
-- Farmer form: `LocationCascade` + send `village_id` (`CreateFarmerRequest` CRM fields); Room `village_id` (v7)
-- Procurement detail workflow: submit / weighment / apply-price / confirm via existing `ProcurementApi`
-- Documented cancel/reverse gap (web CRM)
+- Procurement cancel / reverse on detail (`ProcurementApi` + reason dialogs; cancel = `PROCUREMENT_DELETE` / reverse = OWNER + `PROCUREMENT_APPROVE`)
+- Field-service vehicle work profiles: Tractor/Trolley/Bolero/DCM/Pump/Drone questions; `[kf:work]` comment codec + `vehicle_type_id` on create
+- Prior: Field-services list + create; farmer `village_id` cascade; procurement submit / weigh / price / confirm
 
 ## Phase 2+ partial / external
 
-- Entity document gallery needs `GET /documents?entity_type=&entity_id=`
-- Finance ops expenses/collections still schema-only on backend
+- Entity document gallery needs `GET /documents?entity_type=&entity_id=` (CRM done; Android photo attach optional)
+- Finance ops expenses/collections still schema-only on backend (or newly landing — check Android sync)
 - WhatsApp / full Firebase OTP UX
 
 ## Mobile sync note
@@ -96,5 +94,6 @@ cd frontend && npm run dev
 
 # Android
 cd /Users/venkatgorinta/StudioProjects/krishifarms-mobile
-# Field services list/create; farmer form cascade; procurement detail workflow buttons
+# Field services create: pick Tractor/Trolley/Bolero/DCM → work questions; comments contain [kf:work]
+# Procurement detail: Cancel (draft/weighment/weighed) + Reverse (confirmed, OWNER)
 ```
