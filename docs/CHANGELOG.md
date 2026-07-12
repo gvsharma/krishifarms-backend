@@ -34,6 +34,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **Web login fields** — taller email/password inputs (`minHeight` 56px); no entrance / Material-style motion on the Google-style card
 - **Web login UI** — Google-style centered card sign-in (`/login`): email + password fields, show/hide password, primary Next button
 - **Field service create form layout** — switch legacy MUI `Grid item` to `Grid2` sizing so fields align in columns; clearer section titles on `/field-services/new`
 - **Supabase cutover runbook** — [docs/deploy/SUPABASE_CUTOVER_RUNBOOK.md](./deploy/SUPABASE_CUTOVER_RUNBOOK.md): GitHub secret + IAM attach script + deploy verify steps

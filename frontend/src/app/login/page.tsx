@@ -20,6 +20,22 @@ import { clearSignedOutFlag, wasExplicitlySignedOut } from "@/features/auth/sess
 import { getAccessToken } from "@/lib/api/client";
 import { ROUTES, SITE_NAME } from "@/constants/routes";
 
+const fieldSx = {
+  "& .MuiInputBase-root": {
+    minHeight: 56,
+    transition: "none",
+  },
+  "& .MuiOutlinedInput-input": {
+    py: 1.75,
+  },
+  "& .MuiInputLabel-root": {
+    transition: "none",
+  },
+  "& .MuiOutlinedInput-notchedOutline": {
+    transition: "none",
+  },
+} as const;
+
 /** Simple Google-style email + password sign-in. */
 export default function LoginPage() {
   const router = useRouter();
@@ -120,6 +136,7 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               disabled={submitting}
+              sx={fieldSx}
             />
 
             <TextField
@@ -131,6 +148,7 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={submitting}
+              sx={fieldSx}
               slotProps={{
                 input: {
                   endAdornment: (
@@ -154,8 +172,15 @@ export default function LoginPage() {
               <Button
                 type="submit"
                 variant="contained"
+                disableElevation
                 disabled={submitting || !email.trim() || !password}
-                sx={{ minWidth: 96, textTransform: "none", fontWeight: 600 }}
+                sx={{
+                  minWidth: 96,
+                  minHeight: 40,
+                  textTransform: "none",
+                  fontWeight: 600,
+                  transition: "none",
+                }}
               >
                 {submitting ? <CircularProgress size={18} color="inherit" /> : "Next"}
               </Button>
