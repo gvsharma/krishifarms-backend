@@ -7,7 +7,7 @@ import {
   Card,
   Chip,
   CircularProgress,
-  Grid,
+  Grid2 as Grid,
   Stack,
   Typography,
 } from "@mui/material";
@@ -66,32 +66,32 @@ export default function ProcurementDetailPage() {
               ))}
             </Stack>
             <Grid container spacing={2}>
-              <Grid item xs={6} sm={4}>
+              <Grid size={{ xs: 6, sm: 4 }}>
                 <Field label="Farmer" value={data.farmer_name ?? "—"} />
               </Grid>
-              <Grid item xs={6} sm={4}>
+              <Grid size={{ xs: 6, sm: 4 }}>
                 <Field label="Crop" value={data.crop_type_name ?? "—"} />
               </Grid>
-              <Grid item xs={6} sm={4}>
+              <Grid size={{ xs: 6, sm: 4 }}>
                 <Field label="Village" value={data.village_name ?? "—"} />
               </Grid>
-              <Grid item xs={6} sm={4}>
+              <Grid size={{ xs: 6, sm: 4 }}>
                 <Field label="Bags" value={String(data.bag_count)} />
               </Grid>
-              <Grid item xs={6} sm={4}>
+              <Grid size={{ xs: 6, sm: 4 }}>
                 <Field label="Gross weight (kg)" value={data.gross_weight_kg} />
               </Grid>
-              <Grid item xs={6} sm={4}>
+              <Grid size={{ xs: 6, sm: 4 }}>
                 <Field label="Net weight (kg)" value={data.net_weight_kg} />
               </Grid>
-              <Grid item xs={6} sm={4}>
+              <Grid size={{ xs: 6, sm: 4 }}>
                 <Field label="Rate / quintal" value={formatInr(data.rate_per_quintal)} />
               </Grid>
-              <Grid item xs={6} sm={4}>
+              <Grid size={{ xs: 6, sm: 4 }}>
                 <Field label="Net amount" value={formatInr(data.net_amount)} />
               </Grid>
               {data.notes && (
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <Field label="Notes" value={data.notes} />
                 </Grid>
               )}
