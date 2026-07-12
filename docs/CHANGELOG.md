@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Frontend sign-out + login** — MUI user menu Sign out (clears `krishi-access-token`, revokes refresh token via `POST /auth/logout` when available); `/login` email/password page; `AuthBootstrap` skips dev auto-login after explicit sign-out (`sessionStorage` flag)
 - **Admin CRUD parity (web + Android)** — Web: `/auth/me` role hook; sidebar links for Users + Master data; dashboard admin shortcuts; delete hidden for MANAGER on `CatalogAdminPage`. Android: `feature/admin/` hub (More + Settings) with catalog list/create/edit for crop types, vehicle types, activity types, buyers, agents, expense categories, payment modes; villages read-only; users list/create/edit; EN + TE strings; `MenuRegistry` admin tile for OWNER/MANAGER
 - **RBAC: MANAGER admin without delete** — Backend `users:create` for MANAGER; mobile `SETTINGS_MANAGE` + `USER_MANAGE` + `admin` module in permission catalog; OWNER-only delete on web/Android UI
 - **Admin master-data parity (web)** — CRM settings CRUD for crop types, crop prices, buyers, agents, vehicle types, activity types, expense categories, payment modes; villages edit/delete; users create/edit; farmers `/farmers/new`; shared `CatalogAdminPage`; gap matrix [ANDROID_CRM_PARITY.md](./modules/ANDROID_CRM_PARITY.md)
