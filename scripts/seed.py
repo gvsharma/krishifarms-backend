@@ -10,12 +10,20 @@ from app.shared.permissions import ROLE_DEFINITIONS, ROLE_PERMISSIONS, SYSTEM_PE
 
 
 DEFAULT_VILLAGES = [
-    {"name": "Sample Village", "mandal": "Sample Mandal", "district": "Sample District", "state": "Telangana"},
+    {
+        "name": "Bhairkhanpally",
+        "mandal": "Nizamabad",
+        "district": "Nizamabad",
+        "state": "Telangana",
+    },
 ]
 
 DEFAULT_CROP_TYPES = [
-    {"name": "Cotton", "code": "COTTON", "default_moisture_pct": 8.0},
-    {"name": "Maize", "code": "MAIZE", "default_moisture_pct": 14.0},
+    {"name": "Paddy", "code": "PADDY", "default_moisture_pct": 17.0},
+    {"name": "Corn", "code": "CORN", "default_moisture_pct": 14.0},
+    {"name": "Vegetables", "code": "VEGETABLES", "default_moisture_pct": None},
+    {"name": "Pulses", "code": "PULSES", "default_moisture_pct": None},
+    {"name": "Concrete Work", "code": "CONCRETEWORK", "default_moisture_pct": None},
 ]
 
 DEFAULT_EXPENSE_CATEGORIES = [
@@ -89,6 +97,14 @@ def seed_database(db: Session) -> None:
     db.commit()
     print("Seed completed successfully")
     print(f"Owner login: {settings.default_owner_email} / {settings.default_owner_password}")
+
+    try:
+        from scripts.seed_services import seed_services_for_org
+
+        seed_services_for_org(db, org, owner)
+        print("Services master data seeded")
+    except Exception as exc:
+        print(f"Services seed skipped: {exc}")
 
 
 def main() -> None:

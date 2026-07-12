@@ -3,6 +3,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
+from app.core.client_context import ClientContext, get_client_context
 from app.core.dependencies import CurrentUserContext, get_db, require_permission
 from app.modules.documents import service
 from app.modules.documents.schemas import (
@@ -41,8 +42,9 @@ def register_document(
     payload: DocumentCreateRequest,
     ctx: CurrentUserContext = Depends(require_permission("documents:create")),
     db: Session = Depends(get_db),
+    client: ClientContext = Depends(get_client_context),
 ):
-    document = service.register_document(db, ctx.user.org_id, payload, ctx.user.id)
+    document = service.register_document(db, ctx.user.org_id, payload, ctx.user.id, client=client)
     return APIResponse(data=_serialize_document(document))
 
 
@@ -91,6 +93,7 @@ def link_document(
     payload: DocumentLinkRequest,
     ctx: CurrentUserContext = Depends(require_permission("documents:create")),
     db: Session = Depends(get_db),
+    client: ClientContext = Depends(get_client_context),
 ):
-    service.link_document(db, ctx.user.org_id, document_id, payload, ctx.user.id)
+    service.link_document(db, ctx.user.org_id, document_id, payload, ctx.user.id, client=client)
     return APIResponse(data=MessageResponse(message="Document linked successfully"))

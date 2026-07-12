@@ -24,6 +24,26 @@ from app.modules.procurements.schemas import (
 )
 from app.shared.services.audit import write_activity_feed, write_audit_log
 
+
+def _notify_status(db: Session, row: Procurement, actor_user_id: UUID) -> None:
+    try:
+        from app.modules.devices.service import notify_procurement_status
+
+        notify_procurement_status(
+            db,
+            org_id=row.org_id,
+            procurement_id=row.id,
+            procurement_number=row.procurement_number,
+            status=row.status,
+            village_id=row.village_id,
+            created_by=row.created_by,
+            actor_user_id=actor_user_id,
+        )
+    except Exception:
+        # Push must not fail the business transaction
+        pass
+
+
 _PROCUREMENT_NUMBER_PREFIX = "PR-"
 _QUINTAL_KG = Decimal("100")
 _ZERO = Decimal("0")
@@ -96,6 +116,8 @@ def _audit(
             summary=summary,
             entity_type="procurement",
             entity_id=entity_id,
+            device_id=client.device_id if client else None,
+            client_type=client.client_type if client else None,
         )
 
 
@@ -422,6 +444,7 @@ def submit_procurement(
     )
     db.commit()
     db.refresh(row)
+    _notify_status(db, row, actor_user_id)
     return row
 
 
@@ -462,6 +485,7 @@ def record_weighment(
     )
     db.commit()
     db.refresh(row)
+    _notify_status(db, row, actor_user_id)
     return row
 
 
@@ -499,6 +523,7 @@ def apply_price(
     )
     db.commit()
     db.refresh(row)
+    _notify_status(db, row, actor_user_id)
     return row
 
 
@@ -549,6 +574,7 @@ def confirm_procurement(
     )
     db.commit()
     db.refresh(row)
+    _notify_status(db, row, actor_user_id)
     return row
 
 
@@ -584,6 +610,7 @@ def cancel_procurement(
     )
     db.commit()
     db.refresh(row)
+    _notify_status(db, row, actor_user_id)
     return row
 
 
@@ -643,6 +670,7 @@ def reverse_procurement(
     )
     db.commit()
     db.refresh(row)
+    _notify_status(db, row, actor_user_id)
     return row
 
 

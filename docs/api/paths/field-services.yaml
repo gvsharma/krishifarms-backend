@@ -1,0 +1,107 @@
+fieldServices:
+  get:
+    tags: [Field Services]
+    operationId: listFieldServices
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/Page'
+      - $ref: '../openapi.yaml#/components/parameters/PageSize'
+      - $ref: '../openapi.yaml#/components/parameters/DateFrom'
+      - $ref: '../openapi.yaml#/components/parameters/DateTo'
+      - name: service_category
+        in: query
+        schema: { $ref: '../schemas/field-services.yaml#/FieldServiceCategory' }
+      - name: farmer_id
+        in: query
+        schema: { type: string, format: uuid }
+      - name: status
+        in: query
+        schema: { $ref: '../schemas/field-services.yaml#/FieldServiceStatus' }
+    responses:
+      '200':
+        description: OK
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '../schemas/common.yaml#/APIResponse'
+                - type: object
+                  properties:
+                    data: { $ref: '../schemas/field-services.yaml#/FieldServiceRecordList' }
+  post:
+    tags: [Field Services]
+    operationId: createFieldService
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: '../schemas/field-services.yaml#/FieldServiceRecordCreate' }
+    responses:
+      '201':
+        description: Created
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '../schemas/common.yaml#/APIResponse'
+                - type: object
+                  properties:
+                    data: { $ref: '../schemas/field-services.yaml#/FieldServiceRecord' }
+
+fieldServiceById:
+  get:
+    tags: [Field Services]
+    operationId: getFieldService
+    parameters:
+      - name: record_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200':
+        description: OK
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '../schemas/common.yaml#/APIResponse'
+                - type: object
+                  properties:
+                    data: { $ref: '../schemas/field-services.yaml#/FieldServiceRecord' }
+  patch:
+    tags: [Field Services]
+    operationId: updateFieldService
+    parameters:
+      - name: record_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: '../schemas/field-services.yaml#/FieldServiceRecordUpdate' }
+    responses:
+      '200':
+        description: Updated
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '../schemas/common.yaml#/APIResponse'
+                - type: object
+                  properties:
+                    data: { $ref: '../schemas/field-services.yaml#/FieldServiceRecord' }
+  delete:
+    tags: [Field Services]
+    operationId: deleteFieldService
+    parameters:
+      - name: record_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200':
+        description: Deleted
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/APIResponse' }

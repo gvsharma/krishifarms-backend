@@ -1,0 +1,105 @@
+FieldServiceCategory:
+  type: string
+  enum:
+    - field_service
+    - tractor_work
+    - transport
+    - fertiliser
+    - seeds
+    - agri_finance
+    - vehicle_ops
+    - godown
+
+FieldServiceStatus:
+  type: string
+  enum: [open, completed, cancelled]
+
+CleaningStatus:
+  type: string
+  enum: [pending, done, not_required]
+
+FacilityStatus:
+  type: string
+  enum: [active, repair, maintenance, cleaning]
+
+FieldServiceRecordCreate:
+  type: object
+  required: [service_category, service_date]
+  properties:
+    service_category: { $ref: '#/FieldServiceCategory' }
+    activity_type_id: { type: string, format: uuid, nullable: true }
+    farmer_id: { type: string, format: uuid, nullable: true }
+    asset_id: { type: string, format: uuid, nullable: true }
+    vehicle_type_id: { type: string, format: uuid, nullable: true }
+    service_date: { type: string, format: date }
+    location: { type: string, maxLength: 255, nullable: true }
+    location_te: { type: string, nullable: true }
+    hours: { type: string, format: decimal, nullable: true }
+    bag_count: { type: integer, minimum: 0, nullable: true }
+    quantity: { type: string, format: decimal, nullable: true }
+    quantity_unit: { type: string, maxLength: 20, nullable: true }
+    rate_per_unit: { type: string, format: decimal, nullable: true }
+    diesel_amount: { type: string, format: decimal, default: '0.00' }
+    amount_given: { type: string, format: decimal, default: '0.00' }
+    advance_amount: { type: string, format: decimal, default: '0.00' }
+    total_amount: { type: string, format: decimal, default: '0.00' }
+    pending_amount: { type: string, format: decimal, default: '0.00' }
+    cleaning_status: { $ref: '#/CleaningStatus' }
+    facility_status: { $ref: '#/FacilityStatus' }
+    status: { $ref: '#/FieldServiceStatus' }
+    comments: { type: string, nullable: true }
+    comments_te: { type: string, nullable: true }
+
+FieldServiceRecordUpdate:
+  type: object
+  properties:
+    activity_type_id: { type: string, format: uuid, nullable: true }
+    farmer_id: { type: string, format: uuid, nullable: true }
+    asset_id: { type: string, format: uuid, nullable: true }
+    vehicle_type_id: { type: string, format: uuid, nullable: true }
+    service_date: { type: string, format: date }
+    location: { type: string, maxLength: 255, nullable: true }
+    location_te: { type: string, nullable: true }
+    hours: { type: string, format: decimal, nullable: true }
+    bag_count: { type: integer, minimum: 0, nullable: true }
+    quantity: { type: string, format: decimal, nullable: true }
+    quantity_unit: { type: string, maxLength: 20, nullable: true }
+    rate_per_unit: { type: string, format: decimal, nullable: true }
+    diesel_amount: { type: string, format: decimal }
+    amount_given: { type: string, format: decimal }
+    advance_amount: { type: string, format: decimal }
+    total_amount: { type: string, format: decimal }
+    pending_amount: { type: string, format: decimal }
+    cleaning_status: { $ref: '#/CleaningStatus' }
+    facility_status: { $ref: '#/FacilityStatus' }
+    status: { $ref: '#/FieldServiceStatus' }
+    comments: { type: string, nullable: true }
+    comments_te: { type: string, nullable: true }
+
+FieldServiceRecord:
+  allOf:
+    - $ref: '#/FieldServiceRecordCreate'
+    - type: object
+      required: [id, record_number, created_at, updated_at]
+      properties:
+        id: { type: string, format: uuid }
+        record_number: { type: string }
+        activity_type_name: { type: string, nullable: true }
+        farmer_name: { type: string, nullable: true }
+        farmer_phone: { type: string, nullable: true }
+        vehicle_type_name: { type: string, nullable: true }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+        created_by_name: { type: string, nullable: true }
+        updated_by_name: { type: string, nullable: true }
+
+FieldServiceRecordList:
+  type: object
+  required: [items, total, page, page_size]
+  properties:
+    items:
+      type: array
+      items: { $ref: '#/FieldServiceRecord' }
+    total: { type: integer }
+    page: { type: integer }
+    page_size: { type: integer }

@@ -59,4 +59,5 @@ def build_auth_user(user: User) -> dict:
         "mobile": user.phone or "",
         "email": user.email,
         "village_id": str(user.village_id) if user.village_id else None,
+        "preferred_locale": user.preferred_locale or "en",
     }

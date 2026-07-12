@@ -8,8 +8,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Field services domain (v1)** — unified `field_service_records` table (migration `021`); `activity_types.service_category`; CRUD `/field-services`; seeds `scripts/seed_services.py` (paddy/corn/vegetables/pulses/concretework crops, 24 activity types, 7 vehicle types, expense/payment catalogs); RBAC migration `022`; module doc [FIELD_SERVICES.md](./modules/FIELD_SERVICES.md); web list placeholder `/field-services`
+- **Admin master-data parity (web)** — CRM settings CRUD for crop types, crop prices, buyers, agents, vehicle types, activity types, expense categories, payment modes; villages edit/delete; users create/edit; farmers `/farmers/new`; shared `CatalogAdminPage`; gap matrix [ANDROID_CRM_PARITY.md](./modules/ANDROID_CRM_PARITY.md)
+- **Payment modes API** — `GET/POST/PATCH/DELETE /payment-modes` (`PaymentMode` model on existing `payment_modes` table); permissions `payment_modes:*`; OpenAPI `paths/platform.yaml` for platform + master catalogs
+- **FCM devices + push** — migration `020` `user_device_tokens`; `POST/DELETE /devices/push-tokens`; bilingual FCM on procurement status, farmer comments, document upload; module doc [DEVICES_NOTIFICATIONS.md](./modules/DEVICES_NOTIFICATIONS.md)
+- **Device accountability** — `write_audit_log` / `write_activity_feed` persist `device_id`, `client_type`, `request_id` (and activity `summary_te`); documents mutations take `ClientContext`; login / firebase-login / refresh bind `refresh_tokens.device_id` from `X-Device-Id`
+- **Sessions API** — `GET /users/me/sessions`, `DELETE /users/me/sessions/{id}` (active refresh tokens; device_id only — no new migration)
+- **Locale self-service** — `preferred_locale` on `AuthUserResponse` / `/auth/me`; `PATCH /users/me` for `preferred_locale` + `full_name`
+- **SSM parameter bootstrap** — `deploy/scripts/ensure-ssm-parameters.sh` creates missing `/krishifarms/dev/*` SecureString/String params (placeholder `REPLACE_ME`; does not overwrite). Created `/krishifarms/dev/db/database_url` in ap-south-1 for Supabase cutover.
 - **Temporary demo data pack** — `scripts/seed_demo_data.py` + `scripts/purge_demo_data.py` for live modules (farmers, procurements, platform); markers `[DEMO]` / `@demo.krishifarms.local`; runbook + inventory in [docs/DEMO_DATA.md](./DEMO_DATA.md)
 - **GitHub deploy automation** — `deploy/scripts/github-predeploy.sh` runs on each `main` deploy: writes Supabase `DATABASE_URL` to SSM from `SUPABASE_DB_PASSWORD` secret, runs EC2-only cost scheduler config; remote deploy seeds DB if empty
+
 
 ### Fixed
 
@@ -27,6 +36,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Supabase DB cutover prep** — project `ucvwtoziiqgmcyzxkwxe`; `docker-compose.prod.yml` no longer hardcodes Docker `DATABASE_URL` (env_file wins); `depends_on.postgres.required: false`; `sync-env-from-ssm.sh` prefers SSM `/krishifarms/dev/db/database_url` and ignores `REPLACE_ME` placeholders; helpers `ensure-ssm-parameters.sh` + `put-supabase-database-url-ssm.sh`; cutover guide [docs/deploy/SUPABASE_MIGRATION.md](./deploy/SUPABASE_MIGRATION.md)
 - **EC2-only cost scheduler** — `deploy/scripts/configure-compute-scheduler-ec2-only.sh` removes RDS from daily Lambda cron while keeping EC2 start/stop
 - **Gamya RDS removal patch** — `patches/gamya-couture-infra-remove-rds.patch` + [docs/deploy/GAMYA_RDS_REMOVAL.md](./deploy/GAMYA_RDS_REMOVAL.md): apply in `gvsharma/gamya-couture-infra` to destroy `gamya-couture-dev-pg` via Terraform (`enable_rds = false`)
+- **Aurora destroy skipped** — ap-south-1 has no KrishiFarms Aurora/RDS; only `gamya-couture-dev-pg` (Gamya, stopped) — left untouched. Prod DB remains Docker Postgres on EC2 until Supabase cutover.
 - **Supabase pooler discovery** — `put-supabase-database-url-ssm.sh` probes `aws-0/1/2` pooler hosts or uses `SUPABASE_POOLER_HOST` GitHub variable (fixes `Tenant not found` + EC2 IPv6 errors)
 
 ### Fixed

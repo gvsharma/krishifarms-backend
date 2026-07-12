@@ -16,7 +16,18 @@ class ActivityType(Base, UUIDPrimaryKeyMixin, TimestampMixin, AuditActorMixin, S
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     name_te: Mapped[str | None] = mapped_column(Text, nullable=True)
     code: Mapped[str] = mapped_column(String(50), nullable=False)
+    service_category: Mapped[str | None] = mapped_column(String(30), nullable=True)
     default_rate_type: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
+
+class PaymentMode(Base, UUIDPrimaryKeyMixin, TimestampMixin, AuditActorMixin, SoftDeleteMixin):
+    __tablename__ = "payment_modes"
+
+    org_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), ForeignKey("organizations.id"), nullable=False)
+    code: Mapped[str] = mapped_column(String(30), nullable=False)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    name_te: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
 

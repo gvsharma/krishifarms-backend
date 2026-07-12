@@ -50,11 +50,13 @@ def write_activity_feed(
     visibility: str = "org",
     device_id: str | None = None,
     client_type: str | None = None,
+    summary_te: str | None = None,
 ) -> ActivityFeed:
     entry = ActivityFeed(
         org_id=org_id,
         actor_user_id=actor_user_id,
         summary=summary,
+        summary_te=summary_te,
         entity_type=entity_type,
         entity_id=entity_id,
         visibility=visibility,

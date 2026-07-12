@@ -61,5 +61,21 @@ class UserUpdateRequest(BaseModel):
     password: str | None = Field(default=None, min_length=8)
 
 
+class UserSelfUpdateRequest(BaseModel):
+    full_name: str | None = Field(default=None, min_length=2, max_length=200)
+    preferred_locale: str | None = Field(default=None, min_length=2, max_length=10)
+
+
+class SessionResponse(ORMModel):
+    id: UUID
+    device_id: str | None = None
+    created_at: datetime
+    expires_at: datetime
+
+
+class SessionListResponse(BaseModel):
+    items: list[SessionResponse]
+
+
 class UserListResponse(PaginatedResponse[UserResponse]):
     pass

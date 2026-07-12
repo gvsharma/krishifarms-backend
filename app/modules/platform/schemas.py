@@ -18,6 +18,10 @@ class ActivityTypeCreateRequest(BaseModel):
     name: str = Field(min_length=1, max_length=100)
     name_te: str | None = None
     code: str = Field(min_length=1, max_length=50)
+    service_category: str | None = Field(
+        default=None,
+        pattern="^(field_service|tractor_work|transport|fertiliser|seeds|agri_finance|vehicle_ops|godown)$",
+    )
     default_rate_type: str | None = Field(default=None, pattern="^(hourly|daily|fixed)$")
     is_active: bool = True
 
@@ -25,6 +29,10 @@ class ActivityTypeCreateRequest(BaseModel):
 class ActivityTypeUpdateRequest(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=100)
     name_te: str | None = None
+    service_category: str | None = Field(
+        default=None,
+        pattern="^(field_service|tractor_work|transport|fertiliser|seeds|agri_finance|vehicle_ops|godown)$",
+    )
     default_rate_type: str | None = Field(default=None, pattern="^(hourly|daily|fixed)$")
     is_active: bool | None = None
 
@@ -36,12 +44,43 @@ class ActivityTypeResponse(AuditMetaResponse):
     name: str
     name_te: str | None
     code: str
+    service_category: str | None
     default_rate_type: str | None
     is_active: bool
 
 
 class ActivityTypeListResponse(BaseModel):
     items: list[ActivityTypeResponse]
+    total: int
+    page: int
+    page_size: int
+
+
+class PaymentModeCreateRequest(BaseModel):
+    code: str = Field(min_length=1, max_length=30)
+    name: str = Field(min_length=1, max_length=100)
+    name_te: str | None = None
+    is_active: bool = True
+
+
+class PaymentModeUpdateRequest(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=100)
+    name_te: str | None = None
+    is_active: bool | None = None
+
+
+class PaymentModeResponse(AuditMetaResponse):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    code: str
+    name: str
+    name_te: str | None
+    is_active: bool
+
+
+class PaymentModeListResponse(BaseModel):
+    items: list[PaymentModeResponse]
     total: int
     page: int
     page_size: int

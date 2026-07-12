@@ -34,6 +34,7 @@ class ActivityFeed(Base, UUIDPrimaryKeyMixin):
     org_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), ForeignKey("organizations.id"), nullable=False)
     actor_user_id: Mapped[UUID | None] = mapped_column(PGUUID(as_uuid=True), ForeignKey("users.id"))
     summary: Mapped[str] = mapped_column(Text, nullable=False)
+    summary_te: Mapped[str | None] = mapped_column(Text, nullable=True)
     entity_type: Mapped[str] = mapped_column(String(50), nullable=False)
     entity_id: Mapped[UUID | None] = mapped_column(PGUUID(as_uuid=True), nullable=True)
     visibility: Mapped[str] = mapped_column(String(20), default="org", nullable=False)

@@ -5,8 +5,17 @@ from sqlalchemy.orm import Session
 
 from app.core.dependencies import CurrentUserContext, get_current_user_context, get_db, require_permission
 from app.modules.users import service
-from app.modules.users.schemas import RoleResponse, UserCreateRequest, UserListResponse, UserResponse, UserUpdateRequest
-from app.shared.schemas.common import APIResponse
+from app.modules.users.schemas import (
+    RoleResponse,
+    SessionListResponse,
+    SessionResponse,
+    UserCreateRequest,
+    UserListResponse,
+    UserResponse,
+    UserSelfUpdateRequest,
+    UserUpdateRequest,
+)
+from app.shared.schemas.common import APIResponse, MessageResponse
 
 router = APIRouter(tags=["Users"])
 
@@ -15,6 +24,37 @@ router = APIRouter(tags=["Users"])
 def get_me(ctx: CurrentUserContext = Depends(get_current_user_context), db: Session = Depends(get_db)):
     user = service.get_current_profile(db, ctx.user.id)
     return APIResponse(data=UserResponse.model_validate(user))
+
+
+@router.patch("/users/me", response_model=APIResponse[UserResponse])
+def update_me(
+    payload: UserSelfUpdateRequest,
+    ctx: CurrentUserContext = Depends(get_current_user_context),
+    db: Session = Depends(get_db),
+):
+    user = service.update_current_user(db, ctx.user.id, payload)
+    return APIResponse(data=UserResponse.model_validate(user))
+
+
+@router.get("/users/me/sessions", response_model=APIResponse[SessionListResponse])
+def list_my_sessions(
+    ctx: CurrentUserContext = Depends(get_current_user_context),
+    db: Session = Depends(get_db),
+):
+    sessions = service.list_active_sessions(db, ctx.user.id)
+    return APIResponse(
+        data=SessionListResponse(items=[SessionResponse.model_validate(s) for s in sessions])
+    )
+
+
+@router.delete("/users/me/sessions/{session_id}", response_model=APIResponse[MessageResponse])
+def revoke_my_session(
+    session_id: UUID,
+    ctx: CurrentUserContext = Depends(get_current_user_context),
+    db: Session = Depends(get_db),
+):
+    service.revoke_session(db, ctx.user.id, session_id)
+    return APIResponse(data=MessageResponse(message="Session revoked"))
 
 
 @router.get("/users", response_model=APIResponse[UserListResponse])

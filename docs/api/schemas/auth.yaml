@@ -42,6 +42,10 @@ AuthUserResponse:
       type: string
       format: uuid
       nullable: true
+    preferred_locale:
+      type: string
+      default: en
+      description: User UI locale (e.g. en, te)
 
 AuthMeResponse:
   type: object

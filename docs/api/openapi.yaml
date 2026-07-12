@@ -26,7 +26,11 @@ servers:
 
 tags:
   - name: Authentication
+  - name: Users
+  - name: Master Data
+  - name: Platform
   - name: Farmers
+  - name: Field Services
   - name: Farms
   - name: Procurement
   - name: Payments
@@ -38,6 +42,7 @@ tags:
   - name: Expenses
   - name: Collections
   - name: Documents
+  - name: Devices
   - name: Search
 
 security:
@@ -54,6 +59,59 @@ paths:
     $ref: paths/auth.yaml#/logout
   /auth/me:
     $ref: paths/auth.yaml#/me
+
+  /devices/push-tokens:
+    $ref: paths/devices.yaml#/pushTokens
+
+  /users/me:
+    $ref: paths/users.yaml#/usersMe
+  /users/me/sessions:
+    $ref: paths/users.yaml#/usersMeSessions
+  /users/me/sessions/{session_id}:
+    $ref: paths/users.yaml#/usersMeSessionById
+
+  /villages:
+    $ref: paths/platform.yaml#/villages
+  /villages/{village_id}:
+    $ref: paths/platform.yaml#/villageById
+  /crop-types:
+    $ref: paths/platform.yaml#/cropTypes
+  /crop-types/{crop_type_id}:
+    $ref: paths/platform.yaml#/cropTypeById
+  /expense-categories:
+    $ref: paths/platform.yaml#/expenseCategories
+  /expense-categories/{category_id}:
+    $ref: paths/platform.yaml#/expenseCategoryById
+  /activity-types:
+    $ref: paths/platform.yaml#/activityTypes
+  /activity-types/{row_id}:
+    $ref: paths/platform.yaml#/activityTypeById
+  /payment-modes:
+    $ref: paths/platform.yaml#/paymentModes
+  /payment-modes/{row_id}:
+    $ref: paths/platform.yaml#/paymentModeById
+  /buyers:
+    $ref: paths/platform.yaml#/buyers
+  /buyers/{row_id}:
+    $ref: paths/platform.yaml#/buyerById
+  /agents:
+    $ref: paths/platform.yaml#/agents
+  /agents/{row_id}:
+    $ref: paths/platform.yaml#/agentById
+  /vehicle-types:
+    $ref: paths/platform.yaml#/vehicleTypes
+  /vehicle-types/{row_id}:
+    $ref: paths/platform.yaml#/vehicleTypeById
+  /crop-prices:
+    $ref: paths/platform.yaml#/cropPrices
+  /crop-prices/{row_id}:
+    $ref: paths/platform.yaml#/cropPriceById
+  /comments:
+    $ref: paths/platform.yaml#/comments
+  /tags:
+    $ref: paths/platform.yaml#/tags
+  /tags/{tag_id}:
+    $ref: paths/platform.yaml#/tagById
 
   /farmers:
     $ref: paths/farmers.yaml#/farmers
@@ -73,6 +131,11 @@ paths:
     $ref: paths/farmers.yaml#/farmerLedger
   /farmers/{farmer_id}/outstanding:
     $ref: paths/farmers.yaml#/farmerOutstanding
+
+  /field-services:
+    $ref: paths/field-services.yaml#/fieldServices
+  /field-services/{record_id}:
+    $ref: paths/field-services.yaml#/fieldServiceById
 
   /farms:
     $ref: paths/farms.yaml#/farms
@@ -253,6 +316,18 @@ components:
       in: header
       description: Unique key for idempotent financial POST requests.
       schema: { type: string, maxLength: 100 }
+    XDeviceId:
+      name: X-Device-Id
+      in: header
+      required: false
+      description: Stable client device identifier (UUID). Used for audit, sessions, and FCM binding.
+      schema: { type: string, maxLength: 100 }
+    XClientType:
+      name: X-Client-Type
+      in: header
+      required: false
+      description: Client channel — mobile, web, or api.
+      schema: { type: string, enum: [mobile, web, api], default: api }
 
   responses:
     BadRequest:
