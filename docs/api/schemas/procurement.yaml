@@ -23,6 +23,14 @@ Procurement:
     crop_type_name: { type: string }
     village_id: { $ref: 'common.yaml#/UUID' }
     village_name: { type: string }
+    buyer_id: { $ref: 'common.yaml#/UUID' }
+    buyer_name: { type: string }
+    payment_terms:
+      type: string
+      enum: [one_week, 10_days, 2_weeks, 20_days, custom]
+    payment_terms_custom: { type: string }
+    expected_payment_date: { type: string, format: date }
+    actual_payment_date: { type: string, format: date }
     procurement_date: { type: string, format: date }
     bag_count: { type: integer, minimum: 0 }
     gross_weight_kg: { $ref: 'common.yaml#/Weight' }
@@ -69,6 +77,12 @@ ProcurementCreate:
     village_id: { $ref: 'common.yaml#/UUID' }
     procurement_date: { type: string, format: date }
     bag_count: { type: integer, minimum: 0, default: 0 }
+    buyer_id: { $ref: 'common.yaml#/UUID' }
+    payment_terms:
+      type: string
+      enum: [one_week, 10_days, 2_weeks, 20_days, custom]
+    payment_terms_custom: { type: string }
+    expected_payment_date: { type: string, format: date }
     notes: { type: string }
 
 ProcurementWeighment:

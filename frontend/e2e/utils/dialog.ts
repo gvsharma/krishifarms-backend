@@ -3,15 +3,18 @@ import { heavyOverlap } from "./overlap";
 import { dialogFieldRoles } from "./selectors";
 
 /**
- * Resolve a MUI dialog field by accessible name.
+ * Resolve a MUI / premium dialog field by accessible name.
  * Prefer role locators: getByLabel(exact) misses required asterisk / floating-label quirks.
+ * Short labels like "Name" also match via /^Name$/ so we don't grab unrelated text nodes.
  */
 export function dialogField(dialog: Locator, label: string): Locator {
   const exact = { name: label, exact: true as const };
-  let locator = dialog.getByLabel(label, { exact: true });
+  const nameRe = new RegExp(`^${label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i");
+  let locator = dialog.getByRole("textbox", { name: nameRe });
   for (const role of dialogFieldRoles()) {
     locator = locator.or(dialog.getByRole(role, exact));
   }
+  locator = locator.or(dialog.getByLabel(label, { exact: true }));
   return locator.first();
 }
 
@@ -28,8 +31,10 @@ export async function expectDialogLabelsNotOverlapping(
   for (const label of labels) {
     const control = dialogField(dialog, label);
     await expect(control, `Field "${label}" should be visible`).toBeVisible({ timeout: 15_000 });
+    const muiLabel = dialog.locator(".MuiInputLabel-root").filter({ hasText: label });
+    const plainLabel = dialog.getByText(label, { exact: true });
     await expect(
-      dialog.getByText(label, { exact: true }).first(),
+      muiLabel.or(plainLabel).first(),
       `Label text "${label}" should be visible`,
     ).toBeVisible();
     const box = await control.boundingBox();
@@ -50,6 +55,16 @@ export async function expectDialogLabelsNotOverlapping(
   }
 }
 
+/** Resolve a labeled control on the page (MUI TextField / premium Field quirks). */
+export function pageField(page: Page, label: string): Locator {
+  const exact = { name: label, exact: true as const };
+  let locator = page.getByLabel(label, { exact: true });
+  for (const role of dialogFieldRoles()) {
+    locator = locator.or(page.getByRole(role, exact));
+  }
+  return locator.first();
+}
+
 /** Assert labeled form controls on the page are visible and not heavily stacked. */
 export async function expectLabeledFieldsNotOverlapping(
   page: Page,
@@ -58,7 +73,7 @@ export async function expectLabeledFieldsNotOverlapping(
   const boxes: NonNullable<Awaited<ReturnType<Locator["boundingBox"]>>>[] = [];
 
   for (const label of labels) {
-    const field = page.getByLabel(label, { exact: true }).first();
+    const field = pageField(page, label);
     await expect(field, `Field "${label}" should be visible`).toBeVisible({ timeout: 15_000 });
     const box = await field.boundingBox();
     expect(box, `Field "${label}" should have a layout box`).not.toBeNull();
@@ -80,6 +95,8 @@ export async function openCatalogAddDialog(page: Page): Promise<Locator> {
   await page.getByRole("button", { name: /^Add$/i }).click();
   const dialog = page.getByRole("dialog");
   await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole("heading").first()).toBeVisible();
+  await expect(dialog.getByRole("textbox").first()).toBeVisible({ timeout: 15_000 });
   return dialog;
 }
 

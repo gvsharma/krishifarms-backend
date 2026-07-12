@@ -57,9 +57,12 @@ export function PremiumDialog({
       {...props}
       slotProps={{
         backdrop: { sx: backdropSx },
+        root: { sx: { zIndex: (theme) => theme.zIndex.modal } },
         paper: {
           sx: {
             ...paperSx,
+            position: "relative",
+            zIndex: (theme) => theme.zIndex.modal + 1,
             ...(typeof paperSxProp === "object" && paperSxProp !== null ? paperSxProp : {}),
           },
         },

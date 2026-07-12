@@ -15,10 +15,20 @@ export interface LoginResponse {
   token_type: string;
 }
 
-export async function loginWithPassword(email: string, password: string): Promise<string> {
+/** Detect email vs phone for password login (`POST /auth/login` accepts either). */
+export function isEmailIdentifier(value: string): boolean {
+  return value.includes("@");
+}
+
+export async function loginWithPassword(identifier: string, password: string): Promise<string> {
+  const trimmed = identifier.trim();
+  const body = isEmailIdentifier(trimmed)
+    ? { email: trimmed.toLowerCase(), password }
+    : { mobile: trimmed.replace(/\D/g, ""), password };
+
   const data = await fetchApi<LoginResponse>("/auth/login", {
     method: "POST",
-    body: { email, password },
+    body,
     clientHeaders: false,
   });
   setAccessToken(data.access_token);

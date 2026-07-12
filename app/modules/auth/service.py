@@ -24,19 +24,23 @@ def authenticate_user(
     mobile: str | None = None,
     password: str,
 ) -> User:
-    query = (
-        db.query(User)
-        .options(joinedload(User.role).joinedload(Role.permissions))
-        .filter(User.deleted_at.is_(None), User.is_active.is_(True))
-    )
     if email:
-        query = query.filter(User.email == email)
+        user = (
+            db.query(User)
+            .options(joinedload(User.role).joinedload(Role.permissions))
+            .filter(
+                User.deleted_at.is_(None),
+                User.is_active.is_(True),
+                User.email == email,
+            )
+            .first()
+        )
     elif mobile:
-        query = query.filter(User.phone == mobile)
+        # Match Firebase OTP lookup: last-10 / E.164 normalization
+        user = _find_active_user_by_phone(db, mobile)
     else:
         raise UnauthorizedError("Email or mobile is required")
 
-    user = query.first()
     if user is None or user.password_hash is None or not verify_password(password, user.password_hash):
         raise UnauthorizedError("Invalid credentials")
     return user

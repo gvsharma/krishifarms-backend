@@ -18,7 +18,7 @@ Related: [SUPABASE_MIGRATION.md](./deploy/SUPABASE_MIGRATION.md), [AGENT_GUIDE.m
 
 ### Live API prefixes (both clients)
 
-`/api/v1/auth`, `/users`, `/roles`, `/villages`, `/crop-types`, `/buyers`, `/agents`, `/crop-prices`, `/comments`, `/tags`, `/farmers` (+ bank/land/outstanding), `/procurements` (+ workflow), `/documents` (partial), `/dashboard/summary`, `/activity-feed`, `/audit-logs`, `/health`
+`/api/v1/auth`, `/users`, `/roles`, `/districts`, `/mandals`, `/villages`, `/crop-types`, `/buyers`, `/agents`, `/crop-prices`, `/comments`, `/tags`, `/farmers` (+ bank/land/outstanding), `/procurements` (+ workflow), `/documents` (partial), `/dashboard/summary`, `/activity-feed`, `/audit-logs`, `/health`
 
 ### Out of scope for this demo pack
 

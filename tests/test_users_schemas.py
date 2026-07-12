@@ -3,7 +3,10 @@
 from datetime import UTC, datetime
 from uuid import uuid4
 
-from app.modules.users.schemas import UserCreateRequest, UserResponse
+import pytest
+from pydantic import ValidationError
+
+from app.modules.users.schemas import UserCreateRequest, UserResponse, UserUpdateRequest
 
 
 def test_user_response_accepts_local_email():
@@ -30,6 +33,39 @@ def test_user_create_accepts_local_email():
         email="manager@demo.krishifarms.local",
         password="DemoPass123!",
         full_name="Demo Manager",
+        phone="9876543210",
         role_id=uuid4(),
     )
     assert payload.email == "manager@demo.krishifarms.local"
+    assert payload.phone == "9876543210"
+
+
+def test_user_create_requires_phone():
+    with pytest.raises(ValidationError):
+        UserCreateRequest(
+            email="manager@demo.krishifarms.local",
+            password="DemoPass123!",
+            full_name="Demo Manager",
+            role_id=uuid4(),
+        )
+
+
+def test_user_create_rejects_short_phone():
+    with pytest.raises(ValidationError):
+        UserCreateRequest(
+            email="manager@demo.krishifarms.local",
+            password="DemoPass123!",
+            full_name="Demo Manager",
+            phone="98765",
+            role_id=uuid4(),
+        )
+
+
+def test_user_update_normalizes_phone():
+    payload = UserUpdateRequest(phone="+91 98765 43210")
+    assert payload.phone == "9876543210"
+
+
+def test_user_update_rejects_clearing_phone():
+    with pytest.raises(ValidationError):
+        UserUpdateRequest(phone="")

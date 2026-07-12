@@ -5,6 +5,7 @@ import {
   expectNoPageErrors,
   expectSettingsShell,
   expectTableOrAlert,
+  dialogField,
   openCatalogAddDialog,
   trackPageErrors,
 } from "./helpers";
@@ -35,8 +36,8 @@ test.describe("Settings — Villages", () => {
 
     await expectDialogLabelsNotOverlapping(dialog, [
       "Name",
-      "Mandal",
       "District",
+      "Mandal",
       "State",
       "Pincode",
     ]);
@@ -66,7 +67,7 @@ test.describe("Settings — Villages", () => {
     await expectSettingsShell(page, "Villages");
 
     const dialog = await openCatalogAddDialog(page);
-    await dialog.getByLabel("Name", { exact: true }).fill("E2E Test Village");
+    await dialogField(dialog, "Name").fill("E2E Test Village");
     await dialog.getByRole("button", { name: /Cancel/i }).click();
     await expect(dialog).toHaveCount(0);
 

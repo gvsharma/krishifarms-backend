@@ -70,6 +70,14 @@ paths:
   /users/me/sessions/{session_id}:
     $ref: paths/users.yaml#/usersMeSessionById
 
+  /districts:
+    $ref: paths/platform.yaml#/districts
+  /districts/{district_id}:
+    $ref: paths/platform.yaml#/districtById
+  /mandals:
+    $ref: paths/platform.yaml#/mandals
+  /mandals/{mandal_id}:
+    $ref: paths/platform.yaml#/mandalById
   /villages:
     $ref: paths/platform.yaml#/villages
   /villages/{village_id}:

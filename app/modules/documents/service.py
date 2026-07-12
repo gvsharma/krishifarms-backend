@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.core.client_context import ClientContext
 from app.core.config import settings
-from app.core.exceptions import NotFoundError
+from app.core.exceptions import AppError, NotFoundError
 from app.modules.documents.models import Document, DocumentLink
 from app.modules.documents.schemas import DocumentCreateRequest, DocumentLinkRequest, PresignUploadRequest
 from app.shared.services.audit import write_audit_log
@@ -76,8 +76,29 @@ def get_document(db: Session, org_id: UUID, document_id: UUID) -> Document:
     return document
 
 
-def list_documents(db: Session, org_id: UUID, page: int, page_size: int) -> tuple[list[Document], int]:
-    query = db.query(Document).filter(Document.org_id == org_id).order_by(Document.created_at.desc())
+def list_documents(
+    db: Session,
+    org_id: UUID,
+    page: int,
+    page_size: int,
+    *,
+    entity_type: str | None = None,
+    entity_id: UUID | None = None,
+) -> tuple[list[Document], int]:
+    if (entity_type is None) != (entity_id is None):
+        raise AppError("entity_type and entity_id must be provided together", status_code=400)
+
+    query = db.query(Document).filter(Document.org_id == org_id)
+    if entity_type is not None and entity_id is not None:
+        query = (
+            query.join(DocumentLink, DocumentLink.document_id == Document.id)
+            .filter(
+                DocumentLink.entity_type == entity_type,
+                DocumentLink.entity_id == entity_id,
+            )
+            .distinct()
+        )
+    query = query.order_by(Document.created_at.desc())
     total = query.count()
     items = query.offset((page - 1) * page_size).limit(page_size).all()
     return items, total

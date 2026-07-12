@@ -99,7 +99,11 @@ Paginated `data`:
 
 | Method | Path | Notes |
 |--------|------|-------|
-| GET/POST | `/villages` | Soft-delete via DELETE |
+| GET/POST | `/districts` | Soft-delete via DELETE; dropdown list |
+| PATCH/DELETE | `/districts/{id}` | |
+| GET/POST | `/mandals` | Filter by `district_id` / `district` |
+| PATCH/DELETE | `/mandals/{id}` | |
+| GET/POST | `/villages` | Soft-delete via DELETE; filter by district/mandal |
 | PATCH/DELETE | `/villages/{id}` | |
 | GET/POST | `/crop-types` | |
 | PATCH/DELETE | `/crop-types/{id}` | |
@@ -119,8 +123,8 @@ OpenAPI: `docs/api/paths/platform.yaml`. Web admin: Settings → Master data.
 
 | Method | Path | Request | Response `data` |
 |--------|------|---------|-------------------|
-| POST | `/auth/login` | `{ email, password }` | `{ access_token, refresh_token, token_type }` |
-| POST | `/auth/firebase-login` | Bearer Firebase ID token | Token pair + user |
+| POST | `/auth/login` | `{ email, password }` **or** `{ mobile, password }` | `{ access_token, refresh_token, token_type }` (+ RBAC payload) |
+| POST | `/auth/firebase-login` | Bearer Firebase ID token (Phone OTP) | Token pair + user |
 | POST | `/auth/refresh` | `{ refresh_token }` | Token pair |
 | POST | `/auth/logout` | `{ refresh_token }` | `{ message }` |
 | GET | `/auth/me` | — | User profile + `preferred_locale` |
@@ -166,31 +170,32 @@ Categories: `field_service`, `tractor_work`, `transport`, `fertiliser`, `seeds`,
 
 | Method | Path | Notes |
 |--------|------|-------|
-| GET/POST | `/farms` | Filter: `village_id`, `status` |
-| GET/PATCH/DELETE | `/farms/{id}` | |
-| GET/POST | `/farms/{id}/activities` | Farm activity log |
+| GET/POST | `/farms` | Filter: `village_id`, `status`, `q` — **live** |
+| GET/PATCH/DELETE | `/farms/{id}` | Soft-delete — **live** |
+| GET/POST | `/farms/{id}/activities` | Farm activity log — **live** |
+| PATCH/DELETE | `/farms/{id}/activities/{activity_id}` | Soft-delete — **live** |
 
 ### Procurement
 
 | Method | Path | Notes |
 |--------|------|-------|
-| GET/POST | `/procurements` | Filter: farmer, village, crop, status, dates |
-| GET/PATCH | `/procurements/{id}?procurement_date=` | Draft editable only |
+| GET/POST | `/procurements` | Filter: farmer, village, crop, status, dates; create accepts optional `buyer_id`, `payment_terms`, `payment_terms_custom`, `expected_payment_date` |
+| GET/PATCH | `/procurements/{id}?procurement_date=` | Draft editable only (buyer/terms editable on draft) |
 | POST | `/procurements/{id}/confirm` | Posts ledger entry |
 | POST | `/procurements/{id}/cancel` | `{ reason }` |
 | POST | `/procurements/{id}/deductions` | Add deduction line |
 
-**Procurement create body:** `farmer_id`, `crop_type_id`, `village_id`, `procurement_date`, `bag_count`, `gross_weight_kg`, `rate_per_quintal`, optional `deductions[]`, `moisture_pct`
+**Procurement create body:** `farmer_id`, `crop_type_id`, `village_id`, `procurement_date`, `bag_count`, optional `buyer_id`, `payment_terms` (`one_week`/`10_days`/`2_weeks`/`20_days`/`custom`), `payment_terms_custom`, `expected_payment_date`, `notes`
 
 ### Payments
 
 | Method | Path | Notes |
 |--------|------|-------|
-| GET/POST | `/farmer-payments` | Farmer advances/finals |
-| GET | `/farmer-payments/{id}?payment_date=` | |
-| POST | `/farmer-payments/{id}/allocate` | Link to procurements |
-| POST | `/farmer-payments/{id}/reverse` | Immutable reversal |
-| GET/POST | `/payments` | Vendor/operational payments |
+| GET/POST | `/farmer-payments` | Farmer advances/finals — **live** (create posts ledger credit) |
+| GET | `/farmer-payments/{id}?payment_date=` | **live** (partition key required) |
+| POST | `/farmer-payments/{id}/allocate?payment_date=` | **live** — link to procurements → `paid_partial`/`paid_full` |
+| POST | `/farmer-payments/{id}/reverse?payment_date=` | **live** — ledger debit + clear allocations |
+| GET/POST | `/payments` | Vendor/operational payments — OpenAPI only |
 
 ### Workers
 
@@ -214,17 +219,17 @@ Categories: `field_service`, `tractor_work`, `transport`, `fertiliser`, `seeds`,
 
 | Method | Path | Notes |
 |--------|------|-------|
-| GET/POST | `/assets` | Categories: tractor, dcm, baler, air_machine, other |
-| GET/PATCH/DELETE | `/assets/{id}` | |
-| GET/POST | `/assets/{id}/maintenance-records` | |
-| GET/POST | `/assets/{id}/usage-logs` | Hours, revenue, fuel, maintenance |
+| GET/POST | `/assets` | Categories: tractor, dcm, baler, air_machine, bolero, implement, other; optional `vehicle_type_id`, `fuel_type`, `driver_name` |
+| GET/PATCH/DELETE | `/assets/{id}` | Soft-delete via PATCH permission `assets:update` |
+| GET/POST | `/assets/{id}/maintenance-records` | Schema-only (deferred) |
+| GET/POST | `/assets/{id}/usage-logs` | Schema-only (deferred) |
 
 ### Vehicles (Trips)
 
 | Method | Path | Notes |
 |--------|------|-------|
-| GET/POST | `/vehicle-trips` | Filter: asset, driver, dates |
-| GET/PATCH | `/vehicle-trips/{id}?trip_date=` | Charges: fuel, loading, unloading, waiting |
+| GET/POST | `/vehicle-trips` | Filter: asset, driver, dates — **live** (`transport:*`) |
+| GET/PATCH | `/vehicle-trips/{id}?trip_date=` | Fuel liters/cost + charges; partition key required — **live** |
 
 ### Rentals
 

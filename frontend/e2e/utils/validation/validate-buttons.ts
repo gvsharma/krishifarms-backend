@@ -26,6 +26,13 @@ export async function validateAllButtons(page: Page): Promise<ValidationResult> 
       return top !== el && !el.contains(top) && !top.contains(el);
     }
 
+    const openDialog = [...document.querySelectorAll('[role="dialog"]')].find((d) => {
+      const style = window.getComputedStyle(d);
+      if (style.display === "none" || style.visibility === "hidden") return false;
+      const rect = d.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0;
+    });
+
     const buttons = [
       ...document.querySelectorAll('button, [role="button"], input[type="submit"], input[type="button"]'),
     ];
@@ -38,6 +45,9 @@ export async function validateAllButtons(page: Page): Promise<ValidationResult> 
     }> = [];
 
     for (const el of buttons) {
+      // Modal open: page chrome under the backdrop is covered by design — only check dialog actions
+      if (openDialog && !openDialog.contains(el)) continue;
+
       const style = window.getComputedStyle(el);
       const rect = el.getBoundingClientRect();
       const issues: string[] = [];

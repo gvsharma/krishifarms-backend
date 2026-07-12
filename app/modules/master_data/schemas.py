@@ -6,6 +6,52 @@ from pydantic import BaseModel, Field
 from app.shared.schemas.common import ORMModel, PaginatedResponse
 
 
+class DistrictResponse(ORMModel):
+    id: UUID
+    org_id: UUID
+    name: str
+    state: str | None = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class DistrictCreateRequest(BaseModel):
+    name: str = Field(min_length=2, max_length=100)
+    state: str | None = None
+
+
+class DistrictUpdateRequest(BaseModel):
+    name: str | None = Field(default=None, min_length=2, max_length=100)
+    state: str | None = None
+
+
+class DistrictListResponse(PaginatedResponse[DistrictResponse]):
+    pass
+
+
+class MandalResponse(ORMModel):
+    id: UUID
+    org_id: UUID
+    district_id: UUID
+    name: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class MandalCreateRequest(BaseModel):
+    district_id: UUID
+    name: str = Field(min_length=2, max_length=100)
+
+
+class MandalUpdateRequest(BaseModel):
+    district_id: UUID | None = None
+    name: str | None = Field(default=None, min_length=2, max_length=100)
+
+
+class MandalListResponse(PaginatedResponse[MandalResponse]):
+    pass
+
+
 class VillageResponse(ORMModel):
     id: UUID
     org_id: UUID
@@ -14,6 +60,8 @@ class VillageResponse(ORMModel):
     district: str | None = None
     state: str | None = None
     pincode: str | None = None
+    district_id: UUID | None = None
+    mandal_id: UUID | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -24,6 +72,8 @@ class VillageCreateRequest(BaseModel):
     district: str | None = None
     state: str | None = None
     pincode: str | None = None
+    district_id: UUID | None = None
+    mandal_id: UUID | None = None
 
 
 class VillageUpdateRequest(BaseModel):
@@ -32,6 +82,8 @@ class VillageUpdateRequest(BaseModel):
     district: str | None = None
     state: str | None = None
     pincode: str | None = None
+    district_id: UUID | None = None
+    mandal_id: UUID | None = None
 
 
 class VillageListResponse(PaginatedResponse[VillageResponse]):

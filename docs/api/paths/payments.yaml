@@ -2,6 +2,8 @@ farmerPayments:
   get:
     tags: [Payments]
     operationId: listFarmerPayments
+    summary: List farmer payments
+    description: Org-scoped list. Filter by farmer_id for a farmer's payment history.
     parameters:
       - $ref: '../openapi.yaml#/components/parameters/Page'
       - $ref: '../openapi.yaml#/components/parameters/PageSize'
@@ -15,6 +17,7 @@ farmerPayments:
         schema: { type: string, enum: [advance, final, adjustment] }
     responses:
       '200':
+        description: Paginated farmer payments
         content:
           application/json:
             schema:
@@ -25,19 +28,35 @@ farmerPayments:
   post:
     tags: [Payments]
     operationId: createFarmerPayment
+    summary: Record farmer payment (settlement)
+    description: |
+      Creates a completed farmer payment and posts an immutable ledger **credit**
+      (`entry_type` = payment_type, `reference_type` = farmer_payment).
+      Use allocate to link confirmed procurements (`paid_partial` / `paid_full`).
     parameters:
       - $ref: '../openapi.yaml#/components/parameters/IdempotencyKey'
     requestBody:
+      required: true
       content:
         application/json:
           schema: { $ref: '../schemas/payments.yaml#/FarmerPaymentCreate' }
     responses:
-      '201': { description: Payment recorded }
+      '201':
+        description: Payment recorded
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean }
+                data: { $ref: '../schemas/payments.yaml#/FarmerPayment' }
 
 farmerPaymentById:
   get:
     tags: [Payments]
     operationId: getFarmerPayment
+    summary: Get farmer payment by id
+    description: Partition key `payment_date` is required.
     parameters:
       - name: payment_id
         in: path
@@ -48,43 +67,86 @@ farmerPaymentById:
         required: true
         schema: { type: string, format: date }
     responses:
-      '200': { description: OK }
+      '200':
+        description: OK
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean }
+                data: { $ref: '../schemas/payments.yaml#/FarmerPayment' }
 
 farmerPaymentAllocate:
   post:
     tags: [Payments]
     operationId: allocateFarmerPayment
+    summary: Allocate payment to procurements
+    description: |
+      Links a completed payment to one or more confirmed procurements.
+      Updates procurement status to `paid_partial` or `paid_full` based on
+      cumulative allocations vs `net_amount`. Requires partition key `payment_date`.
     parameters:
       - name: payment_id
         in: path
         required: true
         schema: { type: string, format: uuid }
+      - name: payment_date
+        in: query
+        required: true
+        schema: { type: string, format: date }
     requestBody:
+      required: true
       content:
         application/json:
           schema: { $ref: '../schemas/payments.yaml#/PaymentAllocation' }
     responses:
-      '200': { description: Allocated }
+      '200':
+        description: Allocated
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean }
+                data: { $ref: '../schemas/payments.yaml#/FarmerPayment' }
 
 farmerPaymentReverse:
   post:
     tags: [Payments]
     operationId: reverseFarmerPayment
+    summary: Reverse farmer payment
+    description: |
+      Marks payment reversed, posts reversing ledger debit, clears allocations,
+      and recalculates linked procurement `paid_*` statuses. Requires `payment_date`.
     parameters:
       - name: payment_id
         in: path
         required: true
         schema: { type: string, format: uuid }
+      - name: payment_date
+        in: query
+        required: true
+        schema: { type: string, format: date }
     requestBody:
+      required: true
       content:
         application/json:
           schema:
             type: object
             required: [reason]
             properties:
-              reason: { type: string }
+              reason: { type: string, minLength: 3 }
     responses:
-      '200': { description: Reversed }
+      '200':
+        description: Reversed
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean }
+                data: { $ref: '../schemas/payments.yaml#/FarmerPayment' }
 
 operationalPayments:
   get:

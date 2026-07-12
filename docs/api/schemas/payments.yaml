@@ -8,9 +8,21 @@ FarmerPayment:
     payment_date: { type: string, format: date }
     amount: { $ref: 'common.yaml#/Money' }
     payment_mode_id: { $ref: 'common.yaml#/UUID' }
+    bank_account_id: { $ref: 'common.yaml#/UUID' }
     reference_no: { type: string }
     status: { $ref: 'common.yaml#/PaymentStatus' }
     notes: { type: string }
+    allocations:
+      type: array
+      items: { $ref: '#/PaymentAllocationLine' }
+
+PaymentAllocationLine:
+  type: object
+  properties:
+    id: { $ref: 'common.yaml#/UUID' }
+    procurement_id: { $ref: 'common.yaml#/UUID' }
+    procurement_date: { type: string, format: date }
+    allocated_amount: { $ref: 'common.yaml#/Money' }
 
 FarmerPaymentCreate:
   type: object
@@ -31,6 +43,7 @@ PaymentAllocation:
   properties:
     allocations:
       type: array
+      minItems: 1
       items:
         type: object
         required: [procurement_id, procurement_date, allocated_amount]

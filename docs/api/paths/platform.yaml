@@ -6,6 +6,33 @@ villages:
     tags: [Master Data]
     operationId: listVillages
     summary: List villages
+    parameters:
+      - name: page
+        in: query
+        schema: { type: integer, minimum: 1, default: 1 }
+      - name: page_size
+        in: query
+        schema: { type: integer, minimum: 1, maximum: 200, default: 20 }
+      - name: district_id
+        in: query
+        schema: { type: string, format: uuid }
+        description: Filter by district UUID
+      - name: mandal_id
+        in: query
+        schema: { type: string, format: uuid }
+        description: Filter by mandal UUID
+      - name: district
+        in: query
+        schema: { type: string }
+        description: Filter by district name
+      - name: mandal
+        in: query
+        schema: { type: string }
+        description: Filter by mandal name
+      - name: q
+        in: query
+        schema: { type: string }
+        description: Filter by village name
     responses:
       '200': { description: Paginated villages }
   post:
@@ -33,6 +60,107 @@ villageById:
     summary: Soft-delete village
     parameters:
       - name: village_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: Soft-deleted }
+
+districts:
+  get:
+    tags: [Master Data]
+    operationId: listDistricts
+    summary: List districts (dropdown-friendly)
+    parameters:
+      - name: page
+        in: query
+        schema: { type: integer, minimum: 1, default: 1 }
+      - name: page_size
+        in: query
+        schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+      - name: q
+        in: query
+        schema: { type: string }
+    responses:
+      '200': { description: Paginated districts }
+  post:
+    tags: [Master Data]
+    operationId: createDistrict
+    summary: Create district
+    responses:
+      '201': { description: Created }
+
+districtById:
+  patch:
+    tags: [Master Data]
+    operationId: updateDistrict
+    parameters:
+      - name: district_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: Updated }
+  delete:
+    tags: [Master Data]
+    operationId: deleteDistrict
+    summary: Soft-delete district
+    parameters:
+      - name: district_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: Soft-deleted }
+
+mandals:
+  get:
+    tags: [Master Data]
+    operationId: listMandals
+    summary: List mandals (filter by district for cascading dropdowns)
+    parameters:
+      - name: page
+        in: query
+        schema: { type: integer, minimum: 1, default: 1 }
+      - name: page_size
+        in: query
+        schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+      - name: district_id
+        in: query
+        schema: { type: string, format: uuid }
+      - name: district
+        in: query
+        schema: { type: string }
+        description: Filter by district name
+      - name: q
+        in: query
+        schema: { type: string }
+    responses:
+      '200': { description: Paginated mandals }
+  post:
+    tags: [Master Data]
+    operationId: createMandal
+    summary: Create mandal
+    responses:
+      '201': { description: Created }
+
+mandalById:
+  patch:
+    tags: [Master Data]
+    operationId: updateMandal
+    parameters:
+      - name: mandal_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: Updated }
+  delete:
+    tags: [Master Data]
+    operationId: deleteMandal
+    summary: Soft-delete mandal
+    parameters:
+      - name: mandal_id
         in: path
         required: true
         schema: { type: string, format: uuid }

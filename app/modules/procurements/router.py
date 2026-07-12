@@ -48,23 +48,25 @@ def _audit_names(db: Session, row, response_cls, *, confirmed_by_name: str | Non
 
 
 def _enrich_response(db: Session, row, *, include_deductions: bool = True) -> ProcurementResponse:
-    farmers, villages, crops = service.related_names(db, [row])
+    farmers, villages, crops, buyers = service.related_names(db, [row])
     response = _audit_names(db, row, ProcurementResponse).model_copy(
         update={
             "farmer_name": farmers.get(row.farmer_id),
             "village_name": villages.get(row.village_id),
             "crop_type_name": crops.get(row.crop_type_id),
+            "buyer_name": buyers.get(row.buyer_id) if row.buyer_id else None,
             "deductions": row.deductions if include_deductions else [],
         }
     )
     return attach_entity_notes(db, row.org_id, "procurement", row.id, response)
 
 
-def _list_item(db: Session, row, farmers, villages, crops, tags) -> ProcurementListItemResponse:
+def _list_item(db: Session, row, farmers, villages, crops, buyers, tags) -> ProcurementListItemResponse:
     return _audit_names(db, row, ProcurementListItemResponse).model_copy(
         update={
             "farmer_name": farmers.get(row.farmer_id),
             "crop_type_name": crops.get(row.crop_type_id),
+            "buyer_name": buyers.get(row.buyer_id) if row.buyer_id else None,
             "tags": tags.get(row.id, []),
         }
     )
@@ -95,11 +97,11 @@ def list_procurements(
         date_from=date_from,
         date_to=date_to,
     )
-    farmers, villages, crops = service.related_names(db, items)
+    farmers, villages, crops, buyers = service.related_names(db, items)
     tag_map = attach_tags_only(db, ctx.user.org_id, "procurement", [p.id for p in items])
     return APIResponse(
         data=ProcurementListResponse(
-            items=[_list_item(db, p, farmers, villages, crops, tag_map) for p in items],
+            items=[_list_item(db, p, farmers, villages, crops, buyers, tag_map) for p in items],
             total=total,
             page=page,
             page_size=page_size,

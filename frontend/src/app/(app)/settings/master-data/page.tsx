@@ -26,7 +26,7 @@ const MASTER_LINKS = [
   {
     href: "/settings/master-data/crops",
     title: "Crop types",
-    description: "Paddy, corn, and seasonal crop catalog",
+    description: "Paddy, corn, maize, cotton, grams, oilseeds, and more",
     icon: Agriculture,
   },
   {
@@ -50,13 +50,13 @@ const MASTER_LINKS = [
   {
     href: "/settings/master-data/vehicle-types",
     title: "Vehicle types",
-    description: "Fleet categories shared with the mobile app",
+    description: "Tractor–Drone catalog plus John Deere, Bolero, DCM inventory",
     icon: DirectionsCar,
   },
   {
     href: "/settings/master-data/activity-types",
     title: "Activity types",
-    description: "Service catalog for field ops, tractor, transport, fertiliser, seeds",
+    description: "Tractor, transport, fertiliser, seeds, and vehicle ops service catalog",
     icon: WorkOutline,
   },
   {

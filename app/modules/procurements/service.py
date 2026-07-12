@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 from uuid import UUID
 
@@ -11,7 +11,7 @@ from app.core.client_context import ClientContext
 from app.core.exceptions import ConflictError, NotFoundError
 from app.modules.farmers.models import Farmer
 from app.modules.master_data.models import CropType, Village
-from app.modules.platform.models import CropPriceRule
+from app.modules.platform.models import Buyer, CropPriceRule
 from app.modules.procurements.models import FarmerLedgerEntry, Procurement, ProcurementDeduction
 from app.modules.procurements.schemas import (
     CANCELLABLE_STATUSES,
@@ -48,6 +48,12 @@ _PROCUREMENT_NUMBER_PREFIX = "PR-"
 _QUINTAL_KG = Decimal("100")
 _ZERO = Decimal("0")
 _TWOPLACES = Decimal("0.01")
+_PAYMENT_TERM_DAYS = {
+    "one_week": 7,
+    "10_days": 10,
+    "2_weeks": 14,
+    "20_days": 20,
+}
 
 ALLOWED_TRANSITIONS: dict[str, frozenset[str]] = {
     "draft": frozenset({"pending_weighment", "cancelled"}),
@@ -174,6 +180,37 @@ def _validate_crop_type(db: Session, org_id: UUID, crop_type_id: UUID) -> CropTy
     if row is None:
         raise NotFoundError("Crop type not found")
     return row
+
+
+def _validate_buyer(db: Session, org_id: UUID, buyer_id: UUID) -> Buyer:
+    row = (
+        db.query(Buyer)
+        .filter(
+            Buyer.id == buyer_id,
+            Buyer.org_id == org_id,
+            Buyer.deleted_at.is_(None),
+            Buyer.is_active.is_(True),
+        )
+        .first()
+    )
+    if row is None:
+        raise NotFoundError("Buyer not found")
+    return row
+
+
+def resolve_expected_payment_date(
+    procurement_date: date,
+    payment_terms: str | None,
+    expected_payment_date: date | None = None,
+) -> date | None:
+    if expected_payment_date is not None:
+        return expected_payment_date
+    if payment_terms is None or payment_terms == "custom":
+        return None
+    days = _PAYMENT_TERM_DAYS.get(payment_terms)
+    if days is None:
+        return None
+    return procurement_date + timedelta(days=days)
 
 
 def resolve_rate_per_quintal(
@@ -343,6 +380,16 @@ def create_procurement(
     _validate_farmer(db, org_id, payload.farmer_id)
     _validate_village(db, org_id, payload.village_id)
     _validate_crop_type(db, org_id, payload.crop_type_id)
+    if payload.buyer_id is not None:
+        _validate_buyer(db, org_id, payload.buyer_id)
+    if payload.payment_terms == "custom" and not (payload.payment_terms_custom or "").strip():
+        raise ConflictError("payment_terms_custom is required when payment_terms is custom")
+
+    expected = resolve_expected_payment_date(
+        payload.procurement_date,
+        payload.payment_terms,
+        payload.expected_payment_date,
+    )
 
     row = Procurement(
         org_id=org_id,
@@ -355,11 +402,18 @@ def create_procurement(
         gross_amount=_ZERO,
         deduction_amount=_ZERO,
         net_amount=_ZERO,
+        buyer_id=payload.buyer_id,
+        payment_terms=payload.payment_terms,
+        payment_terms_custom=payload.payment_terms_custom,
+        expected_payment_date=expected,
         idempotency_key=idempotency_key,
         notes=payload.notes,
         created_by=actor_user_id,
         updated_by=actor_user_id,
-        **payload.model_dump(exclude={"notes", "bag_count"}),
+        farmer_id=payload.farmer_id,
+        crop_type_id=payload.crop_type_id,
+        village_id=payload.village_id,
+        procurement_date=payload.procurement_date,
     )
     db.add(row)
     db.flush()
@@ -369,7 +423,12 @@ def create_procurement(
         actor_user_id=actor_user_id,
         action="CREATE",
         entity_id=row.id,
-        after={"procurement_number": row.procurement_number, "status": row.status},
+        after={
+            "procurement_number": row.procurement_number,
+            "status": row.status,
+            "buyer_id": str(row.buyer_id) if row.buyer_id else None,
+            "payment_terms": row.payment_terms,
+        },
         client=client,
         summary=f"Procurement draft created: {row.procurement_number}",
     )
@@ -398,10 +457,25 @@ def update_procurement(
         _validate_village(db, org_id, data["village_id"])
     if "crop_type_id" in data and data["crop_type_id"] is not None:
         _validate_crop_type(db, org_id, data["crop_type_id"])
+    if "buyer_id" in data and data["buyer_id"] is not None:
+        _validate_buyer(db, org_id, data["buyer_id"])
+
+    payment_terms = data.get("payment_terms", row.payment_terms)
+    payment_terms_custom = data.get("payment_terms_custom", row.payment_terms_custom)
+    if payment_terms == "custom" and not (payment_terms_custom or "").strip():
+        raise ConflictError("payment_terms_custom is required when payment_terms is custom")
 
     before = {"status": row.status, "farmer_id": str(row.farmer_id)}
     for field, value in data.items():
         setattr(row, field, value)
+
+    if "expected_payment_date" not in data and "payment_terms" in data:
+        row.expected_payment_date = resolve_expected_payment_date(
+            row.procurement_date,
+            row.payment_terms,
+            None,
+        )
+
     row.updated_by = actor_user_id
     _audit(
         db,
@@ -719,10 +793,11 @@ def add_deduction(
 def related_names(
     db: Session,
     procurements: list[Procurement],
-) -> tuple[dict[UUID, str], dict[UUID, str], dict[UUID, str]]:
+) -> tuple[dict[UUID, str], dict[UUID, str], dict[UUID, str], dict[UUID, str]]:
     farmer_ids = {p.farmer_id for p in procurements}
     village_ids = {p.village_id for p in procurements}
     crop_ids = {p.crop_type_id for p in procurements}
+    buyer_ids = {p.buyer_id for p in procurements if p.buyer_id}
 
     farmers = {}
     if farmer_ids:
@@ -733,4 +808,7 @@ def related_names(
     crops = {}
     if crop_ids:
         crops = dict(db.query(CropType.id, CropType.name).filter(CropType.id.in_(crop_ids)).all())
-    return farmers, villages, crops
+    buyers = {}
+    if buyer_ids:
+        buyers = dict(db.query(Buyer.id, Buyer.name).filter(Buyer.id.in_(buyer_ids)).all())
+    return farmers, villages, crops, buyers

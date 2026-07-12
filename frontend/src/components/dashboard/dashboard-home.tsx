@@ -20,8 +20,10 @@ import {
   WorkOutline,
 } from "@mui/icons-material";
 import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
 import { MuiPageShell } from "@/components/shell/mui-page-shell";
 import { ROUTES } from "@/constants/routes";
+import { fetchDashboardSummary } from "@/features/dashboard/api";
 import { useAuth } from "@/hooks/use-auth";
 
 const ADMIN_LINKS = [
@@ -70,13 +72,44 @@ const ADMIN_LINKS = [
   {
     href: ROUTES.settingsVillages,
     title: "Villages",
-    description: "Geography master (read/create/edit)",
+    description: "Geography master (District → Mandal cascade)",
     icon: Agriculture,
   },
 ] as const;
 
+const ROLE_HINTS: Record<string, string> = {
+  OWNER: "Admin overview — users, masters, and ops counts.",
+  MANAGER: "Operations overview — farmers, procurement, and field services.",
+  SUPERVISOR: "Farming supervisor — field services and farmer intake.",
+  DRIVER: "Vehicle supervisor — transport and diesel-related ops.",
+  AGENT: "Field agent — farmers and procurement drafts.",
+  WORKER: "Field ops — use the sidebar for assigned work.",
+  ACCOUNTANT: "Finance focus — expenses and collections (when live).",
+};
+
+function SummaryStat({ label, value }: { label: string; value: number | string }) {
+  return (
+    <Card sx={{ height: "100%" }}>
+      <CardContent>
+        <Typography variant="caption" color="text.secondary" textTransform="uppercase">
+          {label}
+        </Typography>
+        <Typography variant="h4" fontWeight={700} sx={{ mt: 0.5 }}>
+          {value}
+        </Typography>
+      </CardContent>
+    </Card>
+  );
+}
+
 export function DashboardHome() {
   const { user, role, canAccessAdmin, isError, error, isLoading } = useAuth();
+  const summaryQuery = useQuery({
+    queryKey: ["dashboard", "summary"],
+    queryFn: fetchDashboardSummary,
+    staleTime: 60_000,
+    retry: 1,
+  });
 
   return (
     <MuiPageShell
@@ -107,10 +140,34 @@ export function DashboardHome() {
                 : role
                   ? `Signed in as ${role}`
                   : "Session unavailable"}{" "}
-              — use the sidebar for farmers, procurement, and field services.
+              — {role ? ROLE_HINTS[role] ?? "use the sidebar for farmers, procurement, and field services." : "use the sidebar for farmers, procurement, and field services."}
             </Typography>
           </CardContent>
         </Card>
+
+        {summaryQuery.isError && (
+          <Alert severity="info">
+            Dashboard counts unavailable
+            {summaryQuery.error instanceof Error ? `: ${summaryQuery.error.message}` : ""}.
+          </Alert>
+        )}
+
+        {summaryQuery.data && (
+          <Grid container spacing={2}>
+            <Grid size={{ xs: 6, sm: 3 }}>
+              <SummaryStat label="Users" value={summaryQuery.data.users} />
+            </Grid>
+            <Grid size={{ xs: 6, sm: 3 }}>
+              <SummaryStat label="Villages" value={summaryQuery.data.villages} />
+            </Grid>
+            <Grid size={{ xs: 6, sm: 3 }}>
+              <SummaryStat label="Crop types" value={summaryQuery.data.crop_types} />
+            </Grid>
+            <Grid size={{ xs: 6, sm: 3 }}>
+              <SummaryStat label="Documents" value={summaryQuery.data.documents} />
+            </Grid>
+          </Grid>
+        )}
 
         {canAccessAdmin && (
           <>

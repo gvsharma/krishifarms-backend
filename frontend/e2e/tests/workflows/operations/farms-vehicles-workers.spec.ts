@@ -23,7 +23,8 @@ test.describe("operations — farms / vehicles / workers", () => {
     const pageErrors = trackPageErrors(page);
     await page.goto("/vehicles");
     await expectShellTitle(page, /^Vehicles$/i);
-    await expect(page.getByText(/Vehicles — coming soon/i)).toBeVisible();
+    await expect(page.getByText(/Vehicle types/i).first()).toBeVisible();
+    await expect(page.getByText(/Asset instances/i).first()).toBeVisible();
     expectNoPageErrors(pageErrors);
   });
 

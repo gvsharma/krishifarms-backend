@@ -7,6 +7,7 @@ import {
   expectTableOrAlert,
   trackPageErrors,
 } from "./helpers";
+import { contentAlerts } from "../../../utils/shell";
 
 test.describe("Settings — Users", () => {
   test.beforeEach(async ({ page }) => {
@@ -27,7 +28,7 @@ test.describe("Settings — Users", () => {
       await expect(page.getByRole("columnheader", { name: "Name" })).toBeVisible();
       await expect(page.getByRole("columnheader", { name: "Role" })).toBeVisible();
     } else {
-      await expect(page.getByRole("alert").first()).toContainText(/./);
+      await expect(contentAlerts(page).first()).toContainText(/./);
     }
 
     expectNoPageErrors(pageErrors);
@@ -121,7 +122,7 @@ test.describe("Settings — Users", () => {
     await editBtn.click();
     const dialog = page.getByRole("dialog");
     await expect(dialog.getByRole("heading", { name: /Edit user/i })).toBeVisible();
-    await expectDialogLabelsNotOverlapping(dialog, ["Full name", "Email", "Phone", "Role"]);
+    await expectDialogLabelsNotOverlapping(dialog, ["Full name", "Phone", "Role"]);
 
     await dialog.getByRole("button", { name: /Cancel/i }).click();
     expectNoPageErrors(pageErrors);

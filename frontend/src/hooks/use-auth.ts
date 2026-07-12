@@ -19,13 +19,23 @@ export function useAuth() {
   });
 
   const roles = query.data?.roles ?? [];
+  const permissions = query.data?.permissions ?? [];
   const role = primaryRole(roles);
+
+  const hasPermission = (permission: string): boolean => {
+    if (permissions.includes(permission)) return true;
+    // OWNER is treated as superuser for UI guards when catalog is sparse.
+    if (roles.includes("OWNER")) return true;
+    return false;
+  };
 
   return {
     ...query,
     user: query.data?.user,
     roles,
+    permissions,
     role,
+    hasPermission,
     canDelete: canDelete(roles),
     canManageUsers: canManageUsers(roles),
     canAccessAdmin: canAccessAdmin(roles),

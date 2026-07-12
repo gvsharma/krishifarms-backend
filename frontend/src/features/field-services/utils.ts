@@ -7,6 +7,14 @@ export function toMoneyString(value: string, fallback = "0.00"): string {
   return num.toFixed(2);
 }
 
+/** True when value is empty, or a finite number >= 0. */
+export function isValidMoneyInput(value: string): boolean {
+  const trimmed = value.trim();
+  if (!trimmed) return true;
+  const num = Number(trimmed);
+  return Number.isFinite(num) && num >= 0;
+}
+
 /** Optional decimal — empty string becomes null for API. */
 export function toOptionalDecimal(value: string): string | null {
   const trimmed = value.trim();

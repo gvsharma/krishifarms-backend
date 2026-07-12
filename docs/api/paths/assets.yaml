@@ -7,10 +7,13 @@ assets:
       - $ref: '../openapi.yaml#/components/parameters/PageSize'
       - name: asset_category
         in: query
-        schema: { type: string, enum: [tractor, dcm, baler, air_machine, other] }
+        schema: { type: string, enum: [tractor, dcm, baler, air_machine, bolero, implement, other] }
       - name: status
         in: query
         schema: { type: string, enum: [active, maintenance, retired] }
+      - name: vehicle_type_id
+        in: query
+        schema: { type: string, format: uuid }
       - name: is_rentable
         in: query
         schema: { type: boolean }

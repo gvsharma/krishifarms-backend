@@ -52,10 +52,25 @@ def register_document(
 def list_documents(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
+    entity_type: str | None = Query(
+        default=None,
+        description="Filter to documents linked to this entity type (requires entity_id)",
+    ),
+    entity_id: UUID | None = Query(
+        default=None,
+        description="Filter to documents linked to this entity id (requires entity_type)",
+    ),
     ctx: CurrentUserContext = Depends(require_permission("documents:read")),
     db: Session = Depends(get_db),
 ):
-    items, total = service.list_documents(db, ctx.user.org_id, page, page_size)
+    items, total = service.list_documents(
+        db,
+        ctx.user.org_id,
+        page,
+        page_size,
+        entity_type=entity_type,
+        entity_id=entity_id,
+    )
     return APIResponse(
         data=DocumentListResponse(
             items=[_serialize_document(item) for item in items],

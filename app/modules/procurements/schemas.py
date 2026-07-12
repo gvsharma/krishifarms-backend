@@ -21,6 +21,9 @@ PROCUREMENT_STATUSES = (
 
 CANCELLABLE_STATUSES = frozenset({"draft", "pending_weighment", "weighed"})
 
+PAYMENT_TERMS = ("one_week", "10_days", "2_weeks", "20_days", "custom")
+_PAYMENT_TERMS_PATTERN = "^(one_week|10_days|2_weeks|20_days|custom)$"
+
 
 class ProcurementDeductionInput(BaseModel):
     deduction_type: str = Field(min_length=1, max_length=100)
@@ -45,6 +48,10 @@ class ProcurementCreateRequest(BaseModel):
     village_id: UUID
     procurement_date: date
     bag_count: int = Field(default=0, ge=0)
+    buyer_id: UUID | None = None
+    payment_terms: str | None = Field(default=None, pattern=_PAYMENT_TERMS_PATTERN)
+    payment_terms_custom: str | None = None
+    expected_payment_date: date | None = None
     notes: str | None = None
 
 
@@ -53,6 +60,10 @@ class ProcurementUpdateRequest(BaseModel):
     crop_type_id: UUID | None = None
     village_id: UUID | None = None
     bag_count: int | None = Field(default=None, ge=0)
+    buyer_id: UUID | None = None
+    payment_terms: str | None = Field(default=None, pattern=_PAYMENT_TERMS_PATTERN)
+    payment_terms_custom: str | None = None
+    expected_payment_date: date | None = None
     notes: str | None = None
 
 
@@ -83,6 +94,12 @@ class ProcurementResponse(AuditMetaMixin):
     crop_type_name: str | None = None
     village_id: UUID
     village_name: str | None = None
+    buyer_id: UUID | None = None
+    buyer_name: str | None = None
+    payment_terms: str | None = None
+    payment_terms_custom: str | None = None
+    expected_payment_date: date | None = None
+    actual_payment_date: date | None = None
     procurement_date: date
     bag_count: int
     gross_weight_kg: Decimal
@@ -114,6 +131,10 @@ class ProcurementListItemResponse(AuditMetaMixin):
     crop_type_id: UUID
     crop_type_name: str | None = None
     village_id: UUID
+    buyer_id: UUID | None = None
+    buyer_name: str | None = None
+    payment_terms: str | None = None
+    expected_payment_date: date | None = None
     procurement_date: date
     net_weight_kg: Decimal
     net_amount: Decimal

@@ -295,12 +295,17 @@ export function CatalogAdminPage<T extends { id: string }>({
         )}
       </Card>
 
-      <PremiumDialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm">
+      <PremiumDialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        maxWidth="sm"
+        data-testid="catalog-admin-dialog"
+      >
         <PremiumDialogTitle>
           {editing ? `Edit ${entityLabel}` : `Add ${entityLabel}`}
         </PremiumDialogTitle>
-        <PremiumDialogContent sx={{ overflow: "visible", pt: 0.5 }}>
-          <Scope className="flex flex-col gap-4 bg-transparent">
+        <PremiumDialogContent sx={{ overflow: "visible", pt: 0.5, pb: 2 }}>
+          <Scope className="flex flex-col gap-5 bg-transparent">
             {dialogFields.map((field) => {
               if (field.type === "boolean") {
                 return (

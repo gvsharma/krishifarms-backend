@@ -5,10 +5,13 @@ from __future__ import annotations
 from sqlalchemy.orm import Session
 
 from app.core.database import SessionLocal
+from app.modules.assets.models import Asset
 from app.modules.financial.models import ExpenseCategory
 from app.modules.master_data.models import CropType, Village
 from app.modules.platform.models import ActivityType, PaymentMode, VehicleType
 from app.modules.users.models import Organization, User
+from scripts.data.crop_catalog import DEFAULT_CROP_TYPES
+from scripts.data.fleet_inventory import DEFAULT_ACTIVITY_TYPES, DEFAULT_FLEET_ASSETS, DEFAULT_VEHICLE_TYPES
 
 DEFAULT_VILLAGES = [
     {
@@ -17,14 +20,6 @@ DEFAULT_VILLAGES = [
         "district": "Nizamabad",
         "state": "Telangana",
     },
-]
-
-DEFAULT_CROP_TYPES = [
-    {"name": "Paddy", "code": "PADDY", "default_moisture_pct": 17.0},
-    {"name": "Corn", "code": "CORN", "default_moisture_pct": 14.0},
-    {"name": "Vegetables", "code": "VEGETABLES", "default_moisture_pct": None},
-    {"name": "Pulses", "code": "PULSES", "default_moisture_pct": None},
-    {"name": "Concrete Work", "code": "CONCRETEWORK", "default_moisture_pct": None},
 ]
 
 DEFAULT_EXPENSE_CATEGORIES = [
@@ -41,51 +36,6 @@ DEFAULT_PAYMENT_MODES = [
     {"code": "cash", "name": "Cash", "name_te": "నగదు"},
     {"code": "upi", "name": "UPI", "name_te": "యూపీఐ"},
     {"code": "bank_transfer", "name": "Bank Transfer", "name_te": "బ్యాంక్ బదిలీ"},
-]
-
-DEFAULT_VEHICLE_TYPES = [
-    {"code": "BOLERO", "name": "Bolero", "name_te": "బోలేరో", "fuel_type": "diesel"},
-    {"code": "DCM", "name": "DCM", "name_te": "డీసీఎం", "fuel_type": "diesel"},
-    {"code": "CULTIVATOR", "name": "Cultivator", "name_te": "కల్టివేటర్", "fuel_type": "tractor"},
-    {"code": "ROTAVATOR", "name": "Rotavator", "name_te": "రోటవేటర్", "fuel_type": "tractor"},
-    {"code": "TROLLEY", "name": "Trolley", "name_te": "ట్రాలీ", "fuel_type": "tractor"},
-    {"code": "BALER", "name": "Baler", "name_te": "బేలర్", "fuel_type": "tractor"},
-    {"code": "CLEANING_MACHINE", "name": "Cleaning Machine", "name_te": "క్లీనింగ్ మెషిన్", "fuel_type": "diesel"},
-]
-
-DEFAULT_ACTIVITY_TYPES = [
-    # Field services
-    {"code": "FIELD_PLOUGHING", "name": "Ploughing", "name_te": "దున్నుట", "service_category": "field_service", "default_rate_type": "hourly"},
-    {"code": "FIELD_SPRAYING", "name": "Spraying", "name_te": "పిచికారీ", "service_category": "field_service", "default_rate_type": "hourly"},
-    {"code": "FIELD_OTHER", "name": "Other Field Service", "name_te": "ఇతర ఫీల్డ్ సేవ", "service_category": "field_service", "default_rate_type": "fixed"},
-    # Tractor work
-    {"code": "TRACTOR_CULTIVATOR", "name": "Cultivator Work", "name_te": "కల్టివేటర్ పని", "service_category": "tractor_work", "default_rate_type": "hourly"},
-    {"code": "TRACTOR_ROTAVATOR", "name": "Rotavator Work", "name_te": "రోటవేటర్ పని", "service_category": "tractor_work", "default_rate_type": "hourly"},
-    {"code": "TRACTOR_TROLLEY", "name": "Trolley Work", "name_te": "ట్రాలీ పని", "service_category": "tractor_work", "default_rate_type": "fixed"},
-    {"code": "TRACTOR_BALER", "name": "Baler Work", "name_te": "బేలర్ పని", "service_category": "tractor_work", "default_rate_type": "fixed"},
-    {"code": "TRACTOR_CLEANING", "name": "Cleaning Machine Work", "name_te": "క్లీనింగ్ మెషిన్ పని", "service_category": "tractor_work", "default_rate_type": "hourly"},
-    # Transport
-    {"code": "TRANSPORT_BOLERO", "name": "Bolero Carrying", "name_te": "బోలేరో రవాణా", "service_category": "transport", "default_rate_type": "fixed"},
-    {"code": "TRANSPORT_DCM", "name": "DCM Carrying", "name_te": "డీసీఎం రవాణా", "service_category": "transport", "default_rate_type": "fixed"},
-    # Fertiliser
-    {"code": "FERT_UREA", "name": "Urea Supply", "name_te": "యూరియా సరఫరా", "service_category": "fertiliser", "default_rate_type": "fixed"},
-    {"code": "FERT_DAP", "name": "DAP Supply", "name_te": "డీఏపీ సరఫరా", "service_category": "fertiliser", "default_rate_type": "fixed"},
-    {"code": "FERT_OTHER", "name": "Other Fertiliser", "name_te": "ఇతర ఎరువులు", "service_category": "fertiliser", "default_rate_type": "fixed"},
-    # Seeds
-    {"code": "SEED_PADDY", "name": "Paddy Seeds", "name_te": "వరి విత్తనాలు", "service_category": "seeds", "default_rate_type": "fixed"},
-    {"code": "SEED_CORN", "name": "Corn Seeds", "name_te": "మొక్కజొన్న విత్తనాలు", "service_category": "seeds", "default_rate_type": "fixed"},
-    {"code": "SEED_OTHER", "name": "Other Seeds", "name_te": "ఇతర విత్తనాలు", "service_category": "seeds", "default_rate_type": "fixed"},
-    # Agri-finance
-    {"code": "AGRI_FINANCE_LOAN", "name": "Agri Finance Loan", "name_te": "వ్యవసాయ రుణం", "service_category": "agri_finance", "default_rate_type": "fixed"},
-    {"code": "AGRI_FINANCE_ADVANCE", "name": "Agri Finance Advance", "name_te": "వ్యవసాయ అడ్వాన్స్", "service_category": "agri_finance", "default_rate_type": "fixed"},
-    # Vehicle ops
-    {"code": "VEHICLE_REPAIR", "name": "Vehicle Repair", "name_te": "వాహన మరమ్మతు", "service_category": "vehicle_ops", "default_rate_type": "fixed"},
-    {"code": "VEHICLE_MAINTENANCE", "name": "Vehicle Maintenance", "name_te": "వాహన నిర్వహణ", "service_category": "vehicle_ops", "default_rate_type": "fixed"},
-    {"code": "VEHICLE_CLEANING", "name": "Vehicle Cleaning", "name_te": "వాహన శుభ్రత", "service_category": "vehicle_ops", "default_rate_type": "fixed"},
-    # Godown
-    {"code": "GODOWN_REPAIR", "name": "Godown Repair", "name_te": "గోడౌన్ మరమ్మతు", "service_category": "godown", "default_rate_type": "fixed"},
-    {"code": "GODOWN_PURCHASE", "name": "Godown Purchase", "name_te": "గోడౌన్ కొనుగోలు", "service_category": "godown", "default_rate_type": "fixed"},
-    {"code": "GODOWN_CLEANING", "name": "Godown Cleaning", "name_te": "గోడౌన్ శుభ్రత", "service_category": "godown", "default_rate_type": "fixed"},
 ]
 
 
@@ -169,7 +119,12 @@ def seed_services_for_org(db: Session, org: Organization, owner: User) -> dict[s
     for village_data in DEFAULT_VILLAGES:
         existing = (
             db.query(Village)
-            .filter(Village.org_id == org.id, Village.name == village_data["name"], Village.deleted_at.is_(None))
+            .filter(
+                Village.org_id == org.id,
+                Village.name == village_data["name"],
+                Village.mandal == village_data.get("mandal"),
+                Village.deleted_at.is_(None),
+            )
             .first()
         )
         if not existing:
@@ -191,6 +146,52 @@ def seed_services_for_org(db: Session, org: Organization, owner: User) -> dict[s
     c, u = _upsert_by_code(db, VehicleType, org.id, owner.id, "code", DEFAULT_VEHICLE_TYPES)
     stats["created"] += c
     stats["updated"] += u
+
+    vehicle_types = {
+        vt.code: vt
+        for vt in db.query(VehicleType)
+        .filter(VehicleType.org_id == org.id, VehicleType.deleted_at.is_(None))
+        .all()
+    }
+    for row in DEFAULT_FLEET_ASSETS:
+        vt = vehicle_types.get(row["vehicle_type_code"])
+        existing = (
+            db.query(Asset)
+            .filter(
+                Asset.org_id == org.id,
+                Asset.asset_code == row["asset_code"],
+                Asset.deleted_at.is_(None),
+            )
+            .first()
+        )
+        payload = {
+            "name": row["name"],
+            "name_te": row.get("name_te"),
+            "asset_category": row["asset_category"],
+            "fuel_type": row.get("fuel_type"),
+            "vehicle_type_id": vt.id if vt else None,
+            "status": "active",
+        }
+        if existing:
+            changed = False
+            for key, value in payload.items():
+                if getattr(existing, key) != value:
+                    setattr(existing, key, value)
+                    changed = True
+            if changed:
+                existing.updated_by = owner.id
+                stats["updated"] += 1
+        else:
+            db.add(
+                Asset(
+                    org_id=org.id,
+                    asset_code=row["asset_code"],
+                    created_by=owner.id,
+                    updated_by=owner.id,
+                    **payload,
+                )
+            )
+            stats["created"] += 1
 
     c, u = _upsert_by_code(db, ActivityType, org.id, owner.id, "code", DEFAULT_ACTIVITY_TYPES)
     stats["created"] += c

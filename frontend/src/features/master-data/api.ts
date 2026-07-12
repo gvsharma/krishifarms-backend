@@ -7,6 +7,24 @@ export interface Paginated<T> {
   page_size: number;
 }
 
+export interface District {
+  id: string;
+  org_id: string;
+  name: string;
+  state: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Mandal {
+  id: string;
+  org_id: string;
+  district_id: string;
+  name: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Village {
   id: string;
   org_id: string;
@@ -15,8 +33,18 @@ export interface Village {
   district: string | null;
   state: string | null;
   pincode: string | null;
+  district_id: string | null;
+  mandal_id: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface LocationListFilters {
+  district_id?: string;
+  mandal_id?: string;
+  district?: string;
+  mandal?: string;
+  q?: string;
 }
 
 export interface CropType {
@@ -105,13 +133,80 @@ export interface CropPrice {
   is_active: boolean;
 }
 
-function pageParams(page = 1, pageSize = 50): string {
-  return new URLSearchParams({ page: String(page), page_size: String(pageSize) }).toString();
+function pageParams(page = 1, pageSize = 50, filters?: LocationListFilters): string {
+  const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) });
+  if (filters?.district_id) params.set("district_id", filters.district_id);
+  if (filters?.mandal_id) params.set("mandal_id", filters.mandal_id);
+  if (filters?.district) params.set("district", filters.district);
+  if (filters?.mandal) params.set("mandal", filters.mandal);
+  if (filters?.q) params.set("q", filters.q);
+  return params.toString();
+}
+
+/* Districts */
+export function fetchDistricts(
+  page = 1,
+  pageSize = 100,
+  filters?: Pick<LocationListFilters, "q">,
+): Promise<Paginated<District>> {
+  return fetchApi(`/districts?${pageParams(page, pageSize, filters)}`, {
+    method: "GET",
+    clientHeaders: false,
+  });
+}
+export function createDistrict(payload: {
+  name: string;
+  state?: string | null;
+}): Promise<District> {
+  return fetchApi("/districts", { method: "POST", body: payload, clientHeaders: true });
+}
+export function updateDistrict(
+  id: string,
+  payload: Partial<{ name: string; state: string | null }>,
+): Promise<District> {
+  return fetchApi(`/districts/${id}`, { method: "PATCH", body: payload, clientHeaders: true });
+}
+export function deleteDistrict(id: string): Promise<{ message: string }> {
+  return fetchApi(`/districts/${id}`, { method: "DELETE", clientHeaders: true });
+}
+
+/* Mandals */
+export function fetchMandals(
+  page = 1,
+  pageSize = 100,
+  filters?: Pick<LocationListFilters, "district_id" | "district" | "q">,
+): Promise<Paginated<Mandal>> {
+  return fetchApi(`/mandals?${pageParams(page, pageSize, filters)}`, {
+    method: "GET",
+    clientHeaders: false,
+  });
+}
+export function createMandal(payload: {
+  district_id: string;
+  name: string;
+}): Promise<Mandal> {
+  return fetchApi("/mandals", { method: "POST", body: payload, clientHeaders: true });
+}
+export function updateMandal(
+  id: string,
+  payload: Partial<{ district_id: string; name: string }>,
+): Promise<Mandal> {
+  return fetchApi(`/mandals/${id}`, { method: "PATCH", body: payload, clientHeaders: true });
+}
+export function deleteMandal(id: string): Promise<{ message: string }> {
+  return fetchApi(`/mandals/${id}`, { method: "DELETE", clientHeaders: true });
 }
 
 /* Villages */
-export function fetchVillages(page = 1, pageSize = 50): Promise<Paginated<Village>> {
-  return fetchApi(`/villages?${pageParams(page, pageSize)}`, { method: "GET", clientHeaders: false });
+export function fetchVillages(
+  page = 1,
+  pageSize = 50,
+  filters?: LocationListFilters,
+): Promise<Paginated<Village>> {
+  return fetchApi(`/villages?${pageParams(page, pageSize, filters)}`, {
+    method: "GET",
+    clientHeaders: false,
+  });
 }
 export function createVillage(payload: {
   name: string;
@@ -119,6 +214,8 @@ export function createVillage(payload: {
   district?: string | null;
   state?: string | null;
   pincode?: string | null;
+  district_id?: string | null;
+  mandal_id?: string | null;
 }): Promise<Village> {
   return fetchApi("/villages", { method: "POST", body: payload, clientHeaders: true });
 }
@@ -130,6 +227,8 @@ export function updateVillage(
     district: string | null;
     state: string | null;
     pincode: string | null;
+    district_id: string | null;
+    mandal_id: string | null;
   }>,
 ): Promise<Village> {
   return fetchApi(`/villages/${id}`, { method: "PATCH", body: payload, clientHeaders: true });

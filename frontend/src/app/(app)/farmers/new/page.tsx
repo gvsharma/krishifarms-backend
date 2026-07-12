@@ -2,22 +2,23 @@
 
 import {
   Alert,
-  Box,
   Button,
   Card,
-  CircularProgress,
-  MenuItem,
   Stack,
   TextField,
 } from "@mui/material";
 import { ArrowBack } from "@mui/icons-material";
 import Link from "next/link";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { MuiPageShell } from "@/components/shell/mui-page-shell";
 import { createFarmer } from "@/features/farmers/api";
-import { fetchVillages } from "@/features/master-data/api";
+import {
+  EMPTY_LOCATION_CASCADE,
+  LocationCascade,
+  type LocationCascadeValue,
+} from "@/features/master-data/location-cascade";
 
 export default function NewFarmerPage() {
   const router = useRouter();
@@ -25,20 +26,15 @@ export default function NewFarmerPage() {
   const [fullName, setFullName] = useState("");
   const [fullNameTe, setFullNameTe] = useState("");
   const [phone, setPhone] = useState("");
-  const [villageId, setVillageId] = useState("");
+  const [location, setLocation] = useState<LocationCascadeValue>({ ...EMPTY_LOCATION_CASCADE });
   const [notes, setNotes] = useState("");
-
-  const villagesQuery = useQuery({
-    queryKey: ["villages-farmer-form"],
-    queryFn: () => fetchVillages(1, 100),
-  });
 
   const createMutation = useMutation({
     mutationFn: () =>
       createFarmer({
         full_name: fullName.trim(),
         phone_primary: phone.trim(),
-        village_id: villageId,
+        village_id: location.villageId,
         full_name_te: fullNameTe.trim() || null,
         notes: notes.trim() || null,
       }),
@@ -49,7 +45,10 @@ export default function NewFarmerPage() {
   });
 
   const canSubmit =
-    fullName.trim().length >= 2 && phone.trim().length >= 10 && villageId && !createMutation.isPending;
+    fullName.trim().length >= 2 &&
+    phone.trim().length >= 10 &&
+    location.villageId &&
+    !createMutation.isPending;
 
   return (
     <MuiPageShell
@@ -61,81 +60,55 @@ export default function NewFarmerPage() {
         </Button>
       }
     >
-      {villagesQuery.isLoading && (
-        <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
-          <CircularProgress />
-        </Box>
-      )}
+      <Card sx={{ p: 3, maxWidth: 560 }}>
+        <Stack
+          spacing={2}
+          component="form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (canSubmit) createMutation.mutate();
+          }}
+        >
+          <TextField
+            required
+            label="Full name"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+          />
+          <TextField
+            label="Full name (Telugu)"
+            value={fullNameTe}
+            onChange={(e) => setFullNameTe(e.target.value)}
+          />
+          <TextField
+            required
+            label="Primary phone"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            helperText="10–20 digits"
+          />
 
-      {villagesQuery.isError && (
-        <Alert severity="warning" sx={{ mb: 2 }}>
-          {villagesQuery.error instanceof Error
-            ? villagesQuery.error.message
-            : "Could not load villages"}
-        </Alert>
-      )}
+          <LocationCascade required value={location} onChange={setLocation} />
 
-      {!villagesQuery.isLoading && (
-        <Card sx={{ p: 3, maxWidth: 560 }}>
-          <Stack
-            spacing={2}
-            component="form"
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (canSubmit) createMutation.mutate();
-            }}
-          >
-            <TextField
-              required
-              label="Full name"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-            />
-            <TextField
-              label="Full name (Telugu)"
-              value={fullNameTe}
-              onChange={(e) => setFullNameTe(e.target.value)}
-            />
-            <TextField
-              required
-              label="Primary phone"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              helperText="10–20 digits"
-            />
-            <TextField
-              select
-              required
-              label="Village"
-              value={villageId}
-              onChange={(e) => setVillageId(e.target.value)}
-            >
-              {(villagesQuery.data?.items ?? []).map((v) => (
-                <MenuItem key={v.id} value={v.id}>
-                  {v.name}
-                </MenuItem>
-              ))}
-            </TextField>
-            <TextField
-              label="Notes"
-              multiline
-              minRows={2}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-            />
-            {createMutation.isError && (
-              <Alert severity="error">
-                {createMutation.error instanceof Error
-                  ? createMutation.error.message
-                  : "Failed to create farmer"}
-              </Alert>
-            )}
-            <Button type="submit" variant="contained" disabled={!canSubmit}>
-              {createMutation.isPending ? "Saving…" : "Create farmer"}
-            </Button>
-          </Stack>
-        </Card>
-      )}
+          <TextField
+            label="Notes"
+            multiline
+            minRows={2}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+          />
+          {createMutation.isError && (
+            <Alert severity="error">
+              {createMutation.error instanceof Error
+                ? createMutation.error.message
+                : "Failed to create farmer"}
+            </Alert>
+          )}
+          <Button type="submit" variant="contained" disabled={!canSubmit}>
+            {createMutation.isPending ? "Saving…" : "Create farmer"}
+          </Button>
+        </Stack>
+      </Card>
     </MuiPageShell>
   );
 }

@@ -44,6 +44,8 @@ test.describe("operations — farmers", () => {
     if (await fullName.isVisible().catch(() => false)) {
       await expect(page.getByLabel("Full name (Telugu)")).toBeVisible();
       await expect(page.getByLabel("Primary phone")).toBeVisible();
+      await expect(page.getByLabel("District")).toBeVisible();
+      await expect(page.getByLabel("Mandal")).toBeVisible();
       await expect(page.getByLabel("Village")).toBeVisible();
       await expect(page.getByLabel("Notes")).toBeVisible();
       await expect(page.getByRole("button", { name: /Create farmer/i })).toBeVisible();
@@ -117,6 +119,10 @@ test.describe("operations — farmers", () => {
     await expect(
       page.getByRole("button", { name: /Back to list/i }).or(page.getByRole("alert")),
     ).toBeVisible();
+
+    if (await page.getByRole("button", { name: /Back to list/i }).isVisible().catch(() => false)) {
+      await expect(page.getByRole("button", { name: /^Edit$/i })).toBeVisible();
+    }
 
     expectNoPageErrors(pageErrors);
   });
