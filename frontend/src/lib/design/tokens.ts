@@ -39,3 +39,6 @@ export const tokens = {
 
 export const DRIBBBLE_INSPIRATION_URL =
   "https://dribbble.com/shots/27437443-Farm-Management-SaaS-Dashboard";
+
+/** Opt-in premium form palette — see `./premium` and `.kf-premium`. */
+export { premiumTokens } from "./premium";
