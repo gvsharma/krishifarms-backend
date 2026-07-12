@@ -1,3 +1,7 @@
+/* Cascade order: MUI (@layer mui) after Tailwind base, before utilities.
+   Required when AppRouterCacheProvider uses enableCssLayer: true. */
+@layer theme, base, mui, components, utilities;
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

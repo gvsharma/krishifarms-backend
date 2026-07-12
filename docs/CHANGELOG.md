@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Premium form controls (Tailwind)** — opt-in Linear/Stripe-style primitives under `frontend/src/components/ui/premium/` (`Input`, `Textarea`, `Label`, `Field`, `Button`, `Scope`); scoped tokens in `styles/premium.css` + `@/lib/design/premium`; Plus Jakarta Sans / Inter as CSS variables only (MUI shell unchanged). Usage: [premium/README.md](../frontend/src/components/ui/premium/README.md)
+- **Admin form chrome** — shared `PremiumDialog` (blur backdrop, 24px radius, MUI focus trap) + `SoftAlert` for settings/catalog save failures; wired into `CatalogAdminPage` and Settings → Users
+- **Frontend e2e — enterprise `validateEntirePage` framework** — 16 validation helpers under `e2e/utils/validation/` (console, network, layout/overlap, inputs, buttons, typography, tables, dialogs, navigation, `@axe-core/playwright` a11y, responsive viewports, visual regression, WCAG contrast, CSS, performance); POM `e2e/pages/`, custom `enterprise-reporter.ts` → `enterprise-validation.json`, baselines `e2e/baselines/`; suites `e2e/tests/{smoke,regression,visual,responsive,workflows}/`; cross-browser projects; CI via `.github/workflows/e2e.yml` (PR smoke gate, push regression+workflows, nightly full); [frontend/e2e/README.md](../frontend/e2e/README.md)
 - **Frontend sign-out + login** — MUI user menu Sign out (clears `krishi-access-token`, revokes refresh token via `POST /auth/logout` when available); `/login` email/password page; `AuthBootstrap` skips dev auto-login after explicit sign-out (`sessionStorage` flag)
 - **Admin CRUD parity (web + Android)** — Web: `/auth/me` role hook; sidebar links for Users + Master data; dashboard admin shortcuts; delete hidden for MANAGER on `CatalogAdminPage`. Android: `feature/admin/` hub (More + Settings) with catalog list/create/edit for crop types, vehicle types, activity types, buyers, agents, expense categories, payment modes; villages read-only; users list/create/edit; EN + TE strings; `MenuRegistry` admin tile for OWNER/MANAGER
 - **RBAC: MANAGER admin without delete** — Backend `users:create` for MANAGER; mobile `SETTINGS_MANAGE` + `USER_MANAGE` + `admin` module in permission catalog; OWNER-only delete on web/Android UI
@@ -25,6 +28,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Fixed
 
 - **Master-data catalog dialogs** — `CatalogAdminPage` Add/Edit forms no longer overlap labels (dense MUI `TextField`s in `DialogContent`); now spaced `Scope` + premium `Field`/`Input`/`Textarea`, `PremiumDialog` chrome (24px radius), clear titles; covers activity-types, buyers, crops, and all other catalog pages
+- **GET /users 500** — `UserResponse` / `UserCreateRequest` use `str` instead of `EmailStr` so seeded `*.local` emails serialize (same as auth login); Settings → Users no longer Internal Server Error
 - **CI Ruff lint** — remove unused `typing.Any` import in `app/modules/devices/fcm.py`
 - **Web dashboard/home** — Replaced Tailwind-only executive mock (mixed with MUI shell) with MUI home + role-aware admin hub; loads user from `/auth/me`
 - **Audit helpers** — `write_audit_log` / `write_activity_feed` accept `device_id` and `client_type` (callers already passed them; previously TypeError)
@@ -34,6 +38,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **Web login fields** — `/login` uses premium `components/ui/Input` (54px, 16px radius, soft `#E5E7EB` border, `#111827` focus ring); labeled fields + show-password a11y; no Material entrance animations on the Google-style card
+- **Web login UI** — Google-style centered card sign-in (`/login`): email + password fields, show/hide password, primary Next button
 - **Web login UI** — Dribbble-inspired split-screen sign-in (`/login`): Canopia brand plane + refined email/password form, show/hide password, Fraunces display type; no purple/cream chrome
 - **Supabase cutover runbook** — [docs/deploy/SUPABASE_CUTOVER_RUNBOOK.md](./deploy/SUPABASE_CUTOVER_RUNBOOK.md): GitHub secret + IAM attach script + deploy verify steps
 - **Deploy IAM policy** — `deploy/iam/github-backend-deploy-ssm-supabase.json` + `attach-github-deploy-iam-supabase-policy.sh` for one-time admin attach
