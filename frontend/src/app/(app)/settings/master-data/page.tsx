@@ -50,13 +50,13 @@ const MASTER_LINKS = [
   {
     href: "/settings/master-data/vehicle-types",
     title: "Vehicle types",
-    description: "Fleet categories shared with the mobile app",
+    description: "John Deere tractors, Mahindra Bolero, Eicher DCM, and implements",
     icon: DirectionsCar,
   },
   {
     href: "/settings/master-data/activity-types",
     title: "Activity types",
-    description: "Service catalog for field ops, tractor, transport, fertiliser, seeds",
+    description: "Tractor, transport, fertiliser, seeds, and vehicle ops service catalog",
     icon: WorkOutline,
   },
   {

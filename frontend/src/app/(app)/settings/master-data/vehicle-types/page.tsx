@@ -1,6 +1,7 @@
 "use client";
 
 import { CatalogAdminPage } from "@/components/admin/catalog-admin-page";
+import { FLEET_INVENTORY_SUMMARY, FUEL_TYPE_OPTIONS } from "@/constants/fleet-inventory";
 import {
   createVehicleType,
   deleteVehicleType,
@@ -12,14 +13,30 @@ export default function VehicleTypesPage() {
   return (
     <CatalogAdminPage
       title="Vehicle types"
-      description="Fleet categories (tractor, tipper, etc.) shared with mobile."
+      description={`KrishiFarms fleet — ${FLEET_INVENTORY_SUMMARY}.`}
       queryKey="vehicle-types-admin"
       fields={[
-        { key: "name", label: "Name", required: true },
-        { key: "code", label: "Code", required: true, createOnly: true },
+        {
+          key: "name",
+          label: "Name",
+          required: true,
+          placeholder: "e.g. John Deere tractor 2W, Cultivator, Pump",
+        },
+        {
+          key: "code",
+          label: "Code",
+          required: true,
+          createOnly: true,
+          placeholder: "e.g. JD_TRACTOR_2W, PUMP",
+        },
         { key: "name_te", label: "Name (Telugu)", table: false },
         { key: "capacity_quintals", label: "Capacity (qtl)", type: "number" },
-        { key: "fuel_type", label: "Fuel type" },
+        {
+          key: "fuel_type",
+          label: "Fuel type",
+          type: "select",
+          options: FUEL_TYPE_OPTIONS.map((opt) => ({ value: opt.value, label: opt.label })),
+        },
         { key: "notes", label: "Notes", table: false },
         { key: "is_active", label: "Active", type: "boolean" },
       ]}

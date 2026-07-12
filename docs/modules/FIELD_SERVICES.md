@@ -13,7 +13,7 @@ Rather than five parallel tables, v1 uses a **unified `field_service_records` ta
 | Concern | Approach |
 |---------|----------|
 | Service / activity catalog | Extend `activity_types` with `service_category`; seed tractor, transport, fertiliser, seeds, etc. |
-| Equipment / fleet types | `vehicle_types` catalog (Bolero, DCM, cultivator, rotavator, …) |
+| Equipment / fleet types | `vehicle_types` catalog — John Deere tractors (2W/4W), Mahindra Bolero, Eicher DCM, implements (trolley, baler, pump, cultivator, rotavator, weeder) |
 | Crop catalog | `crop_types` seed: paddy, corn, vegetables, pulses, concretework |
 | Vehicle repairs / trips / expenses | Existing `assets`, `maintenance_records`, `vehicle_trips`, `expenses` tables — **Phase 2** Python; `field_service_records.asset_id` links facility ops now |
 | Worker labour | `work_orders` — separate workforce domain; not duplicated here |
@@ -23,8 +23,8 @@ Rather than five parallel tables, v1 uses a **unified `field_service_records` ta
 | Value | Android / ops meaning |
 |-------|----------------------|
 | `field_service` | General field work — hours, location, diesel, amounts |
-| `tractor_work` | Cultivator, rotavator, trolley, baler, cleaning machine |
-| `transport` | Bolero / DCM carrying |
+| `tractor_work` | John Deere tractors + cultivator, rotavator, trolley, baler, pump, weeder |
+| `transport` | Mahindra Bolero / Eicher DCM carrying |
 | `fertiliser` | Bags, advance, total, pending |
 | `seeds` | Quantity, prices, advance, total, pending |
 | `agri_finance` | Amount given / pending / total |
@@ -75,8 +75,8 @@ Fresh install (`scripts/seed.py`) also invokes services seed when org is created
 Seeded catalogs:
 
 - **Crop types:** PADDY, CORN, VEGETABLES, PULSES, CONCRETEWORK
-- **Activity types:** 24 entries across all `service_category` values (bilingual `name_te` on activity/vehicle types)
-- **Vehicle types:** BOLERO, DCM, CULTIVATOR, ROTAVATOR, TROLLEY, BALER, CLEANING_MACHINE
+- **Activity types:** 27 entries across all `service_category` values (bilingual `name_te` on activity/vehicle types)
+- **Vehicle types:** JD_TRACTOR_2W, JD_TRACTOR_4W, MAHINDRA_BOLERO, EICHER_DCM, TROLLEY, BALER, PUMP, CULTIVATOR, ROTAVATOR, WEEDER (+ legacy BOLERO/DCM name refresh)
 - **Expense categories:** Fuel, Diesel, Vehicle Repairs, Godown Maintenance, …
 - **Payment modes:** cash, upi, bank_transfer
 - **Village:** Bhairkhanpally (if missing)

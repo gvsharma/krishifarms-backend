@@ -16,6 +16,10 @@ import { useMemo } from "react";
 import { fetchFarmers } from "@/features/farmers/api";
 import { fetchActivityTypes, fetchVehicleTypes } from "@/features/master-data/api";
 import {
+  filterVehiclesForCategory,
+  sortFleetVehicles,
+} from "@/constants/fleet-inventory";
+import {
   CATEGORY_FIELDS,
   CLEANING_STATUS_OPTIONS,
   FACILITY_STATUS_OPTIONS,
@@ -180,8 +184,11 @@ export function FieldServiceForm({
   );
 
   const vehicleOptions = useMemo(
-    () => (vehicleTypesQuery.data?.items ?? []).filter((v) => v.is_active),
-    [vehicleTypesQuery.data],
+    () =>
+      sortFleetVehicles(
+        filterVehiclesForCategory(category, vehicleTypesQuery.data?.items ?? []),
+      ),
+    [vehicleTypesQuery.data, category],
   );
 
   const loading =
