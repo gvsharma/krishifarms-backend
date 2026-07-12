@@ -10,6 +10,7 @@ from app.core.exceptions import AppError
 from app.modules.audit.router import router as audit_router
 from app.modules.auth.router import router as auth_router
 from app.modules.dashboard.router import router as dashboard_router
+from app.modules.devices.router import router as devices_router
 from app.modules.documents.router import router as documents_router
 from app.modules.financial.router import router as financial_router
 from app.modules.farmers.router import router as farmers_router
@@ -51,6 +52,7 @@ api_v1.include_router(farmers_router)
 api_v1.include_router(procurements_router)
 api_v1.include_router(financial_router)
 api_v1.include_router(documents_router)
+api_v1.include_router(devices_router)
 api_v1.include_router(audit_router)
 api_v1.include_router(dashboard_router)
 

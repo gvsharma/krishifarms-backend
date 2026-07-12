@@ -88,6 +88,8 @@ Paginated `data`:
 | `Accept-Language` | No | `en` or `te` |
 | `Idempotency-Key` | Financial POST | Prevent duplicate payments/procurement |
 | `X-Request-ID` | No | Correlation ID echoed in `meta` |
+| `X-Device-Id` | Recommended (mobile/web) | Stable client device UUID for audit + sessions + FCM |
+| `X-Client-Type` | No | `mobile` \| `web` \| `api` (default `api`) |
 
 ---
 
@@ -98,8 +100,19 @@ Paginated `data`:
 | Method | Path | Request | Response `data` |
 |--------|------|---------|-------------------|
 | POST | `/auth/login` | `{ email, password }` | `{ access_token, refresh_token, token_type }` |
+| POST | `/auth/firebase-login` | Bearer Firebase ID token | Token pair + user |
 | POST | `/auth/refresh` | `{ refresh_token }` | Token pair |
 | POST | `/auth/logout` | `{ refresh_token }` | `{ message }` |
+| GET | `/auth/me` | — | User profile + `preferred_locale` |
+
+### Devices / Push
+
+| Method | Path | Request | Response `data` |
+|--------|------|---------|-------------------|
+| POST | `/devices/push-tokens` | `{ fcm_token, platform?, app_version?, device_id? }` | Registered token |
+| DELETE | `/devices/push-tokens` | `{ fcm_token? }` or `{ device_id? }` | `{ message }` |
+
+See [DEVICES_NOTIFICATIONS.md](../modules/DEVICES_NOTIFICATIONS.md).
 
 ### Farmers
 

@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **FCM devices + push** — migration `020` `user_device_tokens`; `POST/DELETE /devices/push-tokens`; bilingual FCM on procurement status, farmer comments, document upload; module doc [DEVICES_NOTIFICATIONS.md](./modules/DEVICES_NOTIFICATIONS.md)
+- **Device accountability** — `write_audit_log` / `write_activity_feed` persist `device_id`, `client_type`, `request_id` (and activity `summary_te`); documents mutations take `ClientContext`; login / firebase-login / refresh bind `refresh_tokens.device_id` from `X-Device-Id`
+- **Sessions API** — `GET /users/me/sessions`, `DELETE /users/me/sessions/{id}` (active refresh tokens; device_id only — no new migration)
+- **Locale self-service** — `preferred_locale` on `AuthUserResponse` / `/auth/me`; `PATCH /users/me` for `preferred_locale` + `full_name`
 - **SSM parameter bootstrap** — `deploy/scripts/ensure-ssm-parameters.sh` creates missing `/krishifarms/dev/*` SecureString/String params (placeholder `REPLACE_ME`; does not overwrite). Created `/krishifarms/dev/db/database_url` in ap-south-1 for Supabase cutover.
 
 ### Changed

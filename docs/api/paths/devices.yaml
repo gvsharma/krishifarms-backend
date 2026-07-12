@@ -1,0 +1,51 @@
+pushTokens:
+  post:
+    tags: [Devices]
+    summary: Register or upsert FCM push token for this device
+    operationId: registerPushToken
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/XDeviceId'
+      - $ref: '../openapi.yaml#/components/parameters/XClientType'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/devices.yaml#/PushTokenRegisterRequest'
+    responses:
+      '200':
+        description: Token registered
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/devices.yaml#/PushTokenAPIResponse'
+      '401':
+        $ref: '../openapi.yaml#/components/responses/Unauthorized'
+  delete:
+    tags: [Devices]
+    summary: Revoke FCM push token (logout / uninstall)
+    operationId: deletePushToken
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/XDeviceId'
+      - $ref: '../openapi.yaml#/components/parameters/XClientType'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/devices.yaml#/PushTokenDeleteRequest'
+    responses:
+      '200':
+        description: Token revoked
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean }
+                data: { $ref: '../schemas/common.yaml#/MessageData' }
+                meta: { nullable: true }
+      '401':
+        $ref: '../openapi.yaml#/components/responses/Unauthorized'
+      '404':
+        $ref: '../openapi.yaml#/components/responses/NotFound'

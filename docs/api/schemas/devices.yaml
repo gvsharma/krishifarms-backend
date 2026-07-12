@@ -1,0 +1,61 @@
+PushTokenRegisterRequest:
+  type: object
+  required: [fcm_token]
+  properties:
+    fcm_token:
+      type: string
+      minLength: 10
+      maxLength: 512
+    platform:
+      type: string
+      default: android
+      maxLength: 30
+    app_version:
+      type: string
+      nullable: true
+      maxLength: 50
+    device_id:
+      type: string
+      nullable: true
+      maxLength: 100
+      description: Optional if X-Device-Id header is set
+
+PushTokenDeleteRequest:
+  type: object
+  properties:
+    fcm_token:
+      type: string
+      nullable: true
+      maxLength: 512
+    device_id:
+      type: string
+      nullable: true
+      maxLength: 100
+
+PushTokenResponse:
+  type: object
+  properties:
+    id:
+      type: string
+      format: uuid
+    device_id:
+      type: string
+    platform:
+      type: string
+    app_version:
+      type: string
+      nullable: true
+    last_seen_at:
+      type: string
+      format: date-time
+    created_at:
+      type: string
+      format: date-time
+
+PushTokenAPIResponse:
+  allOf:
+    - $ref: './common.yaml#/APIResponse'
+    - type: object
+      properties:
+        data:
+          $ref: '#/PushTokenResponse'

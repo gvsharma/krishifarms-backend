@@ -52,7 +52,12 @@ Entity type strings: `farmer`, `procurement`, `buyer`, `field_agent`, etc. (lowe
 | `X-Client-Type` | `client_type` |
 | `X-Request-ID` | `request_id` |
 
-Pass to service layer on mutations → `write_audit_log(..., device_id=..., client_type=...)`.
+Pass to service layer on mutations → `write_audit_log(..., device_id=..., client_type=..., request_id=...)`.
+Activity feed: `write_activity_feed(..., device_id=..., client_type=..., summary_te=...)`.
+
+Login / refresh persist `device_id` on `refresh_tokens` (column from migration `002`; no `client_type` on that table).
+
+Push tokens and FCM: see [DEVICES_NOTIFICATIONS.md](./DEVICES_NOTIFICATIONS.md).
 
 ## Activity feed + audit log
 

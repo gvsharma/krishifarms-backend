@@ -81,7 +81,8 @@ docs/deploy/           → CI/CD details
 | Platform (buyers, agents, services, prices, comments, tags) | ✅ | ✅ | ✅ | `017`, `018` | `paths/platform.yaml` | 1b |
 | Expense categories | ✅ | ✅ | ✅ | `001` | in financial paths | 1 |
 | Documents | 🟡 | ✅ | 🟡 | `001`, `007` | `paths/documents.yaml` | 1 |
-| Audit / Activity | ✅ | ✅ | ✅ | `001`, `013` | in platform paths | 1 |
+| Devices / FCM push | ✅ | ✅ | ✅ | `020` | `paths/devices.yaml` | 1 |
+| Audit / Activity | ✅ | ✅ | ✅ | `001`, `013`, `017` | in platform paths | 1 |
 | Dashboard / Health | 🟡 | ✅ | — | — | in platform paths | 1 |
 | Farmers | ✅ | ✅ | ✅ | `004` | `paths/farmers.yaml` | 2a/2b (sub-resources) |
 | Farms | ⬜ | — | — | `006` | `paths/farms.yaml` | 4 |
@@ -306,7 +307,7 @@ Error: `{ "success": false, "error": { "message": "...", "details": {...} } }`
 
 | File | Role |
 |------|------|
-| `router.py` | `POST /auth/login`, `/auth/firebase-login`, `/refresh`, `/logout`, `GET /auth/me` |
+| `router.py` | `POST /auth/login`, `/auth/firebase-login`, `/refresh`, `/logout`, `GET /auth/me` (binds `X-Device-Id` → refresh token) |
 | `firebase.py` | Firebase Admin SDK ID token verification (phone OTP) |
 | `phone.py` | E.164 → lookup normalization |
 | `rate_limit.py` | Firebase login rate limit (cache-backed) |
@@ -317,7 +318,9 @@ Public endpoints (no `require_permission`). JWT access + refresh tokens.
 
 ### 8.2 Users (`app/modules/users/`)
 
-Org-scoped users and RBAC roles. Models: `User`, `Role`, `Permission`, `Organization`, `RefreshToken`.
+Org-scoped users and RBAC roles. Models: `User`, `Role`, `Permission`, `Organization`, `RefreshToken` (with `device_id`).
+
+Self-service: `GET/PATCH /users/me`, `GET /users/me/sessions`, `DELETE /users/me/sessions/{id}`.
 
 Seed roles via `scripts/seed.py`; full permission list in migration `015`.
 

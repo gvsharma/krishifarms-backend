@@ -31,6 +31,7 @@ class AuthUserResponse(BaseModel):
     mobile: str
     email: str | None = None
     village_id: str | None = None
+    preferred_locale: str = "en"
 
 
 class AuthMeResponse(BaseModel):

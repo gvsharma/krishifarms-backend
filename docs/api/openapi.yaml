@@ -26,6 +26,7 @@ servers:
 
 tags:
   - name: Authentication
+  - name: Users
   - name: Farmers
   - name: Farms
   - name: Procurement
@@ -38,6 +39,7 @@ tags:
   - name: Expenses
   - name: Collections
   - name: Documents
+  - name: Devices
   - name: Search
 
 security:
@@ -54,6 +56,16 @@ paths:
     $ref: paths/auth.yaml#/logout
   /auth/me:
     $ref: paths/auth.yaml#/me
+
+  /devices/push-tokens:
+    $ref: paths/devices.yaml#/pushTokens
+
+  /users/me:
+    $ref: paths/users.yaml#/usersMe
+  /users/me/sessions:
+    $ref: paths/users.yaml#/usersMeSessions
+  /users/me/sessions/{session_id}:
+    $ref: paths/users.yaml#/usersMeSessionById
 
   /farmers:
     $ref: paths/farmers.yaml#/farmers
@@ -253,6 +265,18 @@ components:
       in: header
       description: Unique key for idempotent financial POST requests.
       schema: { type: string, maxLength: 100 }
+    XDeviceId:
+      name: X-Device-Id
+      in: header
+      required: false
+      description: Stable client device identifier (UUID). Used for audit, sessions, and FCM binding.
+      schema: { type: string, maxLength: 100 }
+    XClientType:
+      name: X-Client-Type
+      in: header
+      required: false
+      description: Client channel — mobile, web, or api.
+      schema: { type: string, enum: [mobile, web, api], default: api }
 
   responses:
     BadRequest:

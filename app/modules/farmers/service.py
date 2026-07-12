@@ -82,6 +82,8 @@ def _audit(
             summary=summary,
             entity_type="farmer",
             entity_id=entity_id,
+            device_id=client.device_id if client else None,
+            client_type=client.client_type if client else None,
         )
 
 

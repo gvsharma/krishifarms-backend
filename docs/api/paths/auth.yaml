@@ -4,6 +4,10 @@ login:
     summary: Login with email or mobile and password
     security: []
     operationId: authLogin
+    parameters:
+      - $ref: '../schemas/common.yaml#/XDeviceIdHeader'
+      - $ref: '../schemas/common.yaml#/XClientTypeHeader'
+      - $ref: '../schemas/common.yaml#/XRequestIdHeader'
     requestBody:
       required: true
       content:
@@ -39,6 +43,9 @@ firebaseLogin:
         schema:
           type: string
           example: Bearer eyJhbGciOiJSUzI1NiIs...
+      - $ref: '../schemas/common.yaml#/XDeviceIdHeader'
+      - $ref: '../schemas/common.yaml#/XClientTypeHeader'
+      - $ref: '../schemas/common.yaml#/XRequestIdHeader'
     responses:
       '200':
         description: CRM tokens issued
@@ -65,6 +72,10 @@ refresh:
     summary: Refresh access token
     security: []
     operationId: authRefresh
+    parameters:
+      - $ref: '../schemas/common.yaml#/XDeviceIdHeader'
+      - $ref: '../schemas/common.yaml#/XClientTypeHeader'
+      - $ref: '../schemas/common.yaml#/XRequestIdHeader'
     requestBody:
       required: true
       content:

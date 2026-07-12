@@ -83,6 +83,8 @@ def _audit(
             summary=summary,
             entity_type=entity_type,
             entity_id=entity_id,
+            device_id=client.device_id if client else None,
+            client_type=client.client_type if client else None,
         )
 
 
@@ -600,6 +602,19 @@ def create_comment(
     )
     db.commit()
     db.refresh(row)
+    if payload.entity_type == "farmer":
+        try:
+            from app.modules.devices.service import notify_farmer_comment
+
+            notify_farmer_comment(
+                db,
+                org_id=org_id,
+                farmer_id=payload.entity_id,
+                actor_user_id=author_user_id,
+                preview=payload.body,
+            )
+        except Exception:
+            pass
     return row
 
 

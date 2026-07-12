@@ -71,6 +71,9 @@ def firebase_login(
     firebase_id_token: str,
     ip_address: str | None = None,
     user_agent: str | None = None,
+    device_id: str | None = None,
+    client_type: str | None = None,
+    request_id: str | None = None,
 ) -> dict:
     from app.modules.auth.firebase import verify_firebase_id_token
 
@@ -83,18 +86,21 @@ def firebase_login(
         raise ForbiddenError("User not registered")
 
     user.firebase_uid = claims.uid
-    tokens = issue_tokens(db, user)
+    tokens = issue_tokens(db, user, device_id=device_id)
     log_login(
         db,
         user,
         ip_address=ip_address,
         user_agent=user_agent,
         auth_method="firebase",
+        device_id=device_id,
+        client_type=client_type,
+        request_id=request_id,
     )
     return tokens
 
 
-def issue_tokens(db: Session, user: User) -> dict:
+def issue_tokens(db: Session, user: User, *, device_id: str | None = None) -> dict:
     access_token = create_access_token(
         str(user.id),
         extra_claims={
@@ -110,6 +116,7 @@ def issue_tokens(db: Session, user: User) -> dict:
         user_id=user.id,
         token_hash=hash_token(refresh_token),
         expires_at=datetime.now(UTC) + timedelta(days=settings.refresh_token_expire_days),
+        device_id=device_id,
     )
     db.add(refresh_entry)
     user.last_login_at = datetime.now(UTC)
@@ -125,7 +132,12 @@ def issue_tokens(db: Session, user: User) -> dict:
     }
 
 
-def refresh_access_token(db: Session, refresh_token: str) -> dict:
+def refresh_access_token(
+    db: Session,
+    refresh_token: str,
+    *,
+    device_id: str | None = None,
+) -> dict:
     try:
         user_id = get_token_subject(refresh_token, expected_type="refresh")
     except TokenValidationError as exc:
@@ -157,7 +169,7 @@ def refresh_access_token(db: Session, refresh_token: str) -> dict:
         raise UnauthorizedError("User not found")
 
     matched.revoked_at = datetime.now(UTC)
-    return issue_tokens(db, user)
+    return issue_tokens(db, user, device_id=device_id or matched.device_id)
 
 
 def revoke_refresh_token(db: Session, refresh_token: str) -> None:
@@ -185,6 +197,9 @@ def log_login(
     user_agent: str | None,
     *,
     auth_method: str = "password",
+    device_id: str | None = None,
+    client_type: str | None = None,
+    request_id: str | None = None,
 ) -> None:
     write_audit_log(
         db,
@@ -195,6 +210,9 @@ def log_login(
         entity_id=user.id,
         ip_address=ip_address,
         user_agent=user_agent,
+        request_id=request_id,
+        device_id=device_id,
+        client_type=client_type,
         after_state={"auth_method": auth_method, "phone": user.phone},
     )
     db.commit()

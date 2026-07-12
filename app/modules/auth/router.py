@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Header, Request
 from sqlalchemy.orm import Session
 
+from app.core.client_context import ClientContext, get_client_context
 from app.core.dependencies import CurrentUserContext, get_current_user_context, get_db
 from app.core.exceptions import UnauthorizedError
 from app.modules.auth import service
@@ -27,20 +28,28 @@ def get_firebase_id_token(authorization: str | None = Header(default=None)) -> s
 
 
 @router.post("/login", response_model=APIResponse[TokenResponse])
-def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)):
+def login(
+    payload: LoginRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+    client: ClientContext = Depends(get_client_context),
+):
     user = service.authenticate_user(
         db,
         email=payload.email,
         mobile=payload.mobile,
         password=payload.password,
     )
-    tokens = service.issue_tokens(db, user)
+    tokens = service.issue_tokens(db, user, device_id=client.device_id)
     service.log_login(
         db,
         user,
         ip_address=_client_ip(request),
         user_agent=request.headers.get("User-Agent"),
         auth_method="password",
+        device_id=client.device_id,
+        client_type=client.client_type,
+        request_id=client.request_id,
     )
     return APIResponse(data=TokenResponse(**tokens))
 
@@ -50,6 +59,7 @@ def firebase_login(
     request: Request,
     db: Session = Depends(get_db),
     firebase_id_token: str = Depends(get_firebase_id_token),
+    client: ClientContext = Depends(get_client_context),
 ):
     client_key = _client_ip(request) or "unknown"
     check_firebase_login_rate_limit(client_key)
@@ -58,13 +68,20 @@ def firebase_login(
         firebase_id_token=firebase_id_token,
         ip_address=_client_ip(request),
         user_agent=request.headers.get("User-Agent"),
+        device_id=client.device_id,
+        client_type=client.client_type,
+        request_id=client.request_id,
     )
     return APIResponse(data=TokenResponse(**tokens))
 
 
 @router.post("/refresh", response_model=APIResponse[TokenResponse])
-def refresh(payload: RefreshRequest, db: Session = Depends(get_db)):
-    tokens = service.refresh_access_token(db, payload.refresh_token)
+def refresh(
+    payload: RefreshRequest,
+    db: Session = Depends(get_db),
+    client: ClientContext = Depends(get_client_context),
+):
+    tokens = service.refresh_access_token(db, payload.refresh_token, device_id=client.device_id)
     return APIResponse(data=TokenResponse(**tokens))
 
 

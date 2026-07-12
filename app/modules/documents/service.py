@@ -2,6 +2,7 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
+from app.core.client_context import ClientContext
 from app.core.config import settings
 from app.core.exceptions import NotFoundError
 from app.modules.documents.models import Document, DocumentLink
@@ -20,6 +21,8 @@ def register_document(
     org_id: UUID,
     payload: DocumentCreateRequest,
     actor_user_id: UUID,
+    *,
+    client: ClientContext | None = None,
 ) -> Document:
     document = Document(
         org_id=org_id,
@@ -45,9 +48,24 @@ def register_document(
         entity_type="document",
         entity_id=document.id,
         after_state={"file_name": document.file_name, "document_type": document.document_type},
+        device_id=client.device_id if client else None,
+        client_type=client.client_type if client else None,
+        request_id=client.request_id if client else None,
     )
     db.commit()
     db.refresh(document)
+    try:
+        from app.modules.devices.service import notify_document_uploaded
+
+        notify_document_uploaded(
+            db,
+            org_id=org_id,
+            document_id=document.id,
+            file_name=document.file_name,
+            actor_user_id=actor_user_id,
+        )
+    except Exception:
+        pass
     return document
 
 
@@ -71,6 +89,8 @@ def link_document(
     document_id: UUID,
     payload: DocumentLinkRequest,
     actor_user_id: UUID,
+    *,
+    client: ClientContext | None = None,
 ) -> DocumentLink:
     document = get_document(db, org_id, document_id)
     link = DocumentLink(
@@ -88,6 +108,9 @@ def link_document(
         entity_type="document",
         entity_id=document.id,
         after_state=payload.model_dump(mode="json"),
+        device_id=client.device_id if client else None,
+        client_type=client.client_type if client else None,
+        request_id=client.request_id if client else None,
     )
     db.commit()
     db.refresh(link)

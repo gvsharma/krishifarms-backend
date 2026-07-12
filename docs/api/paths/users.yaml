@@ -1,0 +1,72 @@
+usersMe:
+  get:
+    tags: [Users]
+    summary: Current user profile
+    operationId: usersMe
+    responses:
+      '200':
+        description: Current user
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/users.yaml#/UserAPIResponse'
+      '401':
+        $ref: '../openapi.yaml#/components/responses/Unauthorized'
+  patch:
+    tags: [Users]
+    summary: Update own profile (locale, name)
+    operationId: usersMeUpdate
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/users.yaml#/UserSelfUpdateRequest'
+    responses:
+      '200':
+        description: Updated profile
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/users.yaml#/UserAPIResponse'
+      '401':
+        $ref: '../openapi.yaml#/components/responses/Unauthorized'
+
+usersMeSessions:
+  get:
+    tags: [Users]
+    summary: List active sessions (refresh tokens) for current user
+    operationId: usersMeSessions
+    responses:
+      '200':
+        description: Active sessions
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/users.yaml#/SessionListAPIResponse'
+      '401':
+        $ref: '../openapi.yaml#/components/responses/Unauthorized'
+
+usersMeSessionById:
+  delete:
+    tags: [Users]
+    summary: Revoke one active session
+    operationId: usersMeSessionRevoke
+    parameters:
+      - name: session_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    responses:
+      '200':
+        description: Session revoked
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/auth.yaml#/MessageAPIResponse'
+      '401':
+        $ref: '../openapi.yaml#/components/responses/Unauthorized'
+      '404':
+        description: Session not found

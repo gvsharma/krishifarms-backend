@@ -88,6 +88,34 @@ LocaleField:
       type: string
       description: Telugu display name
 
+XDeviceIdHeader:
+  name: X-Device-Id
+  in: header
+  required: false
+  description: Stable client device identifier (stored on refresh_tokens / audit)
+  schema:
+    type: string
+    maxLength: 100
+
+XClientTypeHeader:
+  name: X-Client-Type
+  in: header
+  required: false
+  description: Client channel (web, android, ios, api)
+  schema:
+    type: string
+    maxLength: 30
+    default: api
+
+XRequestIdHeader:
+  name: X-Request-ID
+  in: header
+  required: false
+  description: Optional correlation id for audit logs
+  schema:
+    type: string
+    maxLength: 100
+
 StatusDraftConfirmedCancelled:
   type: string
   enum: [draft, confirmed, cancelled]

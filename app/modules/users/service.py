@@ -1,6 +1,7 @@
 from uuid import UUID
 
 import secrets
+from datetime import UTC, datetime
 
 from sqlalchemy.orm import Session, joinedload
 
@@ -9,8 +10,8 @@ from app.core.cache.keys import user_permissions_key
 from app.core.exceptions import ConflictError, NotFoundError
 from app.core.security import hash_password
 from app.modules.auth.phone import normalize_phone_for_lookup
-from app.modules.users.models import Role, User
-from app.modules.users.schemas import UserCreateRequest, UserUpdateRequest
+from app.modules.users.models import RefreshToken, Role, User
+from app.modules.users.schemas import UserCreateRequest, UserSelfUpdateRequest, UserUpdateRequest
 from app.shared.services.audit import write_audit_log
 
 
@@ -157,6 +158,59 @@ def update_user(
     db.commit()
     get_cache_provider().delete(user_permissions_key(user.id))
     return get_user(db, org_id, user.id)
+
+
+def update_current_user(db: Session, user_id: UUID, payload: UserSelfUpdateRequest) -> User:
+    user = get_current_profile(db, user_id)
+    before = {"full_name": user.full_name, "preferred_locale": user.preferred_locale}
+
+    if payload.full_name is not None:
+        user.full_name = payload.full_name
+    if payload.preferred_locale is not None:
+        user.preferred_locale = payload.preferred_locale
+
+    user.updated_by = user_id
+    write_audit_log(
+        db,
+        org_id=user.org_id,
+        actor_user_id=user_id,
+        action="UPDATE",
+        entity_type="user",
+        entity_id=user.id,
+        before_state=before,
+        after_state={"full_name": user.full_name, "preferred_locale": user.preferred_locale},
+    )
+    db.commit()
+    return get_current_profile(db, user_id)
+
+
+def list_active_sessions(db: Session, user_id: UUID) -> list[RefreshToken]:
+    return (
+        db.query(RefreshToken)
+        .filter(
+            RefreshToken.user_id == user_id,
+            RefreshToken.revoked_at.is_(None),
+            RefreshToken.expires_at > datetime.now(UTC),
+        )
+        .order_by(RefreshToken.created_at.desc())
+        .all()
+    )
+
+
+def revoke_session(db: Session, user_id: UUID, session_id: UUID) -> None:
+    token = (
+        db.query(RefreshToken)
+        .filter(
+            RefreshToken.id == session_id,
+            RefreshToken.user_id == user_id,
+            RefreshToken.revoked_at.is_(None),
+        )
+        .first()
+    )
+    if token is None:
+        raise NotFoundError("Session not found")
+    token.revoked_at = datetime.now(UTC)
+    db.commit()
 
 
 def list_roles(db: Session, org_id: UUID) -> list[Role]:
