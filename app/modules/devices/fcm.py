@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 from app.modules.auth.firebase import _ensure_firebase_initialized, firebase_auth_enabled
 
