@@ -8,7 +8,7 @@ import {
   Card,
   Chip,
   CircularProgress,
-  Grid,
+  Grid2 as Grid,
   Stack,
   Typography,
 } from "@mui/material";
@@ -136,12 +136,12 @@ export default function FieldServiceDetailPage() {
             </Stack>
 
             <Grid container spacing={2}>
-              <Grid item xs={6} sm={4}>
+              <Grid size={{ xs: 6, sm: 4 }}>
                 <DetailField label="Service date" value={data.service_date} />
               </Grid>
 
               {visibleFields.has("farmer_id") && (
-                <Grid item xs={6} sm={4}>
+                <Grid size={{ xs: 6, sm: 4 }}>
                   <DetailField
                     label="Farmer"
                     value={
@@ -154,37 +154,37 @@ export default function FieldServiceDetailPage() {
               )}
 
               {visibleFields.has("activity_type_id") && (
-                <Grid item xs={6} sm={4}>
+                <Grid size={{ xs: 6, sm: 4 }}>
                   <DetailField label="Activity type" value={data.activity_type_name ?? "—"} />
                 </Grid>
               )}
 
               {visibleFields.has("vehicle_type_id") && (
-                <Grid item xs={6} sm={4}>
+                <Grid size={{ xs: 6, sm: 4 }}>
                   <DetailField label="Vehicle / equipment" value={data.vehicle_type_name ?? "—"} />
                 </Grid>
               )}
 
               {visibleFields.has("location") && (
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <DetailField label="Location" value={data.location ?? "—"} />
                 </Grid>
               )}
 
               {visibleFields.has("hours") && (
-                <Grid item xs={6} sm={4}>
+                <Grid size={{ xs: 6, sm: 4 }}>
                   <DetailField label="Hours" value={data.hours ?? "—"} />
                 </Grid>
               )}
 
               {visibleFields.has("bag_count") && (
-                <Grid item xs={6} sm={4}>
+                <Grid size={{ xs: 6, sm: 4 }}>
                   <DetailField label="Bag count" value={data.bag_count != null ? String(data.bag_count) : "—"} />
                 </Grid>
               )}
 
               {visibleFields.has("quantity") && (
-                <Grid item xs={6} sm={4}>
+                <Grid size={{ xs: 6, sm: 4 }}>
                   <DetailField
                     label="Quantity"
                     value={
@@ -197,7 +197,7 @@ export default function FieldServiceDetailPage() {
               )}
 
               {visibleFields.has("rate_per_unit") && (
-                <Grid item xs={6} sm={4}>
+                <Grid size={{ xs: 6, sm: 4 }}>
                   <DetailField
                     label="Rate per unit"
                     value={data.rate_per_unit ? formatInr(data.rate_per_unit) : "—"}
@@ -206,49 +206,49 @@ export default function FieldServiceDetailPage() {
               )}
 
               {visibleFields.has("diesel_amount") && (
-                <Grid item xs={6} sm={4}>
+                <Grid size={{ xs: 6, sm: 4 }}>
                   <DetailField label="Diesel" value={formatInr(data.diesel_amount)} />
                 </Grid>
               )}
 
               {visibleFields.has("amount_given") && (
-                <Grid item xs={6} sm={4}>
+                <Grid size={{ xs: 6, sm: 4 }}>
                   <DetailField label="Amount given" value={formatInr(data.amount_given)} />
                 </Grid>
               )}
 
               {visibleFields.has("advance_amount") && (
-                <Grid item xs={6} sm={4}>
+                <Grid size={{ xs: 6, sm: 4 }}>
                   <DetailField label="Advance" value={formatInr(data.advance_amount)} />
                 </Grid>
               )}
 
               {visibleFields.has("total_amount") && (
-                <Grid item xs={6} sm={4}>
+                <Grid size={{ xs: 6, sm: 4 }}>
                   <DetailField label="Total" value={formatInr(data.total_amount)} />
                 </Grid>
               )}
 
               {visibleFields.has("pending_amount") && (
-                <Grid item xs={6} sm={4}>
+                <Grid size={{ xs: 6, sm: 4 }}>
                   <DetailField label="Pending" value={formatInr(data.pending_amount)} />
                 </Grid>
               )}
 
               {visibleFields.has("cleaning_status") && (
-                <Grid item xs={6} sm={4}>
+                <Grid size={{ xs: 6, sm: 4 }}>
                   <DetailField label="Cleaning status" value={data.cleaning_status ?? "—"} />
                 </Grid>
               )}
 
               {visibleFields.has("facility_status") && (
-                <Grid item xs={6} sm={4}>
+                <Grid size={{ xs: 6, sm: 4 }}>
                   <DetailField label="Facility status" value={data.facility_status ?? "—"} />
                 </Grid>
               )}
 
               {data.comments && (
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <DetailField label="Comments" value={data.comments} />
                 </Grid>
               )}

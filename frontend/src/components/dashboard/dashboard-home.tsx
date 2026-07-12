@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Alert,
   Card,
   CardActionArea,
   CardContent,
@@ -75,7 +76,7 @@ const ADMIN_LINKS = [
 ] as const;
 
 export function DashboardHome() {
-  const { user, role, canAccessAdmin } = useAuth();
+  const { user, role, canAccessAdmin, isError, error, isLoading } = useAuth();
 
   return (
     <MuiPageShell
@@ -87,14 +88,26 @@ export function DashboardHome() {
       }
     >
       <Stack spacing={3}>
+        {isError && (
+          <Alert severity="warning">
+            {error instanceof Error
+              ? error.message
+              : "Could not load your session. Sign in again if pages look empty."}
+          </Alert>
+        )}
+
         <Card>
           <CardContent>
             <Typography variant="h6" fontWeight={600}>
               Welcome{user?.name ? `, ${user.name}` : ""}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-              {role ? `Signed in as ${role}` : "Loading session…"} — use the sidebar for farmers,
-              procurement, and field services.
+              {isLoading
+                ? "Loading session…"
+                : role
+                  ? `Signed in as ${role}`
+                  : "Session unavailable"}{" "}
+              — use the sidebar for farmers, procurement, and field services.
             </Typography>
           </CardContent>
         </Card>

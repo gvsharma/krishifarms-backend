@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.shared.schemas.common import ORMModel, PaginatedResponse
 
@@ -21,7 +21,8 @@ class PermissionResponse(ORMModel):
 class UserResponse(ORMModel):
     id: UUID
     org_id: UUID
-    email: EmailStr | None
+    # str (not EmailStr): seeded *.local addresses are reserved domains EmailStr rejects
+    email: str | None
     phone: str | None
     full_name: str
     village_id: UUID | None = None
@@ -34,13 +35,26 @@ class UserResponse(ORMModel):
 
 
 class UserCreateRequest(BaseModel):
-    email: EmailStr | None = None
+    # str (not EmailStr) so seeded *.local demo/dev addresses are accepted.
+    email: str | None = Field(default=None, max_length=255)
     password: str | None = Field(default=None, min_length=8)
     full_name: str = Field(min_length=2, max_length=200)
     phone: str | None = None
     role_id: UUID
     village_id: UUID | None = None
     preferred_locale: str = "en"
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        email = value.strip().lower()
+        if not email:
+            return None
+        if "@" not in email or email.startswith("@") or email.endswith("@"):
+            raise ValueError("Invalid email address")
+        return email
 
     @model_validator(mode="after")
     def validate_credentials(self) -> "UserCreateRequest":

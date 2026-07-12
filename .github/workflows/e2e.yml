@@ -1,0 +1,97 @@
+name: E2E (Playwright)
+
+on:
+  workflow_call:
+
+env:
+  NODE_VERSION: "22"
+  API_PROXY_TARGET: "http://13.232.200.243:8082"
+  E2E_EMAIL: owner@krishifarms.local
+  E2E_PASSWORD: ChangeMe123!
+
+jobs:
+  playwright:
+    name: Playwright E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Build frontend
+        env:
+          NEXT_PUBLIC_API_BASE_URL: /api/v1
+          API_PROXY_TARGET: ${{ env.API_PROXY_TARGET }}
+          NEXT_PUBLIC_SITE_URL: https://example.vercel.app
+        run: npm run build
+
+      - name: Start frontend server
+        env:
+          NEXT_PUBLIC_API_BASE_URL: /api/v1
+          API_PROXY_TARGET: ${{ env.API_PROXY_TARGET }}
+          NEXT_PUBLIC_SITE_URL: https://example.vercel.app
+          PORT: "3000"
+        run: |
+          npm run start &
+          for i in $(seq 1 60); do
+            if curl -sf http://127.0.0.1:3000/login > /dev/null; then
+              echo "Frontend ready"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Frontend failed to start"
+          exit 1
+
+      - name: Run smoke + functional E2E (PR gate)
+        if: github.event_name == 'pull_request'
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
+          CI: "true"
+        run: npx playwright test --project=setup --project=smoke-chromium --project=workflow
+
+      - name: Run regression + workflows (main push)
+        if: github.event_name == 'push'
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
+          CI: "true"
+        run: npx playwright test --project=setup --project=smoke-chromium --project=regression --project=workflow
+
+      - name: Run full E2E suite (nightly / manual)
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
+          CI: "true"
+        run: npx playwright test
+
+      - name: Upload Playwright HTML report + enterprise validation
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ github.run_id }}
+          path: |
+            frontend/playwright-report/
+          retention-days: 14
+
+      - name: Upload test results (trace / screenshots / video)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-test-results-${{ github.run_id }}
+          path: frontend/test-results/
+          retention-days: 14

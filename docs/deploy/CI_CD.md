@@ -104,8 +104,9 @@ No workflow auto-merges or pushes to `main`.
 
 | Workflow | Trigger | Purpose |
 |----------|---------|---------|
-| `ci.yml` | PR + push to `main` | Runs `validate.yml` |
-| `validate.yml` | Called by CI/deploy | Ruff lint, Docker build, Trivy scan; frontend when added |
+| `ci.yml` | PR + push to `main` + nightly cron | Runs `validate.yml` + Playwright `e2e.yml` |
+| `validate.yml` | Called by CI/deploy | Ruff lint, Docker build, Trivy scan; frontend lint/build |
+| `e2e.yml` | Called by CI | Playwright: PR = smoke+workflow; push = +regression; nightly = full cross-browser; HTML report artifact |
 | `deploy.yml` | Push to `main` only | Validate → bundle → S3 → SSM → Docker Compose deploy |
 
 **After merge:** Merging a PR into `main` creates a `push` to `main`, which runs `ci.yml` (validation) and `deploy.yml` (EC2 deploy). Direct commits or pushes to `main` use the same triggers — avoid them; use feature branches and PRs instead.
@@ -359,7 +360,7 @@ Same account/config pattern as Gamyaboutique:
 | GitHub secrets not set | Add `AWS_BACKEND_DEPLOY_ROLE_ARN`, `DEPLOY_BUCKET`, `EC2_INSTANCE_ID`, and `EC2_HOST` before first deploy — see [Troubleshooting deploy failures](#troubleshooting-deploy-failures) |
 | EC2 not bootstrapped | Run `deploy/scripts/ec2-bootstrap.sh` once on shared Gamya host (`/opt/krishifarms`) |
 | Frontend not built | Add Next.js app under `frontend/` when ready; Vercel config is prepared |
-| No unit tests in CI yet | `validate.yml` runs ruff + Docker build; add pytest when tests exist |
+| Frontend E2E in CI | `e2e.yml` runs Playwright on PR/merge; require **E2E (Playwright)** status check on `main` to block merges — see [frontend/e2e/README.md](../../frontend/e2e/README.md) |
 
 ---
 

@@ -62,8 +62,8 @@ UserResponse:
       format: uuid
     email:
       type: string
-      format: email
       nullable: true
+      description: May include seeded *.local demo addresses (not strict RFC EmailStr)
     phone:
       type: string
       nullable: true
