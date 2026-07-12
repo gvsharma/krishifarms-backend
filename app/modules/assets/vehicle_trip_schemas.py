@@ -61,6 +61,7 @@ class VehicleTripResponse(BaseModel):
     total_cost: Decimal
     status: str
     notes: str | None = None
+    diesel_expense_id: UUID | None = None
 
 
 class VehicleTripListResponse(BaseModel):

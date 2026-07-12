@@ -153,20 +153,42 @@ export function DashboardHome() {
         )}
 
         {summaryQuery.data && (
-          <Grid container spacing={2}>
-            <Grid size={{ xs: 6, sm: 3 }}>
-              <SummaryStat label="Users" value={summaryQuery.data.users} />
+          <>
+            <Grid container spacing={2}>
+              <Grid size={{ xs: 6, sm: 4, md: 2 }}>
+                <SummaryStat label="Farmers" value={summaryQuery.data.farmers ?? 0} />
+              </Grid>
+              <Grid size={{ xs: 6, sm: 4, md: 2 }}>
+                <SummaryStat label="Procurements" value={summaryQuery.data.procurements ?? 0} />
+              </Grid>
+              <Grid size={{ xs: 6, sm: 4, md: 2 }}>
+                <SummaryStat label="Payments" value={summaryQuery.data.farmer_payments ?? 0} />
+              </Grid>
+              <Grid size={{ xs: 6, sm: 4, md: 2 }}>
+                <SummaryStat label="Assets" value={summaryQuery.data.assets ?? 0} />
+              </Grid>
+              <Grid size={{ xs: 6, sm: 4, md: 2 }}>
+                <SummaryStat label="Field services" value={summaryQuery.data.field_services ?? 0} />
+              </Grid>
+              <Grid size={{ xs: 6, sm: 4, md: 2 }}>
+                <SummaryStat label="Trips" value={summaryQuery.data.vehicle_trips ?? 0} />
+              </Grid>
             </Grid>
-            <Grid size={{ xs: 6, sm: 3 }}>
-              <SummaryStat label="Villages" value={summaryQuery.data.villages} />
+            <Grid container spacing={2}>
+              <Grid size={{ xs: 6, sm: 3 }}>
+                <SummaryStat label="Users" value={summaryQuery.data.users} />
+              </Grid>
+              <Grid size={{ xs: 6, sm: 3 }}>
+                <SummaryStat label="Villages" value={summaryQuery.data.villages} />
+              </Grid>
+              <Grid size={{ xs: 6, sm: 3 }}>
+                <SummaryStat label="Crop types" value={summaryQuery.data.crop_types} />
+              </Grid>
+              <Grid size={{ xs: 6, sm: 3 }}>
+                <SummaryStat label="Documents" value={summaryQuery.data.documents} />
+              </Grid>
             </Grid>
-            <Grid size={{ xs: 6, sm: 3 }}>
-              <SummaryStat label="Crop types" value={summaryQuery.data.crop_types} />
-            </Grid>
-            <Grid size={{ xs: 6, sm: 3 }}>
-              <SummaryStat label="Documents" value={summaryQuery.data.documents} />
-            </Grid>
-          </Grid>
+          </>
         )}
 
         {canAccessAdmin && (

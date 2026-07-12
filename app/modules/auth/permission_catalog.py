@@ -350,6 +350,7 @@ BACKEND_TO_MOBILE: dict[str, str] = {
     "expenses:read": EXPENSE_VIEW,
     "expenses:create": EXPENSE_CREATE,
     "expenses:update": EXPENSE_UPDATE,
+    "expenses:delete": EXPENSE_DELETE,
     "collections:read": COLLECTION_VIEW,
     "collections:create": COLLECTION_CREATE,
     "payments:read": PAYMENT_VIEW,

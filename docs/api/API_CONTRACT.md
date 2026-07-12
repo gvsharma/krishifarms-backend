@@ -129,6 +129,16 @@ OpenAPI: `docs/api/paths/platform.yaml`. Web admin: Settings → Master data.
 | POST | `/auth/logout` | `{ refresh_token }` | `{ message }` |
 | GET | `/auth/me` | — | User profile + `preferred_locale` |
 
+### Dashboard / reports (live thin)
+
+| Method | Path | Notes |
+|--------|------|-------|
+| GET | `/health` | Public liveness |
+| GET | `/dashboard/summary` | `dashboard:read` — org counts (users, villages, crops, documents + farmers, procurements, assets, farmer_payments, field_services, vehicle_trips) |
+| GET | `/dashboard/reports` | `dashboard:read` — ERP report registry metadata (status, SQL doc path, module links). **No** period KPI payloads yet — see `docs/reporting/sql/` |
+
+OpenAPI: `docs/api/paths/dashboard.yaml`. Web: `/reports` registry UI.
+
 ### Devices / Push
 
 | Method | Path | Request | Response `data` |
@@ -245,8 +255,9 @@ Categories: `field_service`, `tractor_work`, `transport`, `fertiliser`, `seeds`,
 
 | Method | Path | Notes |
 |--------|------|-------|
-| GET/POST | `/expenses` | Filter: category, farm, asset, status, dates |
-| GET/PATCH/DELETE | `/expenses/{id}` | Draft editable; attach `document_ids[]` |
+| GET/POST | `/expenses` | Filter: category, farm, asset, status, dates, source_type/source_id |
+| GET/PATCH/DELETE | `/expenses/{id}` | Draft editable; soft-delete; attach `document_ids[]` on create |
+| — | Vehicle trip diesel | `POST/PATCH /vehicle-trips` with `fuel_cost > 0` posts Fuel expense (`source_type=vehicle_trip`) |
 
 ### Collections
 

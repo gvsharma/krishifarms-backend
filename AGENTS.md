@@ -66,7 +66,7 @@ Mount routers           → app/main.py
 | farmers | `/farmers` (+ bank accounts, land parcels, outstanding) |
 | procurements | `/procurements` (full workflow) |
 
-Phase 2+ remaining (payments, workforce, assets, rentals, expenses): schema + OpenAPI ready; implement per [AGENT_GUIDE §11](./docs/AGENT_GUIDE.md#11-common-agent-workflows).
+Phase 2+ remaining (workforce, rentals, general payments): schema + OpenAPI ready; expenses/collections live — see [AGENT_GUIDE §11](./docs/AGENT_GUIDE.md#11-common-agent-workflows).
 
 ---
 

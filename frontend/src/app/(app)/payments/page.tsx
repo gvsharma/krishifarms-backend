@@ -35,9 +35,12 @@ import { fetchFarmers, type FarmerListItem } from "@/features/farmers/api";
 import {
   createFarmerPayment,
   fetchFarmerPayments,
+  PAYMENT_STATUS_COLORS,
+  PAYMENT_STATUS_LABELS,
   PAYMENT_TYPE_LABELS,
   type FarmerPaymentType,
 } from "@/features/farmer-payments/api";
+import { PaymentSettlementActions } from "@/features/farmer-payments/settlement-actions";
 import { fetchPaymentModes, type PaymentMode } from "@/features/master-data/api";
 import { formatInr } from "@/features/procurements/api";
 
@@ -169,13 +172,13 @@ export default function PaymentsPage() {
           <Box sx={{ p: 4, textAlign: "center" }}>
             <Typography color="text.secondary">No farmer payments yet.</Typography>
             <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
-              Record an advance or final payment — allocate to procurements from API when ready.
+              Record an advance or final payment, then allocate it to confirmed procurements.
             </Typography>
           </Box>
         )}
 
         {!listQuery.isLoading && listQuery.data && listQuery.data.items.length > 0 && (
-          <TableContainer>
+          <TableContainer sx={{ overflowX: "auto" }}>
             <Table size="small">
               <TableHead>
                 <TableRow>
@@ -186,6 +189,7 @@ export default function PaymentsPage() {
                   <TableCell align="right">Amount</TableCell>
                   <TableCell>Status</TableCell>
                   <TableCell>Ref</TableCell>
+                  <TableCell align="right">Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -206,9 +210,21 @@ export default function PaymentsPage() {
                     </TableCell>
                     <TableCell align="right">{formatInr(row.amount)}</TableCell>
                     <TableCell>
-                      <Chip label={row.status} size="small" variant="outlined" />
+                      <Chip
+                        label={PAYMENT_STATUS_LABELS[row.status] ?? row.status}
+                        size="small"
+                        color={PAYMENT_STATUS_COLORS[row.status] ?? "default"}
+                        variant={row.status === "completed" ? "filled" : "outlined"}
+                      />
                     </TableCell>
                     <TableCell>{row.reference_no ?? "—"}</TableCell>
+                    <TableCell align="right">
+                      <PaymentSettlementActions
+                        payment={row}
+                        farmerName={farmerById.get(row.farmer_id)?.full_name}
+                        dense
+                      />
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

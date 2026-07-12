@@ -3,8 +3,12 @@ from sqlalchemy.orm import Session
 
 from app.core.dependencies import CurrentUserContext, get_db, require_permission
 from app.modules.dashboard import service
-from app.modules.dashboard.schemas import DashboardSummaryResponse, HealthResponse
-from app.modules.dashboard.schemas import get_health
+from app.modules.dashboard.schemas import (
+    DashboardSummaryResponse,
+    HealthResponse,
+    ReportCatalogResponse,
+    get_health,
+)
 from app.shared.schemas.common import APIResponse
 
 router = APIRouter(tags=["Dashboard"])
@@ -22,3 +26,12 @@ def dashboard_summary(
 ):
     summary = service.get_summary(db, ctx.user.org_id)
     return APIResponse(data=summary)
+
+
+@router.get("/dashboard/reports", response_model=APIResponse[ReportCatalogResponse])
+def dashboard_reports(
+    ctx: CurrentUserContext = Depends(require_permission("dashboard:read")),
+):
+    """Report registry metadata (availability + SQL docs). Analytic payloads are not live yet."""
+    _ = ctx
+    return APIResponse(data=service.get_report_catalog())

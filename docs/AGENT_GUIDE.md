@@ -79,23 +79,23 @@ docs/deploy/           → CI/CD details
 | Users / Roles | ✅ | ✅ | ✅ | `001`, `002`, `015` | in `001` spec | 1 |
 | Villages / Crop types | ✅ | ✅ | ✅ | `001`, `003` | in master paths | 1 |
 | Districts / Mandals | ✅ | ✅ | ✅ | `023` | `paths/platform.yaml` | 1 |
-| Platform (buyers, agents, services, prices, payment modes, comments, tags) | ✅ | ✅ | ✅ | `003`, `017`, `018` | `paths/platform.yaml` | 1b |
+| Platform (buyers, agents, services, prices, payment modes, comments, tags) | ✅ | ✅ | ✅ | `003`, `017`, `018`, `028` | `paths/platform.yaml` | 1b |
 | Expense categories | ✅ | ✅ | ✅ | `001` | `paths/platform.yaml` | 1 |
 | Documents | 🟡 | ✅ | 🟡 | `001`, `007` | `paths/documents.yaml` | 1 |
 | Devices / FCM push | ✅ | ✅ | ✅ | `020` | `paths/devices.yaml` | 1 |
 | Audit / Activity | ✅ | ✅ | ✅ | `001`, `013`, `017` | in platform paths | 1 |
-| Dashboard / Health | 🟡 | ✅ | — | — | in platform paths | 1 |
+| Dashboard / Health | 🟡 | ✅ summary + reports catalog | `/reports` registry | — | `paths/dashboard.yaml` | KPI period APIs pending |
 | Farmers | ✅ | ✅ | ✅ | `004` | `paths/farmers.yaml` | 2a/2b (sub-resources) |
 | Field services | ✅ | ✅ | ✅ | `021`, `022` | `paths/field-services.yaml` | 2c |
 | Farms | 🟡 | ✅ thin CRUD + activities | Placeholder | `006` | `paths/farms.yaml` | Own-farming UI remaining |
 | Procurements | ✅ | ✅ | ✅ | `008`, `019`, `026` | `paths/procurement.yaml` | 2b (+ buyer/terms) |
-| Farmer payments / Ledger | ✅ | ✅ list/create/get/allocate/reverse | ✅ | `008` | `paths/payments.yaml` | Web settlement UI remaining |
+| Farmer payments / Ledger | ✅ | ✅ list/create/get/allocate/reverse | ✅ | `008` | `paths/payments.yaml` | Web `/payments` settlement UI (allocate/reverse) |
 | Workers | ⬜ | — | — | `005` | `paths/workers.yaml` | 4 |
 | Work orders / Attendance | ⬜ | — | — | `009` | `paths/work-orders.yaml` | 4 |
-| Assets / Vehicle trips | ✅ | Assets + trips ✅ | Vehicles list | `010`, `025` | `paths/assets.yaml`, `vehicles.yaml` | Diesel expense posting deferred |
+| Assets / Vehicle trips | ✅ | Assets + trips ✅ + diesel→expense | Vehicles list | `010`, `025`, `027` | `paths/assets.yaml`, `vehicles.yaml` | Trip `fuel_cost` posts Fuel expense |
 | Rentals | ⬜ | — | — | `011` | `paths/rentals.yaml` | 5 |
-| Expenses | ⬜ | — | — | `012` | `paths/expenses.yaml` | 3 |
-| Collections / Payments | ⬜ | — | — | `012` | `paths/collections.yaml`, `payments.yaml` | 3 |
+| Expenses | ✅ | ✅ CRUD | Placeholder | `012`, `027` | `paths/expenses.yaml` | 3 (no financial_transactions posting yet) |
+| Collections / Payments | 🟡 | Collections list/create/get ✅; general payments ⬜ | Placeholder | `012`, `027` | `paths/collections.yaml`, `payments.yaml` | 3 (rental customer FK soft) |
 | AI / OCR | ⬜ | — | — | `014` | stubs in documents | 5+ |
 | Global search | ⬜ | — | — | — | `paths/search.yaml` | 5+ |
 
@@ -103,21 +103,21 @@ docs/deploy/           → CI/CD details
 
 | System | Status | Location |
 |--------|--------|----------|
-| Full DB schema | ✅ | `alembic/versions/202506210001`–`026` |
-| RBAC permissions (DB seed) | ✅ | Migration `015` (+ `018`/`022`/`024`/`025`) |
-| RBAC permissions (Python seed) | 🟡 Phase 1 + platform + location/RBAC + assets | `app/shared/permissions.py` |
+| Full DB schema | ✅ | `alembic/versions/202506210001`–`027` |
+| RBAC permissions (DB seed) | ✅ | Migration `015` (+ `018`/`022`/`024`/`025`/`027`) |
+| RBAC permissions (Python seed) | 🟡 Phase 1–3 finance + platform + location/RBAC + assets | `app/shared/permissions.py` |
 | Reporting SQL (8 dashboards) | ✅ | `docs/reporting/sql/` |
 | Synthetic UAT data | ✅ | `scripts/synthetic_seed/` |
 | CI/CD pipeline | ✅ | `.github/workflows/` |
 | Cache layer | ✅ | `app/core/cache/` |
-| Unit tests | 🟡 | `tests/` (farmers, platform, procurements, farmer_payments) |
-| Frontend | 🟡 | `frontend/` — MUI shell + master-data CRUD, farmers, location cascade, **procurement workflow** (submit→weigh→price→confirm), field services; Phase 3+ pages still placeholders — [ANDROID_CRM_PARITY.md](./modules/ANDROID_CRM_PARITY.md) |
+| Unit tests | 🟡 | `tests/` (farmers, platform, procurements, farmer_payments, expenses) |
+| Frontend | 🟡 | `frontend/` — MUI shell + master-data CRUD, farmers, location cascade, **procurement workflow** (submit→weigh→price→confirm), field services, **reports registry**; Phase 3+ finance pages still placeholders — [ANDROID_CRM_PARITY.md](./modules/ANDROID_CRM_PARITY.md) |
 
 ### 3.3 Registered SQLAlchemy models (`app/models.py`)
 
-Phase 1–2b live models include: org/IAM, districts, mandals, villages, crop types, expense categories, platform catalogs (`ActivityType`, `PaymentMode`, `Buyer`, `FieldAgent`, `VehicleType`, `CropPriceRule`, comments/tags), farmers (+ bank/land), procurements (+ ledger/deductions + buyer/payment terms), farmer payments (+ allocations), documents, devices (`UserDeviceToken`), field services (`FieldServiceRecord`), assets (`Asset`), vehicle trips (`VehicleTrip`), farms (`Farm`/`FarmActivity`), audit/activity.
+Phase 1–2b live models include: org/IAM, districts, mandals, villages, crop types, expense categories, expenses, collections, platform catalogs (`ActivityType`, `PaymentMode`, `Buyer`, `FieldAgent`, `VehicleType`, `CropPriceRule`, comments/tags), farmers (+ bank/land), procurements (+ ledger/deductions + buyer/payment terms), farmer payments (+ allocations), documents, devices (`UserDeviceToken`), field services (`FieldServiceRecord`), assets (`Asset`), vehicle trips (`VehicleTrip`), farms (`Farm`/`FarmActivity`), audit/activity.
 
-Phase 3–5 tables (workers, expenses, rentals, etc.) exist in DB; thin routers now cover farms + vehicle trips; finance ops still deferred.
+Phase 3–5 remaining tables (workers, rentals, financial_transactions posting, etc.) exist in DB; expenses/collections CRUD live; diesel posts from vehicle trips.
 
 ---
 
@@ -217,6 +217,8 @@ Full topology: [ARCHITECTURE.md](./ARCHITECTURE.md).
 | `024` | `rbac_role_alignment` | Location/domain perms, FARMER role, supervisor display names |
 | `025` | `assets_fleet_fields` | Asset `vehicle_type_id`/`fuel_type`/`driver_name`; DRIVER asset + FS write grants |
 | `026` | `procurement_buyer_payment_terms` | Procurement `buyer_id`, payment terms, expected/actual payment dates |
+| `027` | `expenses_source_finance_rbac` | Expense source linkage + `expenses:*` / `collections:*` |
+| `028` | `payment_modes_rbac` | `payment_modes:*` (missed in `018`) |
 
 See also [alembic/versions/README.md](../alembic/versions/README.md).
 
@@ -531,8 +533,8 @@ Current foundation release: **0.1.0** (2025-06-21, commit `60bb2b5`).
 | Phase | Scope | API status | DB status |
 |-------|-------|------------|-----------|
 | **1** ✅ | Auth, users, master data, expense categories, documents (partial), audit, dashboard | Live Python | ✅ |
-| **2** | Farmers, procurements, farmer ledger/payments | Farmers + procurements ✅; farmer payments thin (list/create/get) | ✅ |
-| **3** | Expenses, collections, general payments | OpenAPI only | ✅ |
+| **2** | Farmers, procurements, farmer ledger/payments | Farmers + procurements ✅; farmer payments list/create/get/allocate/reverse + web settlement UI | ✅ |
+| **3** | Expenses, collections, general payments | Expenses + collections Python ✅; general `/payments` deferred | ✅ |
 | **4** | Farms, workers, work orders, attendance | OpenAPI only | ✅ |
 | **5+** | Fleet, rentals, AI/OCR, global search | OpenAPI only | ✅ |
 

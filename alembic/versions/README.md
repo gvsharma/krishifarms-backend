@@ -48,6 +48,8 @@ alembic downgrade -1
 | `202506210024` | RBAC alignment | Location + soft-wired domain perms; FARMER role; supervisor display names |
 | `202506210025` | Assets fleet | `vehicle_type_id` / `fuel_type` / `driver_name` on assets; DRIVER asset + field-service write grants |
 | `202506210026` | Procurement | `buyer_id`, payment terms + expected/actual payment dates on `procurements` |
+| `202506210027` | Financial | `expenses.source_type` / `source_id` + unique active source index; `expenses:*` / `collections:*` RBAC |
+| `202506210028` | Master data RBAC | `payment_modes:*` permissions (missed in `018`) granted to OWNER / MANAGER / SUPERVISOR |
 
 ## Partition Maintenance
 

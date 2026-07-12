@@ -1,0 +1,101 @@
+health:
+  get:
+    tags: [Dashboard]
+    operationId: getHealth
+    summary: Liveness / app info
+    security: []
+    responses:
+      '200':
+        description: Health payload
+        content:
+          application/json:
+            schema:
+              type: object
+
+dashboardSummary:
+  get:
+    tags: [Dashboard]
+    operationId: getDashboardSummary
+    summary: Org-scoped operational counts for home + reports KPI strip
+    description: |
+      Requires `dashboard:read`. Returns master counts plus live ops tallies
+      (farmers, procurements, assets, farmer payments, field services, vehicle trips).
+      Full period KPI reports remain documented in `docs/reporting/sql/` only.
+    responses:
+      '200':
+        description: Dashboard summary counts
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean }
+                data:
+                  type: object
+                  required:
+                    - users
+                    - villages
+                    - crop_types
+                    - documents
+                  properties:
+                    users: { type: integer }
+                    villages: { type: integer }
+                    crop_types: { type: integer }
+                    documents: { type: integer }
+                    farmers: { type: integer }
+                    procurements: { type: integer }
+                    assets: { type: integer }
+                    farmer_payments: { type: integer }
+                    field_services: { type: integer }
+                    vehicle_trips: { type: integer }
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '403':
+        $ref: ../openapi.yaml#/components/responses/Forbidden
+
+dashboardReports:
+  get:
+    tags: [Dashboard]
+    operationId: getDashboardReports
+    summary: Report registry (availability metadata)
+    description: |
+      Requires `dashboard:read`. Returns ERP report types with status
+      (`partial` | `coming_soon`), SQL doc paths, and module deep-links.
+      Does **not** execute reporting SQL or return KPI time series — those
+      endpoints are still an API gap (see ERP_UPGRADE_CHECKLIST).
+    responses:
+      '200':
+        description: Report catalog
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean }
+                data:
+                  type: object
+                  properties:
+                    items:
+                      type: array
+                      items:
+                        type: object
+                        required: [id, name, description, status]
+                        properties:
+                          id: { type: string }
+                          name: { type: string }
+                          description: { type: string }
+                          status:
+                            type: string
+                            enum: [available, partial, coming_soon]
+                          sql_file: { type: string, nullable: true }
+                          kpi_prefix: { type: string, nullable: true }
+                          module_paths:
+                            type: array
+                            items: { type: string }
+                          notes: { type: string, nullable: true }
+                    summary_endpoint: { type: string }
+                    architecture_doc: { type: string }
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '403':
+        $ref: ../openapi.yaml#/components/responses/Forbidden

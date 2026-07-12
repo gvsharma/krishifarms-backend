@@ -11,9 +11,10 @@ from app.core.exceptions import ConflictError, NotFoundError
 from app.modules.assets.models import Asset
 from app.modules.assets.vehicle_trip_models import VehicleTrip
 from app.modules.assets.vehicle_trip_schemas import VehicleTripCreateRequest, VehicleTripUpdateRequest
+from app.modules.financial.expense_service import find_expense_by_source, sync_vehicle_trip_diesel_expense
+from app.modules.financial.schemas import VEHICLE_TRIP_SOURCE
 
 _TRIP_PREFIX = "VT-"
-_ZERO = Decimal("0")
 _TWOPLACES = Decimal("0.01")
 
 
@@ -54,6 +55,11 @@ def _get_asset(db: Session, org_id: UUID, asset_id: UUID) -> Asset:
     if row is None:
         raise NotFoundError("Asset not found")
     return row
+
+
+def diesel_expense_id_for_trip(db: Session, org_id: UUID, trip_id: UUID) -> UUID | None:
+    expense = find_expense_by_source(db, org_id, VEHICLE_TRIP_SOURCE, trip_id)
+    return expense.id if expense else None
 
 
 def list_trips(
@@ -140,6 +146,19 @@ def create_trip(
         updated_at=now,
     )
     db.add(row)
+    db.flush()
+    sync_vehicle_trip_diesel_expense(
+        db,
+        org_id,
+        trip_id=row.id,
+        trip_number=row.trip_number,
+        trip_date=row.trip_date,
+        asset_id=row.asset_id,
+        fuel_cost=row.fuel_cost,
+        fuel_liters=row.fuel_liters,
+        trip_status=row.status,
+        actor_user_id=actor_user_id,
+    )
     db.commit()
     db.refresh(row)
     return row
@@ -175,6 +194,19 @@ def update_trip(
     )
     row.updated_by = actor_user_id
     row.updated_at = datetime.now(UTC)
+    db.flush()
+    sync_vehicle_trip_diesel_expense(
+        db,
+        org_id,
+        trip_id=row.id,
+        trip_number=row.trip_number,
+        trip_date=row.trip_date,
+        asset_id=row.asset_id,
+        fuel_cost=row.fuel_cost,
+        fuel_liters=row.fuel_liters,
+        trip_status=row.status,
+        actor_user_id=actor_user_id,
+    )
     db.commit()
     db.refresh(row)
     return row
