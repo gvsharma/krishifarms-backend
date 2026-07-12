@@ -52,5 +52,7 @@ e2e/
   auth.setup.ts          # login once
   fixtures/auth.ts       # shared login helpers
   smoke/dashboard.spec.ts
+  operations/            # farmers, procurement, field-services, farms/vehicles/workers
+  finance/               # expenses, payments, collections
   .auth/                 # generated; do not commit
 ```
