@@ -24,6 +24,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **Master-data catalog dialogs** — `CatalogAdminPage` Add/Edit forms no longer overlap labels (dense MUI `TextField`s in `DialogContent`); now spaced `Scope` + premium `Field`/`Input`/`Textarea`, `PremiumDialog` chrome (24px radius), clear titles; covers activity-types, buyers, crops, and all other catalog pages
 - **CI Ruff lint** — remove unused `typing.Any` import in `app/modules/devices/fcm.py`
 - **Web dashboard/home** — Replaced Tailwind-only executive mock (mixed with MUI shell) with MUI home + role-aware admin hub; loads user from `/auth/me`
 - **Audit helpers** — `write_audit_log` / `write_activity_feed` accept `device_id` and `client_type` (callers already passed them; previously TypeError)

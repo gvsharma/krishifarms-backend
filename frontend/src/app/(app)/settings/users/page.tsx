@@ -1,19 +1,15 @@
 "use client";
 
 import {
-  Alert,
   Box,
   Button,
   Card,
   Chip,
   CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   FormControlLabel,
   IconButton,
   MenuItem,
+  Stack,
   Switch,
   Table,
   TableBody,
@@ -28,6 +24,13 @@ import { Add, EditOutlined } from "@mui/icons-material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { MuiPageShell } from "@/components/shell/mui-page-shell";
+import {
+  PremiumDialog,
+  PremiumDialogActions,
+  PremiumDialogContent,
+  PremiumDialogTitle,
+} from "@/components/ui/premium-dialog";
+import { SoftAlert } from "@/components/ui/soft-alert";
 import { useAuth } from "@/hooks/use-auth";
 import { createUser, fetchRoles, fetchUsers, updateUser, type User } from "@/features/settings/api";
 
@@ -93,6 +96,7 @@ export default function SettingsUsersPage() {
   const openCreate = () => {
     setEditing(null);
     setForm(emptyForm());
+    saveMutation.reset();
     setDialogOpen(true);
   };
 
@@ -107,6 +111,7 @@ export default function SettingsUsersPage() {
       preferred_locale: user.preferred_locale || "en",
       is_active: user.is_active,
     });
+    saveMutation.reset();
     setDialogOpen(true);
   };
 
@@ -138,11 +143,11 @@ export default function SettingsUsersPage() {
         )}
 
         {usersQuery.isError && (
-          <Alert severity="warning" sx={{ m: 2 }}>
+          <SoftAlert severity="warning" sx={{ m: 2 }}>
             {usersQuery.error instanceof Error
               ? usersQuery.error.message
               : "Could not load users. Sign in or check API connectivity."}
-          </Alert>
+          </SoftAlert>
         )}
 
         {!usersQuery.isLoading && usersQuery.data && (
@@ -215,90 +220,85 @@ export default function SettingsUsersPage() {
         )}
       </Card>
 
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>{editing ? "Edit user" : "Add user"}</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            label="Full name"
-            fullWidth
-            required
-            value={form.full_name}
-            onChange={(e) => setForm((p) => ({ ...p, full_name: e.target.value }))}
-          />
-          {!editing && (
+      <PremiumDialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm">
+        <PremiumDialogTitle>{editing ? "Edit user" : "Add user"}</PremiumDialogTitle>
+        <PremiumDialogContent>
+          <Stack spacing={2} sx={{ pt: 1 }}>
             <TextField
-              margin="dense"
-              label="Email"
+              autoFocus
+              label="Full name"
               fullWidth
-              type="email"
-              value={form.email}
-              onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
-              helperText="Required with password for web login; leave empty for phone-only field staff"
+              required
+              value={form.full_name}
+              onChange={(e) => setForm((p) => ({ ...p, full_name: e.target.value }))}
             />
-          )}
-          <TextField
-            margin="dense"
-            label="Phone"
-            fullWidth
-            value={form.phone}
-            onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))}
-          />
-          <TextField
-            margin="dense"
-            label={editing ? "New password (optional)" : "Password"}
-            fullWidth
-            type="password"
-            value={form.password}
-            onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
-            helperText={!editing ? "Required when email is set (min 8 chars)" : undefined}
-          />
-          <TextField
-            select
-            margin="dense"
-            label="Role"
-            fullWidth
-            required
-            value={form.role_id}
-            onChange={(e) => setForm((p) => ({ ...p, role_id: e.target.value }))}
-          >
-            {(rolesQuery.data ?? []).map((role) => (
-              <MenuItem key={role.id} value={role.id}>
-                {role.name} ({role.code})
-              </MenuItem>
-            ))}
-          </TextField>
-          <TextField
-            select
-            margin="dense"
-            label="Locale"
-            fullWidth
-            value={form.preferred_locale}
-            onChange={(e) => setForm((p) => ({ ...p, preferred_locale: e.target.value }))}
-          >
-            <MenuItem value="en">English</MenuItem>
-            <MenuItem value="te">Telugu</MenuItem>
-          </TextField>
-          {editing && (
-            <FormControlLabel
-              sx={{ mt: 1 }}
-              control={
-                <Switch
-                  checked={form.is_active}
-                  onChange={(e) => setForm((p) => ({ ...p, is_active: e.target.checked }))}
-                />
-              }
-              label="Active"
+            {!editing && (
+              <TextField
+                label="Email"
+                fullWidth
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
+                helperText="Required with password for web login; leave empty for phone-only field staff"
+              />
+            )}
+            <TextField
+              label="Phone"
+              fullWidth
+              value={form.phone}
+              onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))}
             />
-          )}
-          {saveMutation.isError && (
-            <Alert severity="error" sx={{ mt: 1 }}>
-              {saveMutation.error instanceof Error ? saveMutation.error.message : "Save failed"}
-            </Alert>
-          )}
-        </DialogContent>
-        <DialogActions>
+            <TextField
+              label={editing ? "New password (optional)" : "Password"}
+              fullWidth
+              type="password"
+              value={form.password}
+              onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
+              helperText={!editing ? "Required when email is set (min 8 chars)" : undefined}
+            />
+            <TextField
+              select
+              label="Role"
+              fullWidth
+              required
+              value={form.role_id}
+              onChange={(e) => setForm((p) => ({ ...p, role_id: e.target.value }))}
+            >
+              {(rolesQuery.data ?? []).map((role) => (
+                <MenuItem key={role.id} value={role.id}>
+                  {role.name} ({role.code})
+                </MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              select
+              label="Locale"
+              fullWidth
+              value={form.preferred_locale}
+              onChange={(e) => setForm((p) => ({ ...p, preferred_locale: e.target.value }))}
+            >
+              <MenuItem value="en">English</MenuItem>
+              <MenuItem value="te">Telugu</MenuItem>
+            </TextField>
+            {editing && (
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={form.is_active}
+                    onChange={(e) => setForm((p) => ({ ...p, is_active: e.target.checked }))}
+                  />
+                }
+                label="Active"
+              />
+            )}
+            {saveMutation.isError && (
+              <SoftAlert severity="error">
+                {saveMutation.error instanceof Error ? saveMutation.error.message : "Save failed"}
+              </SoftAlert>
+            )}
+          </Stack>
+        </PremiumDialogContent>
+        <PremiumDialogActions>
           <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
           <Button
             variant="contained"
@@ -307,8 +307,8 @@ export default function SettingsUsersPage() {
           >
             {saveMutation.isPending ? "Saving…" : "Save"}
           </Button>
-        </DialogActions>
-      </Dialog>
+        </PremiumDialogActions>
+      </PremiumDialog>
     </MuiPageShell>
   );
 }
