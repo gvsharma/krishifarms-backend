@@ -5,10 +5,11 @@ import {
   Box,
   Button,
   CircularProgress,
-  Grid,
+  Grid2 as Grid,
   MenuItem,
   Stack,
   TextField,
+  Typography,
 } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
@@ -208,19 +209,19 @@ export function FieldServiceForm({
       }}
     >
       <Grid container spacing={2}>
-        <Grid item xs={12} sm={6}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField
             required
             fullWidth
             type="date"
             label="Service date"
-            InputLabelProps={{ shrink: true }}
+            slotProps={{ inputLabel: { shrink: true } }}
             value={values.service_date}
             onChange={(e) => set({ service_date: e.target.value })}
             disabled={disabled}
           />
         </Grid>
-        <Grid item xs={12} sm={6}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField
             select
             fullWidth
@@ -238,7 +239,7 @@ export function FieldServiceForm({
         </Grid>
 
         {fields.has("farmer_id") && (
-          <Grid item xs={12} sm={6}>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <TextField
               select
               fullWidth
@@ -258,7 +259,7 @@ export function FieldServiceForm({
         )}
 
         {fields.has("activity_type_id") && (
-          <Grid item xs={12} sm={6}>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <TextField
               select
               fullWidth
@@ -279,7 +280,7 @@ export function FieldServiceForm({
         )}
 
         {fields.has("vehicle_type_id") && (
-          <Grid item xs={12} sm={6}>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <TextField
               select
               fullWidth
@@ -300,7 +301,7 @@ export function FieldServiceForm({
         )}
 
         {fields.has("location") && (
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <TextField
               fullWidth
               label="Location"
@@ -312,11 +313,11 @@ export function FieldServiceForm({
         )}
 
         {fields.has("hours") && (
-          <Grid item xs={12} sm={6}>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <TextField
               fullWidth
               type="number"
-              inputProps={{ min: 0, step: 0.5 }}
+              slotProps={{ htmlInput: { min: 0, step: 0.5 } }}
               label="Hours"
               value={values.hours}
               onChange={(e) => set({ hours: e.target.value })}
@@ -326,11 +327,11 @@ export function FieldServiceForm({
         )}
 
         {fields.has("bag_count") && (
-          <Grid item xs={12} sm={6}>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <TextField
               fullWidth
               type="number"
-              inputProps={{ min: 0, step: 1 }}
+              slotProps={{ htmlInput: { min: 0, step: 1 } }}
               label="Bag count"
               value={values.bag_count}
               onChange={(e) => set({ bag_count: e.target.value })}
@@ -340,11 +341,11 @@ export function FieldServiceForm({
         )}
 
         {fields.has("quantity") && (
-          <Grid item xs={12} sm={4}>
+          <Grid size={{ xs: 12, sm: 4 }}>
             <TextField
               fullWidth
               type="number"
-              inputProps={{ min: 0, step: 0.01 }}
+              slotProps={{ htmlInput: { min: 0, step: 0.01 } }}
               label="Quantity"
               value={values.quantity}
               onChange={(e) => set({ quantity: e.target.value })}
@@ -354,7 +355,7 @@ export function FieldServiceForm({
         )}
 
         {fields.has("quantity_unit") && (
-          <Grid item xs={12} sm={4}>
+          <Grid size={{ xs: 12, sm: 4 }}>
             <TextField
               fullWidth
               label="Quantity unit"
@@ -367,11 +368,11 @@ export function FieldServiceForm({
         )}
 
         {fields.has("rate_per_unit") && (
-          <Grid item xs={12} sm={4}>
+          <Grid size={{ xs: 12, sm: 4 }}>
             <TextField
               fullWidth
               type="number"
-              inputProps={{ min: 0, step: 0.01 }}
+              slotProps={{ htmlInput: { min: 0, step: 0.01 } }}
               label="Rate per unit (₹)"
               value={values.rate_per_unit}
               onChange={(e) => set({ rate_per_unit: e.target.value })}
@@ -381,11 +382,11 @@ export function FieldServiceForm({
         )}
 
         {fields.has("diesel_amount") && (
-          <Grid item xs={12} sm={6} md={4}>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
             <TextField
               fullWidth
               type="number"
-              inputProps={{ min: 0, step: 0.01 }}
+              slotProps={{ htmlInput: { min: 0, step: 0.01 } }}
               label="Diesel amount (₹)"
               value={values.diesel_amount}
               onChange={(e) => set({ diesel_amount: e.target.value })}
@@ -395,11 +396,11 @@ export function FieldServiceForm({
         )}
 
         {fields.has("amount_given") && (
-          <Grid item xs={12} sm={6} md={4}>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
             <TextField
               fullWidth
               type="number"
-              inputProps={{ min: 0, step: 0.01 }}
+              slotProps={{ htmlInput: { min: 0, step: 0.01 } }}
               label="Amount given (₹)"
               value={values.amount_given}
               onChange={(e) => set({ amount_given: e.target.value })}
@@ -409,11 +410,11 @@ export function FieldServiceForm({
         )}
 
         {fields.has("advance_amount") && (
-          <Grid item xs={12} sm={6} md={4}>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
             <TextField
               fullWidth
               type="number"
-              inputProps={{ min: 0, step: 0.01 }}
+              slotProps={{ htmlInput: { min: 0, step: 0.01 } }}
               label="Advance (₹)"
               value={values.advance_amount}
               onChange={(e) => set({ advance_amount: e.target.value })}
@@ -423,11 +424,11 @@ export function FieldServiceForm({
         )}
 
         {fields.has("total_amount") && (
-          <Grid item xs={12} sm={6} md={4}>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
             <TextField
               fullWidth
               type="number"
-              inputProps={{ min: 0, step: 0.01 }}
+              slotProps={{ htmlInput: { min: 0, step: 0.01 } }}
               label="Total (₹)"
               value={values.total_amount}
               onChange={(e) => set({ total_amount: e.target.value })}
@@ -437,11 +438,11 @@ export function FieldServiceForm({
         )}
 
         {fields.has("pending_amount") && (
-          <Grid item xs={12} sm={6} md={4}>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
             <TextField
               fullWidth
               type="number"
-              inputProps={{ min: 0, step: 0.01 }}
+              slotProps={{ htmlInput: { min: 0, step: 0.01 } }}
               label="Pending (₹)"
               value={values.pending_amount}
               onChange={(e) => set({ pending_amount: e.target.value })}
@@ -451,7 +452,7 @@ export function FieldServiceForm({
         )}
 
         {fields.has("cleaning_status") && (
-          <Grid item xs={12} sm={6}>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <TextField
               select
               fullWidth
@@ -471,7 +472,7 @@ export function FieldServiceForm({
         )}
 
         {fields.has("facility_status") && (
-          <Grid item xs={12} sm={6}>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <TextField
               select
               fullWidth
@@ -490,7 +491,7 @@ export function FieldServiceForm({
           </Grid>
         )}
 
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <TextField
             fullWidth
             label="Comments"

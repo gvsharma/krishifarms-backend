@@ -67,6 +67,14 @@ export default function NewFarmerPage() {
         </Box>
       )}
 
+      {villagesQuery.isError && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          {villagesQuery.error instanceof Error
+            ? villagesQuery.error.message
+            : "Could not load villages"}
+        </Alert>
+      )}
+
       {!villagesQuery.isLoading && (
         <Card sx={{ p: 3, maxWidth: 560 }}>
           <Stack
