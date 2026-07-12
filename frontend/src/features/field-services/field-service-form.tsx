@@ -2,9 +2,7 @@
 
 import {
   Alert,
-  Box,
   Button,
-  CircularProgress,
   Grid2 as Grid,
   MenuItem,
   Stack,
@@ -161,18 +159,21 @@ export function FieldServiceForm({
     queryKey: ["farmers-field-service-form"],
     queryFn: () => fetchFarmers({ pageSize: 100 }),
     enabled: fields.has("farmer_id"),
+    retry: false,
   });
 
   const activityTypesQuery = useQuery({
     queryKey: ["activity-types-field-service"],
     queryFn: () => fetchActivityTypes(1, 100),
     enabled: fields.has("activity_type_id"),
+    retry: false,
   });
 
   const vehicleTypesQuery = useQuery({
     queryKey: ["vehicle-types-field-service"],
     queryFn: () => fetchVehicleTypes(1, 100),
     enabled: fields.has("vehicle_type_id"),
+    retry: false,
   });
 
   const activityOptions = useMemo(
@@ -191,20 +192,7 @@ export function FieldServiceForm({
     [vehicleTypesQuery.data, category],
   );
 
-  const loading =
-    (fields.has("farmer_id") && farmersQuery.isLoading) ||
-    (fields.has("activity_type_id") && activityTypesQuery.isLoading) ||
-    (fields.has("vehicle_type_id") && vehicleTypesQuery.isLoading);
-
   const set = (patch: Partial<FieldServiceFormValues>) => onChange({ ...values, ...patch });
-
-  if (loading) {
-    return (
-      <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
 
   return (
     <Stack
@@ -253,7 +241,7 @@ export function FieldServiceForm({
               label="Farmer"
               value={values.farmer_id}
               onChange={(e) => set({ farmer_id: e.target.value })}
-              disabled={disabled}
+              disabled={disabled || farmersQuery.isLoading}
             >
               <MenuItem value="">None</MenuItem>
               {(farmersQuery.data?.items ?? []).map((farmer) => (
@@ -273,7 +261,7 @@ export function FieldServiceForm({
               label="Activity / equipment type"
               value={values.activity_type_id}
               onChange={(e) => set({ activity_type_id: e.target.value })}
-              disabled={disabled}
+              disabled={disabled || activityTypesQuery.isLoading}
             >
               <MenuItem value="">None</MenuItem>
               {activityOptions.map((activity) => (
@@ -294,7 +282,7 @@ export function FieldServiceForm({
               label="Vehicle / equipment type"
               value={values.vehicle_type_id}
               onChange={(e) => set({ vehicle_type_id: e.target.value })}
-              disabled={disabled}
+              disabled={disabled || vehicleTypesQuery.isLoading}
             >
               <MenuItem value="">None</MenuItem>
               {vehicleOptions.map((vehicle) => (
