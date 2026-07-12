@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
-- **Field services domain (v1)** — unified `field_service_records` table (migration `021`); `activity_types.service_category`; CRUD `/field-services`; seeds `scripts/seed_services.py` (paddy/corn/vegetables/pulses/concretework crops, 24 activity types, 7 vehicle types, expense/payment catalogs); RBAC migration `022`; module doc [FIELD_SERVICES.md](./modules/FIELD_SERVICES.md); web list placeholder `/field-services`
+- **Field services domain (v1)** — unified `field_service_records` table (migration `021`); `activity_types.service_category`; CRUD `/field-services`; seeds `scripts/seed_services.py` (paddy/corn/vegetables/pulses/concretework crops, 24 activity types, 7 vehicle types, expense/payment catalogs); RBAC migration `022`; module doc [FIELD_SERVICES.md](./modules/FIELD_SERVICES.md); web list `/field-services`, create `/field-services/new` (category-specific forms), detail/edit `/field-services/[id]`
 - **Admin master-data parity (web)** — CRM settings CRUD for crop types, crop prices, buyers, agents, vehicle types, activity types, expense categories, payment modes; villages edit/delete; users create/edit; farmers `/farmers/new`; shared `CatalogAdminPage`; gap matrix [ANDROID_CRM_PARITY.md](./modules/ANDROID_CRM_PARITY.md)
 - **Payment modes API** — `GET/POST/PATCH/DELETE /payment-modes` (`PaymentMode` model on existing `payment_modes` table); permissions `payment_modes:*`; OpenAPI `paths/platform.yaml` for platform + master catalogs
 - **FCM devices + push** — migration `020` `user_device_tokens`; `POST/DELETE /devices/push-tokens`; bilingual FCM on procurement status, farmer comments, document upload; module doc [DEVICES_NOTIFICATIONS.md](./modules/DEVICES_NOTIFICATIONS.md)
@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **Vercel frontend build** — wrap `useSearchParams` in `Suspense` on `/field-services/new` (Next.js 15 static prerender)
 - **Audit helpers** — `write_audit_log` / `write_activity_feed` accept `device_id` and `client_type` (callers already passed them; previously TypeError)
 - **Auth login** — accept seeded `*.local` emails (EmailStr rejected special-use domains)
 - **bcrypt pin** — constrain `bcrypt>=4.0.1,<4.1` (bcrypt 5.x breaks passlib verify / login)

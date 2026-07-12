@@ -81,6 +81,7 @@ export interface ActivityType {
   name: string;
   name_te: string | null;
   code: string;
+  service_category: string | null;
   default_rate_type: string | null;
   is_active: boolean;
 }
