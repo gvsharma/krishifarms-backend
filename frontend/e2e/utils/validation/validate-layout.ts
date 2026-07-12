@@ -18,6 +18,8 @@ export async function validateLayout(page: Page): Promise<ValidationResult> {
     }
 
     function isVisible(el: Element): boolean {
+      // Modal underlays / decorative icons — not interactive layout defects
+      if (el.closest('[aria-hidden="true"]')) return false;
       const style = window.getComputedStyle(el);
       if (style.display === "none" || style.visibility === "hidden") return false;
       if (parseFloat(style.opacity) === 0) return false;
@@ -51,6 +53,51 @@ export async function validateLayout(page: Page): Promise<ValidationResult> {
       return false;
     }
 
+    /** Show/hide password controls intentionally sit inside the field hit area. */
+    function isPasswordToggleOverlap(aEl: Element, bEl: Element): boolean {
+      const toggleOf = (el: Element): Element | null => {
+        const btn =
+          el.closest("button, [role='button']") ||
+          (el.tagName === "BUTTON" || el.getAttribute("role") === "button" ? el : null);
+        if (!btn) return null;
+        const label = (btn.getAttribute("aria-label") || "").toLowerCase();
+        if (label.includes("password")) return btn;
+        // Absolute adornment inside a relative field wrapper (premium Input)
+        if (
+          (btn.classList.contains("absolute") ||
+            (typeof btn.className === "string" && btn.className.includes("absolute"))) &&
+          btn.closest(".relative, [class*='relative']")
+        ) {
+          return btn;
+        }
+        return null;
+      };
+      const inputOf = (el: Element): Element | null => {
+        if (el.tagName === "INPUT" || el.tagName === "TEXTAREA") return el;
+        if (el.getAttribute("role") === "textbox") return el;
+        return null;
+      };
+
+      const toggle = toggleOf(aEl) || toggleOf(bEl);
+      const input = inputOf(aEl) || inputOf(bEl);
+      if (!toggle || !input) return false;
+      if (toggleOf(aEl) && toggleOf(bEl)) return false;
+      if (inputOf(aEl) && inputOf(bEl)) return false;
+
+      const wrap =
+        input.closest(
+          ".relative, .MuiInputAdornment-root, .MuiInputBase-root, [class*='items-center']",
+        ) || input.parentElement;
+      return Boolean(wrap && wrap.contains(toggle));
+    }
+
+    /** Dialog overlays page content — cross-layer boxes are expected, not defects. */
+    function isCrossDialogLayerOverlap(aEl: Element, bEl: Element): boolean {
+      const aInDialog = Boolean(aEl.closest('[role="dialog"]'));
+      const bInDialog = Boolean(bEl.closest('[role="dialog"]'));
+      return aInDialog !== bInDialog;
+    }
+
     const interactiveSelector =
       'button, a[href], input, textarea, select, [role="button"], [role="link"], [role="textbox"], [role="combobox"], h1, h2, h3, nav, header, aside, th, td, [data-testid]';
 
@@ -71,6 +118,8 @@ export async function validateLayout(page: Page): Promise<ValidationResult> {
         const b = boxes[j];
         if (a.el.contains(b.el) || b.el.contains(a.el)) continue;
         if (isFormLabelPair(a.el, b.el)) continue;
+        if (isPasswordToggleOverlap(a.el, b.el)) continue;
+        if (isCrossDialogLayerOverlap(a.el, b.el)) continue;
         const area = overlapArea(a.rect, b.rect);
         if (area <= 0) continue;
         const smaller = Math.min(a.rect.width * a.rect.height, b.rect.width * b.rect.height);

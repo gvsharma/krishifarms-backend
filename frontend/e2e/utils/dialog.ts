@@ -3,15 +3,18 @@ import { heavyOverlap } from "./overlap";
 import { dialogFieldRoles } from "./selectors";
 
 /**
- * Resolve a MUI dialog field by accessible name.
+ * Resolve a MUI / premium dialog field by accessible name.
  * Prefer role locators: getByLabel(exact) misses required asterisk / floating-label quirks.
+ * Short labels like "Name" also match via /^Name$/ so we don't grab unrelated text nodes.
  */
 export function dialogField(dialog: Locator, label: string): Locator {
   const exact = { name: label, exact: true as const };
-  let locator = dialog.getByLabel(label, { exact: true });
+  const nameRe = new RegExp(`^${label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i");
+  let locator = dialog.getByRole("textbox", { name: nameRe });
   for (const role of dialogFieldRoles()) {
     locator = locator.or(dialog.getByRole(role, exact));
   }
+  locator = locator.or(dialog.getByLabel(label, { exact: true }));
   return locator.first();
 }
 

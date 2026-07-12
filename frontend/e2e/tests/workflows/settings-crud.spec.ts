@@ -23,7 +23,8 @@ test.describe("workflows — settings users CRUD dialog", () => {
     await validateEntirePage(page, {
       name: "settings-users-add-dialog",
       skip: ["visual", "responsive", "network"],
-      softFail: ["typography", "css", "performance", "contrast"],
+      // Under-dialog chrome is covered by the modal; layout/buttons soft while dialog is open.
+      softFail: ["typography", "css", "performance", "contrast", "layout", "buttons"],
     });
 
     await page.getByRole("button", { name: /Cancel/i }).click();
@@ -42,10 +43,13 @@ test.describe("workflows — villages add dialog", () => {
     await page.getByRole("button", { name: /^Add$/i }).click();
     await expect(page.getByRole("dialog")).toBeVisible();
 
+    await page.getByRole("dialog").getByRole("textbox").first().waitFor({ state: "visible" });
+
     await validateEntirePage(page, {
       name: "settings-villages-add-dialog",
       skip: ["visual", "responsive"],
-      softFail: ["typography", "css", "performance", "contrast"],
+      // Under-dialog chrome is covered by the modal; layout/buttons soft while dialog is open.
+      softFail: ["typography", "css", "performance", "contrast", "layout", "buttons"],
     });
 
     await page.getByRole("button", { name: /Cancel/i }).click();

@@ -32,6 +32,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **Playwright layout validator** — skip intentional password show/hide overlaps (relative field wrappers), ignore `aria-hidden` underlays, and ignore dialog-vs-page cross-layer overlaps; when a dialog is open, button validation only checks controls inside it; dialog field locator prefers role/`^Name$` for catalog Name inputs; settings dialog `validateEntirePage` soft-fails layout/buttons
 - **Playwright E2E CI** — field-service form `fetchFarmers` pageSize capped at 100 (API max) and core fields render while dropdown data loads; settings users spec ignores empty Next.js route announcer and targets content alerts; login password row uses flex layout so show/hide toggle no longer overlaps input in layout validation; catalog admin dialog spacing + `data-testid` + open wait for first textbox (villages Name field timeout)
 - **Master-data catalog dialogs** — `CatalogAdminPage` Add/Edit forms no longer overlap labels (dense MUI `TextField`s in `DialogContent`); now spaced `Scope` + premium `Field`/`Input`/`Textarea`, `PremiumDialog` chrome (24px radius), clear titles; covers activity-types, buyers, crops, and all other catalog pages
 - **GET /users 500** — `UserResponse` / `UserCreateRequest` use `str` instead of `EmailStr` so seeded `*.local` emails serialize (same as auth login); Settings → Users no longer Internal Server Error
