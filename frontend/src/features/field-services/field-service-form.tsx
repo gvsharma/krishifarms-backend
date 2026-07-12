@@ -159,7 +159,7 @@ export function FieldServiceForm({
 
   const farmersQuery = useQuery({
     queryKey: ["farmers-field-service-form"],
-    queryFn: () => fetchFarmers({ pageSize: 200 }),
+    queryFn: () => fetchFarmers({ pageSize: 100 }),
     enabled: fields.has("farmer_id"),
   });
 

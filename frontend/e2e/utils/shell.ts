@@ -1,5 +1,12 @@
-import { expect, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 import { SELECTORS } from "./selectors";
+
+/** MUI / app alerts with visible content — excludes Next.js route announcer. */
+export function contentAlerts(page: Page | Locator): Locator {
+  return page
+    .locator('[role="alert"]:not(#__next-route-announcer__)')
+    .filter({ hasText: /\S/ });
+}
 
 /** Page shell title visible and not a fatal Next.js error page. */
 export async function expectShellTitle(page: Page, title: string | RegExp): Promise<void> {
@@ -20,7 +27,7 @@ export async function expectSettingsShell(page: Page, title: string | RegExp): P
 export async function expectListContent(page: Page, emptyText: RegExp): Promise<void> {
   const table = page.getByRole("table");
   const empty = page.getByText(emptyText);
-  const alert = page.getByRole("alert");
+  const alert = contentAlerts(page);
 
   await expect(table.or(empty).or(alert).first()).toBeVisible({ timeout: 20_000 });
 }
@@ -30,13 +37,14 @@ export async function expectListContent(page: Page, emptyText: RegExp): Promise<
  */
 export async function expectTableOrAlert(page: Page): Promise<"table" | "alert"> {
   const table = page.getByRole("table");
-  const alert = page.getByRole("alert");
+  const alert = contentAlerts(page);
 
   await expect
     .poll(
       async () => {
         if (await table.isVisible().catch(() => false)) return "table";
-        if (await alert.isVisible().catch(() => false)) return "alert";
+        if ((await alert.count()) > 0 && (await alert.first().isVisible().catch(() => false)))
+          return "alert";
         return "pending";
       },
       { timeout: 25_000 },
@@ -59,7 +67,7 @@ export async function expectListOrEmptyOrError(
   const empty = options.emptyTitle
     ? page.getByRole("heading", { name: options.emptyTitle })
     : page.getByRole("heading", { name: SELECTORS.shell.emptyState });
-  const alert = page.getByRole("alert");
+  const alert = contentAlerts(page);
 
   await expect(table.or(empty).or(alert).first()).toBeVisible({ timeout: 20_000 });
 }

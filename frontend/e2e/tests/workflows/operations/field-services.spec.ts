@@ -7,6 +7,7 @@ import {
   expectShellTitle,
   trackPageErrors,
 } from "./helpers";
+import { contentAlerts } from "../../../utils/shell";
 
 test.describe("operations — field services", () => {
   test.beforeEach(async ({ page }) => {
@@ -81,7 +82,7 @@ test.describe("operations — field services", () => {
     const editBtn = page.getByRole("button", { name: /^Edit$/i });
     if ((await editBtn.count()) === 0) {
       await expect(
-        page.getByRole("button", { name: /Back to list/i }).or(page.getByRole("alert")),
+        page.getByRole("button", { name: /Back to list/i }).or(contentAlerts(page)),
       ).toBeVisible();
       expectNoPageErrors(pageErrors);
       return;

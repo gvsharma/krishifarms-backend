@@ -28,8 +28,10 @@ export async function expectDialogLabelsNotOverlapping(
   for (const label of labels) {
     const control = dialogField(dialog, label);
     await expect(control, `Field "${label}" should be visible`).toBeVisible({ timeout: 15_000 });
+    const muiLabel = dialog.locator(".MuiInputLabel-root").filter({ hasText: label });
+    const plainLabel = dialog.getByText(label, { exact: true });
     await expect(
-      dialog.getByText(label, { exact: true }).first(),
+      muiLabel.or(plainLabel).first(),
       `Label text "${label}" should be visible`,
     ).toBeVisible();
     const box = await control.boundingBox();
@@ -80,6 +82,8 @@ export async function openCatalogAddDialog(page: Page): Promise<Locator> {
   await page.getByRole("button", { name: /^Add$/i }).click();
   const dialog = page.getByRole("dialog");
   await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole("heading").first()).toBeVisible();
+  await expect(dialog.getByRole("textbox").first()).toBeVisible({ timeout: 15_000 });
   return dialog;
 }
 

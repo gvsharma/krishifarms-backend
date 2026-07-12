@@ -153,7 +153,12 @@ export default function LoginPage() {
               <label htmlFor={passwordId} className={fieldLabelClassName}>
                 Password
               </label>
-              <div className="relative">
+              <div
+                className={cn(
+                  loginFieldClassName,
+                  "flex items-center gap-0 p-0 focus-within:border-[#111827] focus-within:ring-[3px] focus-within:ring-[#111827]/12",
+                )}
+              >
                 <Input
                   id={passwordId}
                   name="password"
@@ -165,7 +170,7 @@ export default function LoginPage() {
                   disabled={submitting}
                   aria-invalid={error ? true : undefined}
                   aria-describedby={error ? errorId : undefined}
-                  className={cn(loginFieldClassName, "pr-12")}
+                  className="h-full min-h-0 flex-1 border-0 bg-transparent px-4 py-3.5 shadow-none focus-visible:border-transparent focus-visible:ring-0"
                 />
                 <button
                   type="button"
@@ -173,7 +178,7 @@ export default function LoginPage() {
                   disabled={submitting}
                   aria-label={showPassword ? "Hide password" : "Show password"}
                   aria-pressed={showPassword}
-                  className="absolute right-1.5 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-xl text-[#6B7280] transition-none hover:bg-[#F3F4F6] hover:text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#111827]/20 disabled:opacity-50"
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[#6B7280] transition-none hover:bg-[#F3F4F6] hover:text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#111827]/20 disabled:opacity-50"
                 >
                   {showPassword ? (
                     <VisibilityOff fontSize="small" aria-hidden />
