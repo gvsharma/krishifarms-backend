@@ -128,6 +128,20 @@ Status legend: **Done** | **Partial** | **Missing**
 | Crop / fleet master seeds | `scripts/data/crop_catalog.py`, `scripts/data/fleet_inventory.py` |
 | Reports registry UI + thin dashboard APIs | `/reports` page; `GET /dashboard/summary` ops counts; `GET /dashboard/reports` catalog; `docs/api/paths/dashboard.yaml` |
 
+### Role × screen QA (web) — 2026-07-13
+
+Full matrix + evidence: [docs/qa/ROLE_SCREEN_AUDIT.md](./qa/ROLE_SCREEN_AUDIT.md) (§A–F web, §G Android).
+
+| Finding | Severity | Status |
+|---------|----------|--------|
+| OWNER/MANAGER `GET /farmer-payments` → 403 (`farmer_payments:read` missing in DB) | P0 | Open — Finance UI broken |
+| Web `PermissionGuard` uses backend codes; `/auth/me` returns mobile codes | P0 | Open — non-OWNER actions gated wrong |
+| `primaryRole` / nav omit `FARMER` → defaults to OWNER nav | P0 | Open |
+| AGENT sees Procurement nav; API 403 | P1 | Open — `nav-config` over-grants |
+| Services nav hides SUPERVISOR/DRIVER | P1 | Open |
+| No SUPERVISOR/DRIVER/FARMER demo users | P2 | Open — seed + e2e env |
+| Playwright role-screen smoke OWNER/MANAGER/AGENT | — | Pass on Vercel |
+
 ### Needs manual verification
 
 | Item | How to verify |

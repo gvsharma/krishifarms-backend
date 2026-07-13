@@ -1,14 +1,158 @@
-# Role × Screen Audit — KrishiFarms Mobile
+# Role × Screen Audit — KrishiFarms CRM (Web + Mobile)
 
-**Android repo:** `/Users/venkatgorinta/StudioProjects/krishifarms-mobile`  
-**Sources of truth:** `Permission.kt`, `MenuRegistry` / `DynamicMenuProvider`, `MainBottomNav`, `NavigationGuard` / `ScreenAccess`, CRM `app/modules/auth/permission_catalog.py` + `rbac.py`  
-**Parity cross-check:** [docs/modules/ANDROID_CRM_PARITY.md](../modules/ANDROID_CRM_PARITY.md)  
 **Audited:** 2026-07-13  
-**Scope:** OWNER/Admin, MANAGER, SUPERVISOR (Farming), DRIVER (Vehicle Supervisor), AGENT, FARMER
+**Web target:** `https://krishifarms-backend.vercel.app`  
+**Sources:** `app/shared/permissions.py`, `ROLE_DEFINITIONS`, `frontend/src/constants/nav-config.ts`, `use-auth` / `PermissionGuard`, `docs/modules/ADMIN_PLATFORM.md`, live API + Playwright  
+**Scope:** OWNER, MANAGER, SUPERVISOR (Farming), DRIVER (Vehicle Supervisor), AGENT, FARMER
+
+Legend (matrix): **Pass** · **Fail** · **Blocked** (correct deny) · **NI** (not implemented / placeholder) · **NoCred** (no seeded login)
 
 ---
 
-## 1. RBAC / navigation shell (how visibility works)
+## A. Web CRM — credentials used (demo only)
+
+| Role | Email | Password | Source | Live login |
+|------|-------|----------|--------|------------|
+| OWNER | `owner@krishifarms.local` | `ChangeMe123!` | `scripts/seed.py` / AGENTS.md | **OK** |
+| MANAGER | `manager@demo.krishifarms.local` | `DemoPass123!` | `scripts/seed_demo_data.py` / DEMO_DATA.md | **OK** |
+| AGENT | `agent@demo.krishifarms.local` | `DemoPass123!` | demo seed | **OK** |
+| SUPERVISOR | — | — | **not seeded** (demo pack only MANAGER+AGENT) | **NoCred** |
+| DRIVER | — | — | not seeded | **NoCred** |
+| FARMER | — | — | not seeded | **NoCred** |
+
+Tried aliases (`supervisor@demo…`, `driver@…`, `farmer@…`, `@krishifarms.local`) → **401 Invalid credentials**.
+
+---
+
+## B. Critical failures (web) — fix first
+
+1. **OWNER + MANAGER: `/farmer-payments` → 403** (`Missing permission: farmer_payments:read`)  
+   - Code `ROLE_PERMISSIONS` grants it; production **DB role_permissions** appear out of sync (API `require_permission` reads **DB only**, not code catalog).  
+   - Evidence: live API 2026-07-13; UI `/payments` loads shell but list API 403.  
+   - **Impact:** Finance / Payments broken for staff who should settle farmers.
+
+2. **`PermissionGuard` / `hasPermission` code mismatch**  
+   - `/auth/me` returns **mobile** codes (`PAYMENT_CREATE`, `FARMER_VIEW`, …).  
+   - Web guards check **backend** codes (`farmer_payments:create`, `procurements:confirm`, `documents:create`).  
+   - OWNER bypasses via `roles.includes("OWNER")`; **MANAGER+ lose action buttons** even when DB would allow.  
+   - Files: `app/modules/auth/rbac.py`, `frontend/src/hooks/use-auth.ts`, `permission-guard.tsx`.
+
+3. **Nav over-grants / under-grants vs RBAC** (`nav-config.ts` + `MuiAppShell`)  
+   - **Farmers** + **Procurement** have **no `roles` filter** → shown to every authenticated role (incl. DRIVER who has no `farmers:` / `procurements:`).  
+   - **Services** limited to `OWNER|MANAGER|AGENT` → **hides** SUPERVISOR + DRIVER who have `field_services:*`.  
+   - **AGENT** sees Procurement nav → deep link OK, API **403** (empty/broken list, no toast).  
+   - **AGENT** can open `/payments`, `/settings`, `/vehicles`, `/expenses` by URL (no route guard) → API 403 or placeholder.
+
+4. **FARMER role missing from web role helpers**  
+   - `primaryRole()` / `NavRole` / `AppRole` omit `FARMER`.  
+   - `filterNavByRole(..., role ?? "OWNER")` → **unknown/null role gets OWNER nav** (full admin sidebar).  
+   - Critical if a FARMER user is ever created without fixing this.
+
+5. **Create buttons without permission checks**  
+   - Farmers list always shows **Add farmer** (AGENT saw it; lacks `farmers:create` → create will 403).  
+   - Users page uses `canManageUsers` (OWNER\|MANAGER) for **Add user**, not `users:create` → MANAGER sees Add (API should 403).
+
+6. **No route-level RBAC** — any logged-in user can open any `(app)` route; only API + sparse `PermissionGuard` enforce.
+
+---
+
+## C. Expected access (backend `ROLE_PERMISSIONS`)
+
+| Area | OWNER | MANAGER | SUPERVISOR | DRIVER | AGENT | FARMER |
+|------|:-----:|:-------:|:----------:|:------:|:-----:|:------:|
+| Dashboard | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Farmers | ✅ CUD* | ✅ CU | ✅ CU | ❌ | ✅ R | ✅ R |
+| Procurement | ✅ | ✅ | ✅ CU | ❌ | ❌ | ✅ R |
+| Field services | ✅ | ✅ | ✅ CU | ✅ CU | ✅ CU | ✅ R |
+| Farmer payments | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Expenses / collections | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Vehicles / assets | ✅ | ✅ | R | ✅ CU assets | ❌ | ❌ |
+| Transport / trips | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ |
+| Farms API (`farming:*`) | ✅ | ✅ | ✅ | ❌ | ✅ R | ✅ R |
+| Users admin | ✅ | R/U (no create/delete) | ❌ | ❌ | ❌ | ❌ |
+| Master data / villages | ✅ | ✅ CU | R | R (loc) | R (loc) | R |
+| Audit | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+
+\* OWNER has deletes; MANAGER/SUPERVISOR no `:delete`.
+
+---
+
+## D. Web Role × Area matrix (live + static)
+
+Evidence: API probe + Playwright UI crawl 2026-07-13 on Vercel. SUPERVISOR/DRIVER/FARMER = code/nav static only (**NoCred**).
+
+| Area / route | OWNER | MANAGER | SUPERVISOR | DRIVER | AGENT | FARMER |
+|--------------|:-----:|:-------:|:----------:|:------:|:-----:|:------:|
+| Login | Pass | Pass | NoCred | NoCred | Pass | NoCred |
+| `/dashboard` | Pass | Pass | Pass† | Pass† | Pass | Pass† |
+| Nav: Farmers | Pass | Pass | Fail‡ (shown OK by API) | Fail (shown, should hide) | Pass | Fail‡ (OWNER default risk) |
+| Nav: Procurement | Pass | Pass | Fail‡ | Fail (should hide) | **Fail** (shown, API 403) | Fail‡ |
+| Nav: Services | Pass | Pass | **Fail** (hidden, should show) | **Fail** (hidden, should show) | Pass | Fail‡ |
+| Nav: Finance | Pass | Pass | Blocked | Blocked | Blocked | Fail‡ |
+| Nav: Users / Master / Settings | Pass | Pass | Blocked | Blocked | Blocked | Fail‡ |
+| `/farmers` | Pass | Pass | Pass† | Blocked† | Pass (Add btn Fail) | Pass† |
+| `/procurement` | Pass | Pass | Pass† | Blocked† | **Fail** (403 silent) | Pass† |
+| `/field-services` | Pass | Pass | Pass† | Pass† | Pass | Pass† |
+| `/payments` | **Fail** (API 403) | **Fail** (API 403) | Blocked† | Blocked† | Blocked† (URL open) | Blocked† |
+| `/expenses` `/collections` | Pass / Pass API | Pass | Blocked† | Blocked† | NI / URL | Blocked† |
+| `/vehicles` | Pass | Pass† | Pass† | Pass† | Fail (403 assets) | Blocked† |
+| `/farms` `/workers` | NI placeholder | NI | NI | NI | NI | NI |
+| `/reports` | Pass | Pass† | Pass† | Pass† | Pass† (URL) | Pass† |
+| `/settings*` | Pass | Pass (Add user Fail) | Blocked† | Blocked† | URL open (no nav) | Blocked† |
+| Dark mode / contrast | Pass (light OK) | Pass | — | — | Pass | — |
+
+† Expected from `ROLE_PERMISSIONS` / nav rules — **not live-verified** (no user).  
+‡ Nav rules incomplete or FARMER→OWNER default.
+
+### Nav observed (live)
+
+| Role | Sidebar links |
+|------|----------------|
+| OWNER | Dashboard, Farmers, Procurement, Services, Finance, Users, Master data, Settings |
+| MANAGER | same as OWNER |
+| AGENT | Dashboard, Farmers, Procurement, Services (**no** Finance/Users/Master/Settings) |
+
+### Playwright
+
+```text
+e2e/tests/workflows/settings/role-screen-smoke.spec.ts — 4 passed
+OWNER / MANAGER / AGENT key routes open (headings visible)
+```
+
+Does **not** assert API 403 absence on `/payments` or nav correctness for AGENT procurement.
+
+---
+
+## E. Web expected vs actual (summary)
+
+| Issue | Expected | Actual |
+|-------|----------|--------|
+| OWNER payments | 200 list | **403** farmer_payments:read |
+| AGENT procurement nav | Hidden | **Shown** + API 403 |
+| SUPERVISOR/DRIVER Services nav | Shown | **Hidden** in nav-config |
+| DRIVER Farmers/Procurement nav | Hidden | **Would show** (no roles filter) |
+| FARMER primaryRole | FARMER | **null → OWNER nav** |
+| MANAGER Add user | Hidden (no users:create) | **Shown** (`canManageUsers`) |
+| AGENT Add farmer | Hidden | **Shown** |
+| Route guards | Redirect/403 page | **None** — blank/empty + network 403 |
+
+---
+
+## F. Recommended web fixes (priority)
+
+1. **P0:** Alembic/repair grant `farmer_payments:*` to OWNER/MANAGER in prod DB (or re-seed role_permissions); verify OWNER GET `/farmer-payments` = 200.  
+2. **P0:** Map mobile↔backend in `hasPermission` **or** return backend codes on `/auth/me` for web.  
+3. **P0:** Fix `primaryRole` / `NavRole` to include `FARMER`; never default nav to `OWNER`.  
+4. **P1:** Align `nav-config.ts` roles with `ROLE_PERMISSIONS` (Services + SUPERVISOR/DRIVER; gate Farmers/Procurement).  
+5. **P1:** Route `PermissionGuard` or middleware by module; hide create FABs via permission.  
+6. **P2:** Seed SUPERVISOR/DRIVER/FARMER demo users for e2e (`E2E_<ROLE>_EMAIL`).
+
+---
+
+## G. Android (prior audit)
+
+
+## G1. RBAC / navigation shell (how visibility works)
 
 | Layer | Behavior |
 |-------|----------|
