@@ -52,9 +52,18 @@ export default defineConfig({
       testMatch: /auth\.setup\.ts/,
     },
     {
+      // Unauthenticated session-expiry specs — must not depend on auth.setup.
+      name: "smoke-session",
+      testMatch: /tests\/smoke\/session-expiry\.spec\.ts/,
+      use: {
+        ...devices["Desktop Chrome"],
+        storageState: { cookies: [], origins: [] },
+      },
+    },
+    {
       name: "smoke-chromium",
       dependencies: ["setup"],
-      testMatch: /tests\/smoke\/.*\.spec\.ts/,
+      testMatch: /tests\/smoke\/(?!session-expiry).*\.spec\.ts/,
       use: {
         ...devices["Desktop Chrome"],
         storageState: AUTH_STORAGE_STATE,
