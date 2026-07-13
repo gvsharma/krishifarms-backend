@@ -14,7 +14,8 @@ import {
   TableRow,
   Typography,
 } from "@mui/material";
-import { Add, DeleteOutline, EditOutlined } from "@mui/icons-material";
+import { Add, DeleteOutline, EditOutlined, TravelExplore } from "@mui/icons-material";
+import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { MuiPageShell } from "@/components/shell/mui-page-shell";
@@ -175,6 +176,14 @@ export default function SettingsVillagesPage() {
                     <TableCell>{row.district ?? "—"}</TableCell>
                     <TableCell>{row.state ?? "—"}</TableCell>
                     <TableCell align="right">
+                      <IconButton
+                        component={Link}
+                        href={`/villages/${row.id}`}
+                        size="small"
+                        aria-label="Village 360"
+                      >
+                        <TravelExplore fontSize="small" />
+                      </IconButton>
                       <IconButton size="small" aria-label="Edit" onClick={() => openEdit(row)}>
                         <EditOutlined fontSize="small" />
                       </IconButton>

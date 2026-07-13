@@ -1,6 +1,8 @@
 from datetime import UTC, datetime
+import re
 from uuid import UUID
 
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import ConflictError, NotFoundError
@@ -15,7 +17,10 @@ from app.modules.master_data.schemas import (
     VillageCreateRequest,
     VillageUpdateRequest,
 )
+from app.modules.platform.models import FieldAgent
 from app.shared.services.audit import write_audit_log
+
+_VILLAGE_CODE_PREFIX = "VIL-"
 
 
 def _soft_delete(entity, actor_user_id: UUID) -> None:
@@ -268,6 +273,7 @@ def list_villages(
     mandal_id: UUID | None = None,
     district: str | None = None,
     mandal: str | None = None,
+    status: str | None = None,
     q: str | None = None,
 ) -> tuple[list[Village], int]:
     query = db.query(Village).filter(Village.org_id == org_id, Village.deleted_at.is_(None))
@@ -279,12 +285,56 @@ def list_villages(
         query = query.filter(Village.district.ilike(district.strip()))
     if mandal:
         query = query.filter(Village.mandal.ilike(mandal.strip()))
+    if status:
+        query = query.filter(Village.status == status)
     if q:
-        query = query.filter(Village.name.ilike(f"%{q.strip()}%"))
+        term = f"%{q.strip()}%"
+        query = query.filter(
+            or_(
+                Village.name.ilike(term),
+                Village.village_code.ilike(term),
+                Village.mandal.ilike(term),
+                Village.district.ilike(term),
+                Village.pincode.ilike(term),
+            )
+        )
     query = query.order_by(Village.name)
     total = query.count()
     items = query.offset((page - 1) * page_size).limit(page_size).all()
     return items, total
+
+
+def get_village(db: Session, org_id: UUID, village_id: UUID) -> Village:
+    village = (
+        db.query(Village)
+        .filter(Village.id == village_id, Village.org_id == org_id, Village.deleted_at.is_(None))
+        .first()
+    )
+    if village is None:
+        raise NotFoundError("Village not found")
+    return village
+
+
+def _next_village_code(db: Session, org_id: UUID) -> str:
+    rows = (
+        db.query(Village.village_code)
+        .filter(Village.org_id == org_id, Village.village_code.like(f"{_VILLAGE_CODE_PREFIX}%"))
+        .all()
+    )
+    max_seq = 0
+    for (code,) in rows:
+        match = re.match(rf"^{re.escape(_VILLAGE_CODE_PREFIX)}(\d+)$", code or "")
+        if match:
+            max_seq = max(max_seq, int(match.group(1)))
+    return f"{_VILLAGE_CODE_PREFIX}{max_seq + 1:04d}"
+
+
+def agent_name_map(db: Session, villages: list[Village]) -> dict[UUID, str]:
+    ids = {v.agent_id for v in villages if v.agent_id}
+    if not ids:
+        return {}
+    rows = db.query(FieldAgent.id, FieldAgent.name).filter(FieldAgent.id.in_(ids)).all()
+    return {row.id: row.name for row in rows}
 
 
 def create_village(db: Session, org_id: UUID, payload: VillageCreateRequest, actor_user_id: UUID) -> Village:
@@ -309,10 +359,24 @@ def create_village(db: Session, org_id: UUID, payload: VillageCreateRequest, act
     if existing:
         raise ConflictError("Village already exists")
 
+    if payload.agent_id is not None:
+        agent = (
+            db.query(FieldAgent)
+            .filter(
+                FieldAgent.id == payload.agent_id,
+                FieldAgent.org_id == org_id,
+                FieldAgent.deleted_at.is_(None),
+            )
+            .first()
+        )
+        if agent is None:
+            raise NotFoundError("Field agent not found")
+
     village = Village(
         org_id=org_id,
         created_by=actor_user_id,
         updated_by=actor_user_id,
+        village_code=_next_village_code(db, org_id),
         name=payload.name,
         mandal=mandal,
         district=district,
@@ -320,6 +384,13 @@ def create_village(db: Session, org_id: UUID, payload: VillageCreateRequest, act
         pincode=payload.pincode,
         district_id=district_id,
         mandal_id=mandal_id,
+        geo_lat=payload.geo_lat,
+        geo_lng=payload.geo_lng,
+        agent_id=payload.agent_id,
+        status=payload.status or "active",
+        population=payload.population,
+        estimated_cultivable_area=payload.estimated_cultivable_area,
+        notes=payload.notes,
     )
     db.add(village)
     db.flush()
@@ -366,6 +437,19 @@ def update_village(
         data["mandal_id"] = mandal_id
         data["district"] = district
         data["mandal"] = mandal
+
+    if "agent_id" in data and data["agent_id"] is not None:
+        agent = (
+            db.query(FieldAgent)
+            .filter(
+                FieldAgent.id == data["agent_id"],
+                FieldAgent.org_id == org_id,
+                FieldAgent.deleted_at.is_(None),
+            )
+            .first()
+        )
+        if agent is None:
+            raise NotFoundError("Field agent not found")
 
     before = {"name": village.name, "district": village.district, "mandal": village.mandal}
     for field, value in data.items():

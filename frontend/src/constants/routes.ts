@@ -4,6 +4,7 @@ export const ROUTES = {
   login: "/login",
   dashboard: "/dashboard",
   farmers: "/farmers",
+  villages: "/villages",
   farms: "/farms",
   collections: "/collections",
   procurement: "/procurement",

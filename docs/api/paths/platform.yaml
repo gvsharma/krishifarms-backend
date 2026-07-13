@@ -16,33 +16,56 @@ villages:
       - name: district_id
         in: query
         schema: { type: string, format: uuid }
-        description: Filter by district UUID
       - name: mandal_id
         in: query
         schema: { type: string, format: uuid }
-        description: Filter by mandal UUID
       - name: district
         in: query
         schema: { type: string }
-        description: Filter by district name
       - name: mandal
         in: query
         schema: { type: string }
-        description: Filter by mandal name
+      - name: status
+        in: query
+        schema: { type: string, enum: [active, inactive] }
       - name: q
         in: query
         schema: { type: string }
-        description: Filter by village name
+        description: Search name, code, mandal, district, pincode
     responses:
       '200': { description: Paginated villages }
   post:
     tags: [Master Data]
     operationId: createVillage
-    summary: Create village
+    summary: Create village (auto village_code VIL-####)
     responses:
       '201': { description: Created }
 
+villageSearch:
+  get:
+    tags: [Master Data]
+    operationId: searchVillages
+    summary: Search villages by village/mandal/farmer/buyer/crop
+    parameters:
+      - name: q
+        in: query
+        required: true
+        schema: { type: string, minLength: 1, maxLength: 100 }
+    responses:
+      '200': { description: Village search hits }
+
 villageById:
+  get:
+    tags: [Master Data]
+    operationId: getVillage
+    summary: Get village by ID
+    parameters:
+      - name: village_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: Village detail }
   patch:
     tags: [Master Data]
     operationId: updateVillage
@@ -65,6 +88,23 @@ villageById:
         schema: { type: string, format: uuid }
     responses:
       '200': { description: Soft-deleted }
+
+villageProfile360:
+  get:
+    tags: [Master Data]
+    operationId: getVillageProfile360
+    summary: Village 360° relationship dashboard
+    description: >
+      Aggregated village hub — summary, KPIs, farmers, procurement, services, vehicles,
+      payments, finance, farming, buyers, comments, documents, analytics, timeline, GIS stub, reports.
+    parameters:
+      - name: village_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200': { description: Village 360 profile }
+      '404': { $ref: '../openapi.yaml#/components/responses/NotFound' }
 
 districts:
   get:

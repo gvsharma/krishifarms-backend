@@ -6,6 +6,7 @@ import {
   Dashboard,
   Dataset,
   Handshake,
+  HolidayVillage,
   People,
   Settings,
   Spa,
@@ -39,6 +40,7 @@ export const NAV_SECTIONS: NavSection[] = [
     title: "Operations",
     items: [
       { href: ROUTES.farmers, label: "Farmers", icon: Agriculture },
+      { href: ROUTES.villages, label: "Villages", icon: HolidayVillage },
       { href: ROUTES.procurement, label: "Procurement", icon: Spa },
       {
         href: ROUTES.services,

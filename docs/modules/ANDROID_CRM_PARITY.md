@@ -30,7 +30,7 @@ Inventory of create/update/delete (and admin management) capabilities across the
 | Entity | Android | Backend routes | Web UI |
 |--------|---------|----------------|--------|
 | Districts / Mandals | `AdminApi` list + `LocationCascade` | `/districts`, `/mandals` CRUD | Cascade selects on forms |
-| Villages | Read-only list in Admin; cascade filter on procurement / farmer / field service | `/villages` CRUD (+ filters) | `/settings/villages` |
+| Villages | Read-only list in Admin; cascade filter on procurement / farmer / field service; **Village 360 backlog** (cards + expandable sections + offline `profile-360` cache) | `/villages` CRUD + search + **profile-360** | `/villages` list + 360 orbit; `/settings/villages` masters |
 | Crop types | Admin list + create/edit | `/crop-types` CRUD | `/settings/master-data/crops` |
 | Crop price rules | — | `/crop-prices` CRUD | `/settings/master-data/crop-prices` |
 | Buyers | Admin list + create/edit; procurement picker | `/buyers` CRUD | `/settings/master-data/buyers` |
@@ -66,6 +66,7 @@ Full matrix (visible / stub / hidden) + field-ops gaps: [docs/qa/ROLE_SCREEN_AUD
 |----------|------|------------------------|----------------|
 | **P0** | Ops tab landing include `field_services` (DRIVER) | `MainBottomNav.kt` | — |
 | **P0** | Fleet screens for DRIVER (or hide stubs) | vehicles / trips / assets nav | ✅ thin assets/trips |
+| **P1** | Village 360 cards + expandable tabs (farmers/proc/services) + Room cache of `GET /villages/{id}/profile-360` | new `feature/villages/` | ✅ profile-360 + search |
 | **P1** | Procurement photos (reuse expense `BillAttachmentPicker`) | `ProcurementFormScreen` | documents API partial |
 | **P1** | Crop price rules admin catalog | `AdminCatalogType`, `AdminApi` | ✅ `/crop-prices` |
 | **P2** | GPS capture on field forms | CameraX / FusedLocation | optional |
