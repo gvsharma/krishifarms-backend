@@ -32,6 +32,22 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Dark mode — keep premium controls readable when html has `.dark` (next-themes + MUI). */
+.dark .kf-premium {
+  --kf-bg: #1a211c;
+  --kf-surface: #242b26;
+  --kf-primary: #f3f4f6;
+  --kf-primary-fg: #0f1410;
+  --kf-border: #2f3a34;
+  --kf-border-strong: #3d4a43;
+  --kf-muted: #1f2823;
+  --kf-muted-fg: #9ca3af;
+  --kf-placeholder: #6b7280;
+  --kf-focus-ring: rgba(243, 244, 246, 0.14);
+  --kf-focus-ring-accent: rgba(251, 113, 133, 0.28);
+  color: var(--kf-primary);
+}
+
 .kf-premium .kf-heading,
 .kf-premium h1,
 .kf-premium h2,
