@@ -102,7 +102,7 @@ Canonical sources: `scripts/data/fleet_inventory.py`, `scripts/data/crop_catalog
 | Step | API | Notes |
 |------|-----|-------|
 | Post work | `POST /field-services` | Includes `diesel_amount` |
-| Thread comments | `GET/POST /comments` (`entity_type=field_service`) | Others with `comments:create` |
+| Thread comments | `GET/POST /comments` (`entity_type=field_service`) | Others with `comments:create` (incl. **FARMER**) |
 | Diesel ledger | Auto Fuel expense when `diesel_amount > 0` | `source_type=field_service`; response `diesel_expense_id` |
 | Diesel receipt / photos | `POST /documents/presign-upload` → register → `POST /documents/{id}/link` | `document_type=fuel_bill` or `photo`, `entity_type=field_service` |
 | Alternate diesel path | `POST /vehicle-trips` with `fuel_cost` | Separate trip ledger (`source_type=vehicle_trip`) |

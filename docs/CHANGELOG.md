@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Farmer comments on field work + field-ops document RBAC** — FARMER gains `comments:create` (web + Android catalog); AGENT/DRIVER gain `documents:read|create` for diesel receipt uploads. Migration `029` grants these on all orgs. Work→comment→diesel receipt edge-case tests in `tests/test_field_service_work_flow.py`.
 - **Android role × screen QA audit** — `docs/qa/ROLE_SCREEN_AUDIT.md`: Role × Module matrix (V/S/H) for OWNER/MANAGER/SUPERVISOR/DRIVER/AGENT/FARMER vs mobile catalog + nav shell; P0 DRIVER Ops-tab landing bug and fleet stubs for field ops; §9 Pre-publish QA (Playwright smoke/role-screen, pytest RBAC, Android unit vs Espresso/Compose gap)
 - **Playwright role × screen smoke** — `frontend/e2e/tests/workflows/settings/role-screen-smoke.spec.ts`: OWNER (+ demo MANAGER/AGENT when seeded) visits main nav routes; SUPERVISOR/DRIVER/FARMER via `E2E_<ROLE>_EMAIL`/`PASSWORD` only
 - **Field-service diesel receipts + ledger sync** — `diesel_amount > 0` on create/update posts/updates a Fuel expense (`source_type=field_service`, response `diesel_expense_id`); cancel/delete reverses it. OpenAPI `LinkEntityType` includes `field_service`. Web detail uploads diesel receipts (`fuel_bill`) and work photos; comment thread already live.

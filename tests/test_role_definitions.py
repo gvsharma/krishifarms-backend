@@ -56,3 +56,19 @@ def test_agent_field_services_not_procurement_create():
     assert "field_services:create" in agent
     assert "farmers:read" in agent
     assert "procurements:create" not in agent
+    assert "documents:create" in agent
+
+
+def test_farmer_can_comment_on_posted_field_work():
+    farmer = set(ROLE_PERMISSIONS["FARMER"])
+    assert "comments:read" in farmer
+    assert "comments:create" in farmer
+    assert "field_services:read" in farmer
+    assert "documents:create" not in farmer
+
+
+def test_driver_can_upload_documents_for_diesel_receipts():
+    driver = set(ROLE_PERMISSIONS["DRIVER"])
+    assert "documents:read" in driver
+    assert "documents:create" in driver
+    assert "field_services:create" in driver
