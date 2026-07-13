@@ -31,6 +31,22 @@ usersMe:
               $ref: '../schemas/users.yaml#/UserAPIResponse'
       '401':
         $ref: '../openapi.yaml#/components/responses/Unauthorized'
+  delete:
+    tags: [Users]
+    summary: Delete own account (Play Store in-app deletion)
+    operationId: usersMeDelete
+    description: Soft-deletes the current user, revokes sessions. Last OWNER cannot self-delete.
+    responses:
+      '200':
+        description: Account deleted
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/auth.yaml#/MessageAPIResponse'
+      '401':
+        $ref: '../openapi.yaml#/components/responses/Unauthorized'
+      '409':
+        description: Last Admin/Owner cannot delete themselves
 
 usersMeSessions:
   get:
@@ -70,3 +86,103 @@ usersMeSessionById:
         $ref: '../openapi.yaml#/components/responses/Unauthorized'
       '404':
         description: Session not found
+
+usersCollection:
+  get:
+    tags: [Users]
+    summary: List organization users
+    operationId: listUsers
+    parameters:
+      - name: page
+        in: query
+        schema: { type: integer, minimum: 1, default: 1 }
+      - name: page_size
+        in: query
+        schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+    responses:
+      '200':
+        description: Paginated users
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/users.yaml#/UserListAPIResponse'
+      '401':
+        $ref: '../openapi.yaml#/components/responses/Unauthorized'
+      '403':
+        description: Missing users:read
+  post:
+    tags: [Users]
+    summary: Create user
+    operationId: createUser
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/users.yaml#/UserCreateRequest'
+    responses:
+      '201':
+        description: Created
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/users.yaml#/UserAPIResponse'
+      '401':
+        $ref: '../openapi.yaml#/components/responses/Unauthorized'
+      '403':
+        description: Missing users:create
+
+userById:
+  patch:
+    tags: [Users]
+    summary: Update user
+    operationId: updateUser
+    parameters:
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/users.yaml#/UserUpdateRequest'
+    responses:
+      '200':
+        description: Updated
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/users.yaml#/UserAPIResponse'
+      '401':
+        $ref: '../openapi.yaml#/components/responses/Unauthorized'
+      '403':
+        description: Missing users:update
+  delete:
+    tags: [Users]
+    summary: Soft-delete user (Admin / Owner only)
+    operationId: deleteUser
+    description: Requires `users:delete`. Cannot delete self or the last OWNER.
+    parameters:
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    responses:
+      '200':
+        description: Soft-deleted
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/auth.yaml#/MessageAPIResponse'
+      '401':
+        $ref: '../openapi.yaml#/components/responses/Unauthorized'
+      '403':
+        description: Missing users:delete (non-Admin)
+      '409':
+        description: Self-delete via admin path or last OWNER

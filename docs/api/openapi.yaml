@@ -27,6 +27,7 @@ servers:
 tags:
   - name: Authentication
   - name: Users
+  - name: Legal
   - name: Master Data
   - name: Platform
   - name: Farmers
@@ -77,6 +78,17 @@ paths:
     $ref: paths/users.yaml#/usersMeSessions
   /users/me/sessions/{session_id}:
     $ref: paths/users.yaml#/usersMeSessionById
+  /users:
+    $ref: paths/users.yaml#/usersCollection
+  /users/{user_id}:
+    $ref: paths/users.yaml#/userById
+
+  /legal:
+    $ref: paths/legal.yaml#/legalLinks
+  /legal/privacy:
+    $ref: paths/legal.yaml#/legalPrivacy
+  /legal/account-deletion:
+    $ref: paths/legal.yaml#/legalAccountDeletion
 
   /districts:
     $ref: paths/platform.yaml#/districts

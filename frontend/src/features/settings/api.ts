@@ -66,3 +66,7 @@ export function updateUser(
 ): Promise<User> {
   return fetchApi<User>(`/users/${id}`, { method: "PATCH", body: payload, clientHeaders: true });
 }
+
+export function deleteUser(id: string): Promise<{ message: string }> {
+  return fetchApi<{ message: string }>(`/users/${id}`, { method: "DELETE", clientHeaders: true });
+}

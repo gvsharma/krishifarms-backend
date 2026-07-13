@@ -36,6 +36,16 @@ def update_me(
     return APIResponse(data=UserResponse.model_validate(user))
 
 
+@router.delete("/users/me", response_model=APIResponse[MessageResponse])
+def delete_me(
+    ctx: CurrentUserContext = Depends(get_current_user_context),
+    db: Session = Depends(get_db),
+):
+    """Play Store in-app account deletion (soft-delete + revoke sessions)."""
+    service.delete_own_account(db, ctx.user.id)
+    return APIResponse(data=MessageResponse(message="Account deleted"))
+
+
 @router.get("/users/me/sessions", response_model=APIResponse[SessionListResponse])
 def list_my_sessions(
     ctx: CurrentUserContext = Depends(get_current_user_context),
@@ -94,6 +104,17 @@ def update_user(
 ):
     user = service.update_user(db, ctx.user.org_id, user_id, payload, ctx.user.id)
     return APIResponse(data=UserResponse.model_validate(user))
+
+
+@router.delete("/users/{user_id}", response_model=APIResponse[MessageResponse])
+def delete_user(
+    user_id: UUID,
+    ctx: CurrentUserContext = Depends(require_permission("users:delete")),
+    db: Session = Depends(get_db),
+):
+    """Admin soft-delete. OWNER-only via `users:delete`."""
+    service.delete_user(db, ctx.user.org_id, user_id, ctx.user.id)
+    return APIResponse(data=MessageResponse(message="User deleted"))
 
 
 @router.get("/roles", response_model=APIResponse[list[RoleResponse]])

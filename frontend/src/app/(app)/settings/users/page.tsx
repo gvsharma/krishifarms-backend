@@ -20,7 +20,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { Add, EditOutlined } from "@mui/icons-material";
+import { Add, DeleteOutline, EditOutlined } from "@mui/icons-material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { MuiPageShell } from "@/components/shell/mui-page-shell";
@@ -32,7 +32,14 @@ import {
 } from "@/components/ui/premium-dialog";
 import { SoftAlert } from "@/components/ui/soft-alert";
 import { useAuth } from "@/hooks/use-auth";
-import { createUser, fetchRoles, fetchUsers, updateUser, type User } from "@/features/settings/api";
+import {
+  createUser,
+  deleteUser,
+  fetchRoles,
+  fetchUsers,
+  updateUser,
+  type User,
+} from "@/features/settings/api";
 
 type FormState = {
   full_name: string;
@@ -56,16 +63,25 @@ const emptyForm = (): FormState => ({
 
 export default function SettingsUsersPage() {
   const queryClient = useQueryClient();
-  const { canManageUsers } = useAuth();
+  const { canDelete, canManageUsers, user: currentUser } = useAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<User | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
+  const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
 
   const usersQuery = useQuery({ queryKey: ["users"], queryFn: () => fetchUsers() });
   const rolesQuery = useQuery({ queryKey: ["roles"], queryFn: fetchRoles });
 
   const phoneDigits = form.phone.replace(/\D/g, "");
   const phoneValid = phoneDigits.length >= 10;
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteUser(id),
+    onSuccess: () => {
+      setDeleteTarget(null);
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+    },
+  });
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -206,6 +222,19 @@ export default function SettingsUsersPage() {
                         <IconButton size="small" aria-label="Edit user" onClick={() => openEdit(user)}>
                           <EditOutlined fontSize="small" />
                         </IconButton>
+                        {canDelete && currentUser?.id !== user.id && (
+                          <IconButton
+                            size="small"
+                            aria-label="Delete user"
+                            color="error"
+                            onClick={() => {
+                              deleteMutation.reset();
+                              setDeleteTarget(user);
+                            }}
+                          >
+                            <DeleteOutline fontSize="small" />
+                          </IconButton>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -314,6 +343,48 @@ export default function SettingsUsersPage() {
             onClick={() => saveMutation.mutate()}
           >
             {saveMutation.isPending ? "Saving…" : "Save"}
+          </Button>
+        </PremiumDialogActions>
+      </PremiumDialog>
+
+      <PremiumDialog
+        open={Boolean(deleteTarget) && canDelete}
+        onClose={() => {
+          setDeleteTarget(null);
+          deleteMutation.reset();
+        }}
+        maxWidth="xs"
+      >
+        <PremiumDialogTitle>Delete user?</PremiumDialogTitle>
+        <PremiumDialogContent>
+          <Typography variant="body2" color="text.secondary">
+            Soft-delete {deleteTarget?.full_name}? They will lose access immediately and all
+            sessions will be revoked.
+          </Typography>
+          {deleteMutation.isError && (
+            <SoftAlert severity="error" sx={{ mt: 1.5 }}>
+              {deleteMutation.error instanceof Error
+                ? deleteMutation.error.message
+                : "Delete failed"}
+            </SoftAlert>
+          )}
+        </PremiumDialogContent>
+        <PremiumDialogActions>
+          <Button
+            onClick={() => {
+              setDeleteTarget(null);
+              deleteMutation.reset();
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            color="error"
+            variant="contained"
+            disabled={!deleteTarget || deleteMutation.isPending}
+            onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+          >
+            {deleteMutation.isPending ? "Deleting…" : "Delete"}
           </Button>
         </PremiumDialogActions>
       </PremiumDialog>

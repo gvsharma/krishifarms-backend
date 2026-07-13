@@ -35,6 +35,11 @@ class Settings(BaseSettings):
     default_owner_password: str = "ChangeMe123!"
     default_owner_name: str = "Owner"
 
+    # Play Store / privacy compliance (public pages + in-app links)
+    privacy_policy_url: str = "https://krishifarms-privacy.vercel.app"
+    account_deletion_url: str = "https://krishifarms-privacy.vercel.app/delete-account"
+    support_email: str = "support@krishifarms.com"
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
