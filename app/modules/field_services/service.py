@@ -15,6 +15,8 @@ from app.modules.field_services.schemas import (
     FieldServiceRecordCreateRequest,
     FieldServiceRecordUpdateRequest,
 )
+from app.modules.financial.expense_service import find_expense_by_source, sync_field_service_diesel_expense
+from app.modules.financial.schemas import FIELD_SERVICE_SOURCE
 from app.modules.platform.models import ActivityType, VehicleType
 from app.shared.services.audit import write_activity_feed, write_audit_log
 
@@ -243,6 +245,17 @@ def create_field_service_record(
     )
     db.add(row)
     db.flush()
+    sync_field_service_diesel_expense(
+        db,
+        org_id,
+        record_id=row.id,
+        record_number=row.record_number,
+        service_date=row.service_date,
+        asset_id=row.asset_id,
+        diesel_amount=row.diesel_amount,
+        record_status=row.status,
+        actor_user_id=actor_user_id,
+    )
     _audit(
         db,
         org_id=org_id,
@@ -297,6 +310,17 @@ def update_field_service_record(
             setattr(row, key, value)
     row.updated_by = actor_user_id
     db.flush()
+    sync_field_service_diesel_expense(
+        db,
+        org_id,
+        record_id=row.id,
+        record_number=row.record_number,
+        service_date=row.service_date,
+        asset_id=row.asset_id,
+        diesel_amount=row.diesel_amount,
+        record_status=row.status,
+        actor_user_id=actor_user_id,
+    )
     _audit(
         db,
         org_id=org_id,
@@ -323,6 +347,17 @@ def delete_field_service_record(
     row = get_field_service_record(db, org_id, record_id)
     before = _serialize(row)
     _soft_delete(row, actor_user_id)
+    sync_field_service_diesel_expense(
+        db,
+        org_id,
+        record_id=row.id,
+        record_number=row.record_number,
+        service_date=row.service_date,
+        asset_id=row.asset_id,
+        diesel_amount=_ZERO,
+        record_status="cancelled",
+        actor_user_id=actor_user_id,
+    )
     _audit(
         db,
         org_id=org_id,
@@ -336,6 +371,11 @@ def delete_field_service_record(
     db.commit()
 
 
+def diesel_expense_id_for_record(db: Session, org_id: UUID, record_id: UUID) -> UUID | None:
+    expense = find_expense_by_source(db, org_id, FIELD_SERVICE_SOURCE, record_id)
+    return expense.id if expense else None
+
+
 def enrich_records(
     db: Session,
     org_id: UUID,
@@ -344,6 +384,7 @@ def enrich_records(
     farmer_ids = {r.farmer_id for r in rows if r.farmer_id}
     activity_ids = {r.activity_type_id for r in rows if r.activity_type_id}
     vehicle_type_ids = {r.vehicle_type_id for r in rows if r.vehicle_type_id}
+    record_ids = [r.id for r in rows]
 
     farmers: dict[UUID, Farmer] = {}
     if farmer_ids:
@@ -368,13 +409,32 @@ def enrich_records(
         ):
             vehicle_types[vid] = name
 
+    diesel_expenses: dict[UUID, UUID] = {}
+    if record_ids:
+        from app.modules.financial.models import Expense
+
+        for source_id, expense_id in (
+            db.query(Expense.source_id, Expense.id)
+            .filter(
+                Expense.org_id == org_id,
+                Expense.source_type == FIELD_SERVICE_SOURCE,
+                Expense.source_id.in_(record_ids),
+                Expense.deleted_at.is_(None),
+            )
+            .all()
+        ):
+            if source_id is not None:
+                diesel_expenses[source_id] = expense_id
+
     result: dict[UUID, dict[str, str | None]] = {}
     for row in rows:
         farmer = farmers.get(row.farmer_id) if row.farmer_id else None
+        diesel_id = diesel_expenses.get(row.id)
         result[row.id] = {
             "farmer_name": farmer.full_name if farmer else None,
             "farmer_phone": farmer.phone if farmer else None,
             "activity_type_name": activities.get(row.activity_type_id) if row.activity_type_id else None,
             "vehicle_type_name": vehicle_types.get(row.vehicle_type_id) if row.vehicle_type_id else None,
+            "diesel_expense_id": str(diesel_id) if diesel_id else None,
         }
     return result

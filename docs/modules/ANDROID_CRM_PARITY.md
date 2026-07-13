@@ -4,7 +4,7 @@ Inventory of create/update/delete (and admin management) capabilities across the
 
 **Android repo path (external):** `/Users/venkatgorinta/StudioProjects/krishifarms-mobile`  
 **Branch reviewed:** `feature/device-push-notifications`  
-**Last reviewed:** 2026-07-12 (Android cancel/reverse + field-service `[kf:work]` profiles)
+**Last reviewed:** 2026-07-13 (role × screen QA audit + prior cancel/reverse / `[kf:work]`)
 
 ## Summary
 
@@ -54,14 +54,22 @@ Inventory of create/update/delete (and admin management) capabilities across the
 | `WORKER` | Worker | work orders | | |
 | `ACCOUNTANT` | Accountant | finance | mobile catalog; DB role optional | |
 
+## Role × screen audit
+
+Full matrix (visible / stub / hidden) + field-ops gaps: [docs/qa/ROLE_SCREEN_AUDIT.md](../qa/ROLE_SCREEN_AUDIT.md).
+
+**P0 (Android):** DRIVER Operations tab lands on `farmers` (forbidden) because `firstAccessibleRoute` omits `field_services`; fleet modules (vehicles / trips / assets) still stubs for Vehicle Supervisor.
+
 ## Implementation backlog (Android — external repo)
 
 | Priority | Item | Target files (Android) | Depends on CRM |
 |----------|------|------------------------|----------------|
+| **P0** | Ops tab landing include `field_services` (DRIVER) | `MainBottomNav.kt` | — |
+| **P0** | Fleet screens for DRIVER (or hide stubs) | vehicles / trips / assets nav | ✅ thin assets/trips |
 | **P1** | Procurement photos (reuse expense `BillAttachmentPicker`) | `ProcurementFormScreen` | documents API partial |
 | **P1** | Crop price rules admin catalog | `AdminCatalogType`, `AdminApi` | ✅ `/crop-prices` |
 | **P2** | GPS capture on field forms | CameraX / FusedLocation | optional |
-| **P2** | Workers / expenses live sync when CRM routers land | existing feature packages | 📋 schema only |
+| **P2** | Workers / expenses live sync when CRM routers land | existing feature packages | 📋 schema only / expenses live |
 | **P2** | Farmer payments Android | stub → thin API | ✅ `/farmer-payments` |
 
 ### Done this iteration (Android)

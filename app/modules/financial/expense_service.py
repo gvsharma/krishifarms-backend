@@ -13,6 +13,7 @@ from app.modules.documents.models import Document, DocumentLink
 from app.modules.farms.models import Farm
 from app.modules.financial.models import Expense, ExpenseCategory
 from app.modules.financial.schemas import (
+    FIELD_SERVICE_SOURCE,
     FUEL_CATEGORY_NAME,
     VEHICLE_TRIP_SOURCE,
     ExpenseCreateRequest,
@@ -336,17 +337,17 @@ def find_expense_by_source(
     org_id: UUID,
     source_type: str,
     source_id: UUID,
+    *,
+    include_deleted: bool = False,
 ) -> Expense | None:
-    return (
-        db.query(Expense)
-        .filter(
-            Expense.org_id == org_id,
-            Expense.source_type == source_type,
-            Expense.source_id == source_id,
-            Expense.deleted_at.is_(None),
-        )
-        .first()
+    q = db.query(Expense).filter(
+        Expense.org_id == org_id,
+        Expense.source_type == source_type,
+        Expense.source_id == source_id,
     )
+    if not include_deleted:
+        q = q.filter(Expense.deleted_at.is_(None))
+    return q.order_by(Expense.created_at.desc()).first()
 
 
 def _fuel_category(db: Session, org_id: UUID) -> ExpenseCategory:
@@ -450,4 +451,65 @@ def sync_vehicle_trip_diesel_expense(
         commit=False,
         source_type=VEHICLE_TRIP_SOURCE,
         source_id=trip_id,
+    )
+
+
+def sync_field_service_diesel_expense(
+    db: Session,
+    org_id: UUID,
+    *,
+    record_id: UUID,
+    record_number: str,
+    service_date: date,
+    asset_id: UUID | None,
+    diesel_amount: Decimal,
+    record_status: str,
+    actor_user_id: UUID,
+) -> Expense | None:
+    """Create/update/soft-delete Fuel expense linked to a field-service record. Flush only (no commit)."""
+    # Include soft-deleted so cancel→reopen reactivates instead of orphaning a second row.
+    existing = find_expense_by_source(
+        db, org_id, FIELD_SERVICE_SOURCE, record_id, include_deleted=True
+    )
+    amount = _money(diesel_amount)
+    should_post = record_status != "cancelled" and amount > _ZERO
+
+    if not should_post:
+        if existing is not None and existing.deleted_at is None:
+            existing.deleted_at = datetime.now(UTC)
+            existing.updated_by = actor_user_id
+            existing.status = "reversed"
+        return None
+
+    description = f"Diesel for field service {record_number}"
+
+    if existing is not None:
+        existing.amount = amount
+        existing.expense_date = service_date
+        existing.asset_id = asset_id
+        existing.description = description
+        existing.status = "posted"
+        existing.updated_by = actor_user_id
+        existing.deleted_at = None
+        return existing
+
+    category = _fuel_category(db, org_id)
+    payment_mode = _default_cash_payment_mode(db, org_id)
+    payload = ExpenseCreateRequest(
+        category_id=category.id,
+        expense_date=service_date,
+        amount=amount,
+        payment_mode_id=payment_mode.id,
+        asset_id=asset_id,
+        description=description,
+        status="posted",
+    )
+    return create_expense(
+        db,
+        org_id,
+        payload,
+        actor_user_id,
+        commit=False,
+        source_type=FIELD_SERVICE_SOURCE,
+        source_id=record_id,
     )

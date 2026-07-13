@@ -50,6 +50,7 @@ alembic downgrade -1
 | `202506210026` | Procurement | `buyer_id`, payment terms + expected/actual payment dates on `procurements` |
 | `202506210027` | Financial | `expenses.source_type` / `source_id` + unique active source index; `expenses:*` / `collections:*` RBAC |
 | `202506210028` | Master data RBAC | `payment_modes:*` permissions (missed in `018`) granted to OWNER / MANAGER / SUPERVISOR |
+| `202506210029` | Field-ops RBAC | FARMER `comments:create`; AGENT/DRIVER `documents:read|create` for diesel receipts |
 
 ## Partition Maintenance
 

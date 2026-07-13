@@ -10,6 +10,7 @@ EXPENSE_STATUSES = ("draft", "posted", "reversed")
 COLLECTION_SOURCE_TYPES = ("rental", "other")
 COLLECTION_STATUSES = ("draft", "posted", "reversed")
 VEHICLE_TRIP_SOURCE = "vehicle_trip"
+FIELD_SERVICE_SOURCE = "field_service"
 FUEL_CATEGORY_NAME = "Fuel"
 
 

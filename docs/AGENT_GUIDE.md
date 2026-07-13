@@ -86,7 +86,7 @@ docs/deploy/           → CI/CD details
 | Audit / Activity | ✅ | ✅ | ✅ | `001`, `013`, `017` | in platform paths | 1 |
 | Dashboard / Health | 🟡 | ✅ summary + reports catalog | `/reports` registry | — | `paths/dashboard.yaml` | KPI period APIs pending |
 | Farmers | ✅ | ✅ | ✅ | `004` | `paths/farmers.yaml` | 2a/2b (sub-resources) |
-| Field services | ✅ | ✅ | ✅ | `021`, `022` | `paths/field-services.yaml` | 2c |
+| Field services | ✅ | ✅ + diesel→expense | Detail + receipts/comments | `021`, `022` | `paths/field-services.yaml` | `diesel_amount` → Fuel expense (`field_service`) |
 | Farms | 🟡 | ✅ thin CRUD + activities | Placeholder | `006` | `paths/farms.yaml` | Own-farming UI remaining |
 | Procurements | ✅ | ✅ | ✅ | `008`, `019`, `026` | `paths/procurement.yaml` | 2b (+ buyer/terms) |
 | Farmer payments / Ledger | ✅ | ✅ list/create/get/allocate/reverse | ✅ | `008` | `paths/payments.yaml` | Web `/payments` settlement UI (allocate/reverse) |
@@ -117,7 +117,7 @@ docs/deploy/           → CI/CD details
 
 Phase 1–2b live models include: org/IAM, districts, mandals, villages, crop types, expense categories, expenses, collections, platform catalogs (`ActivityType`, `PaymentMode`, `Buyer`, `FieldAgent`, `VehicleType`, `CropPriceRule`, comments/tags), farmers (+ bank/land), procurements (+ ledger/deductions + buyer/payment terms), farmer payments (+ allocations), documents, devices (`UserDeviceToken`), field services (`FieldServiceRecord`), assets (`Asset`), vehicle trips (`VehicleTrip`), farms (`Farm`/`FarmActivity`), audit/activity.
 
-Phase 3–5 remaining tables (workers, rentals, financial_transactions posting, etc.) exist in DB; expenses/collections CRUD live; diesel posts from vehicle trips.
+Phase 3–5 remaining tables (workers, rentals, financial_transactions posting, etc.) exist in DB; expenses/collections CRUD live; diesel posts from vehicle trips and field-service `diesel_amount`.
 
 ---
 

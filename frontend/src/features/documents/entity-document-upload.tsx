@@ -11,7 +11,7 @@ import {
 } from "@mui/material";
 import { CloudUpload } from "@mui/icons-material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { PermissionGuard } from "@/components/auth/permission-guard";
 import {
   fetchDocumentsForEntity,
@@ -19,11 +19,19 @@ import {
   uploadAndLinkDocument,
 } from "@/features/documents/api";
 
+type UploadKind = {
+  documentType: string;
+  label: string;
+};
+
 type Props = {
   entityType: string;
   entityId: string;
+  /** Default single upload type when `uploadKinds` is omitted. */
   documentType?: string;
   title?: string;
+  /** Multiple upload buttons (e.g. fuel_bill + photo) sharing one gallery. */
+  uploadKinds?: UploadKind[];
 };
 
 /**
@@ -34,10 +42,17 @@ export function EntityDocumentUpload({
   entityId,
   documentType = "photo",
   title = "Photos & documents",
+  uploadKinds,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const pendingTypeRef = useRef(documentType);
+  const [pendingType, setPendingType] = useState(documentType);
   const queryClient = useQueryClient();
   const queryKey = ["documents", entityType, entityId];
+
+  const kinds: UploadKind[] = uploadKinds?.length
+    ? uploadKinds
+    : [{ documentType, label: "Upload photo / document" }];
 
   const galleryQuery = useQuery({
     queryKey,
@@ -49,7 +64,7 @@ export function EntityDocumentUpload({
     mutationFn: (file: File) =>
       uploadAndLinkDocument({
         file,
-        documentType,
+        documentType: pendingTypeRef.current,
         entityType,
         entityId,
       }),
@@ -62,6 +77,12 @@ export function EntityDocumentUpload({
   const openDownload = async (documentId: string) => {
     const { download_url } = await getDocumentDownloadUrl(documentId);
     window.open(download_url, "_blank", "noopener,noreferrer");
+  };
+
+  const startUpload = (kind: UploadKind) => {
+    pendingTypeRef.current = kind.documentType;
+    setPendingType(kind.documentType);
+    inputRef.current?.click();
   };
 
   return (
@@ -81,15 +102,22 @@ export function EntityDocumentUpload({
             if (file) uploadMut.mutate(file);
           }}
         />
-        <Button
-          variant="outlined"
-          startIcon={<CloudUpload />}
-          sx={{ minHeight: 48, alignSelf: "flex-start" }}
-          disabled={uploadMut.isPending}
-          onClick={() => inputRef.current?.click()}
-        >
-          {uploadMut.isPending ? "Uploading…" : "Upload photo / document"}
-        </Button>
+        <Stack direction="row" flexWrap="wrap" useFlexGap spacing={1}>
+          {kinds.map((kind) => (
+            <Button
+              key={kind.documentType}
+              variant="outlined"
+              startIcon={<CloudUpload />}
+              sx={{ minHeight: 48 }}
+              disabled={uploadMut.isPending}
+              onClick={() => startUpload(kind)}
+            >
+              {uploadMut.isPending && pendingType === kind.documentType
+                ? "Uploading…"
+                : kind.label}
+            </Button>
+          ))}
+        </Stack>
       </PermissionGuard>
 
       {uploadMut.isError && (

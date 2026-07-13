@@ -190,6 +190,7 @@ LinkEntityType:
     - work_order
     - asset
     - farmer
+    - field_service
 
 DocumentLinkRecord:
   allOf:

@@ -46,3 +46,42 @@ def test_money_defaults_are_decimal_compatible():
         total_amount=Decimal("15000.00"),
     )
     assert payload.pending_amount == Decimal("5000.00")
+
+
+def test_field_service_response_includes_diesel_expense_id():
+    from app.modules.field_services.schemas import FieldServiceRecordResponse
+    from datetime import date, datetime, timezone
+    from uuid import uuid4
+
+    expense_id = uuid4()
+    row = FieldServiceRecordResponse(
+        id=uuid4(),
+        record_number="FSR-0001",
+        service_category="tractor_work",
+        activity_type_id=None,
+        farmer_id=None,
+        asset_id=None,
+        vehicle_type_id=None,
+        service_date=date(2026, 7, 12),
+        location=None,
+        location_te=None,
+        hours=None,
+        bag_count=None,
+        quantity=None,
+        quantity_unit=None,
+        rate_per_unit=None,
+        diesel_amount=Decimal("100.00"),
+        amount_given=Decimal("0"),
+        advance_amount=Decimal("0"),
+        total_amount=Decimal("0"),
+        pending_amount=Decimal("0"),
+        cleaning_status=None,
+        facility_status=None,
+        status="open",
+        comments=None,
+        comments_te=None,
+        diesel_expense_id=expense_id,
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
+    )
+    assert row.diesel_expense_id == expense_id

@@ -232,6 +232,8 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
         "comments:read",
         "comments:create",
         "tags:read",
+        "documents:read",
+        "documents:create",
         "dashboard:read",
     ],
     "DRIVER": [
@@ -253,6 +255,8 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
         "comments:read",
         "comments:create",
         "tags:read",
+        "documents:read",
+        "documents:create",
         "dashboard:read",
     ],
     "WORKER": [
@@ -271,6 +275,7 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
         "farming:read",
         "documents:read",
         "comments:read",
+        "comments:create",
         "dashboard:read",
     ],
 }

@@ -92,6 +92,7 @@ class FieldServiceRecordResponse(AuditMetaMixin):
     status: str
     comments: str | None
     comments_te: str | None
+    diesel_expense_id: UUID | None = None
     created_at: datetime
     updated_at: datetime
 

@@ -203,6 +203,8 @@ _AGENT: frozenset[str] = frozenset(
         COMMENT_VIEW,
         COMMENT_CREATE,
         TAG_VIEW,
+        DOCUMENT_VIEW,
+        DOCUMENT_CREATE,
         REPORT_VIEW,
         SETTINGS_VIEW,
     ]
@@ -219,6 +221,8 @@ _DRIVER: frozenset[str] = frozenset(
         COMMENT_VIEW,
         COMMENT_CREATE,
         TAG_VIEW,
+        DOCUMENT_VIEW,
+        DOCUMENT_CREATE,
         REPORT_VIEW,
         SETTINGS_VIEW,
     ]
@@ -272,7 +276,7 @@ _WORKER: frozenset[str] = frozenset(
     ]
 )
 
-# Farmer portal — read-only soft-wire (no create/update/delete).
+# Farmer portal — read-mostly; may comment on posted field work.
 _FARMER: frozenset[str] = frozenset(
     [
         FARMER_VIEW,
@@ -283,6 +287,7 @@ _FARMER: frozenset[str] = frozenset(
         REPORT_VIEW,
         SETTINGS_VIEW,
         COMMENT_VIEW,
+        COMMENT_CREATE,
     ]
 )
 

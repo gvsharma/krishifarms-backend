@@ -18,6 +18,7 @@ import { useParams } from "next/navigation";
 import { useState } from "react";
 import { CommentThread } from "@/components/comments/CommentThread";
 import { MuiPageShell } from "@/components/shell/mui-page-shell";
+import { EntityDocumentUpload } from "@/features/documents/entity-document-upload";
 import { fetchFieldService, updateFieldService } from "@/features/field-services/api";
 import { CATEGORY_FIELDS, categoryLabel, type ServiceCategory } from "@/features/field-services/constants";
 import {
@@ -227,6 +228,15 @@ export default function FieldServiceDetailPage() {
                 </Grid>
               )}
 
+              {data.diesel_expense_id && (
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <DetailField
+                    label="Diesel expense"
+                    value={`Posted to expenses · ${data.diesel_expense_id.slice(0, 8)}…`}
+                  />
+                </Grid>
+              )}
+
               {visibleFields.has("amount_given") && (
                 <Grid size={{ xs: 6, sm: 4 }}>
                   <DetailField label="Amount given" value={formatInr(data.amount_given)} />
@@ -371,6 +381,22 @@ export default function FieldServiceDetailPage() {
                 </Grid>
               )}
             </Grid>
+          </Card>
+
+          <Card sx={{ p: 2 }}>
+            <EntityDocumentUpload
+              entityType="field_service"
+              entityId={data.id}
+              title="Diesel receipts & work photos"
+              uploadKinds={
+                visibleFields.has("diesel_amount")
+                  ? [
+                      { documentType: "fuel_bill", label: "Upload diesel receipt" },
+                      { documentType: "photo", label: "Upload work photo" },
+                    ]
+                  : [{ documentType: "photo", label: "Upload work photo" }]
+              }
+            />
           </Card>
 
           <Card sx={{ p: 2 }}>
