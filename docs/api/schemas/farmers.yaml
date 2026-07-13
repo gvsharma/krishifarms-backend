@@ -18,6 +18,13 @@ Farmer:
     aadhaar_last4: { type: string, maxLength: 4 }
     status: { type: string, enum: [active, inactive, blocked] }
     notes: { type: string }
+    preferred_language: { type: string, maxLength: 10, nullable: true }
+    preferred_payment_cycle: { type: string, maxLength: 50, nullable: true }
+    preferred_payment_method: { type: string, maxLength: 50, nullable: true }
+    trust_rating: { type: integer, minimum: 1, maximum: 5, nullable: true }
+    is_vip: { type: boolean, default: false }
+    geo_lat: { type: number, nullable: true }
+    geo_lng: { type: number, nullable: true }
     outstanding_amount: { $ref: 'common.yaml#/Money' }
     allOf:
       - $ref: 'common.yaml#/Timestamps'
@@ -38,6 +45,13 @@ FarmerCreate:
     address_te: { type: string }
     aadhaar_last4: { type: string, maxLength: 4 }
     notes: { type: string }
+    preferred_language: { type: string, nullable: true }
+    preferred_payment_cycle: { type: string, nullable: true }
+    preferred_payment_method: { type: string, nullable: true }
+    trust_rating: { type: integer, minimum: 1, maximum: 5, nullable: true }
+    is_vip: { type: boolean, default: false }
+    geo_lat: { type: number, nullable: true }
+    geo_lng: { type: number, nullable: true }
 
 FarmerUpdate:
   type: object
@@ -50,6 +64,13 @@ FarmerUpdate:
     address: { type: string }
     status: { type: string, enum: [active, inactive, blocked] }
     notes: { type: string }
+    preferred_language: { type: string, nullable: true }
+    preferred_payment_cycle: { type: string, nullable: true }
+    preferred_payment_method: { type: string, nullable: true }
+    trust_rating: { type: integer, minimum: 1, maximum: 5, nullable: true }
+    is_vip: { type: boolean }
+    geo_lat: { type: number, nullable: true }
+    geo_lng: { type: number, nullable: true }
 
 FarmerList:
   type: object
@@ -96,6 +117,11 @@ LandParcel:
     location_notes: { type: string }
     geo_lat: { type: number }
     geo_lng: { type: number }
+    ownership: { type: string, enum: [owned, lease, shared], nullable: true }
+    irrigation_type: { type: string, nullable: true }
+    water_source: { type: string, nullable: true }
+    soil_type: { type: string, nullable: true }
+    village_name: { type: string, nullable: true }
 
 CropHistory:
   type: object
@@ -107,6 +133,69 @@ CropHistory:
     year: { type: integer }
     acres: { $ref: 'common.yaml#/Weight' }
     notes: { type: string }
+    survey_number: { type: string, nullable: true }
+    village_name: { type: string, nullable: true }
+    seed_variety: { type: string, nullable: true }
+    seed_supplier: { type: string, nullable: true }
+    fertilizer_supplier: { type: string, nullable: true }
+    pesticides_used: { type: string, nullable: true }
+    cultivation_stage: { type: string, nullable: true }
+    expected_yield: { type: number, nullable: true }
+    actual_yield: { type: number, nullable: true }
+    selling_market: { type: string, nullable: true }
+    selling_price: { $ref: 'common.yaml#/Money' }
+    harvest_date: { type: string, format: date, nullable: true }
+    geo_lat: { type: number, nullable: true }
+    geo_lng: { type: number, nullable: true }
+
+CropHistoryCreate:
+  type: object
+  required: [crop_type_id, season, year]
+  properties:
+    crop_type_id: { $ref: 'common.yaml#/UUID' }
+    season: { type: string }
+    year: { type: integer }
+    acres: { type: number, nullable: true }
+    notes: { type: string, nullable: true }
+    survey_number: { type: string, nullable: true }
+    village_name: { type: string, nullable: true }
+    seed_variety: { type: string, nullable: true }
+    seed_supplier: { type: string, nullable: true }
+    fertilizer_supplier: { type: string, nullable: true }
+    pesticides_used: { type: string, nullable: true }
+    cultivation_stage: { type: string, nullable: true }
+    expected_yield: { type: number, nullable: true }
+    actual_yield: { type: number, nullable: true }
+    selling_market: { type: string, nullable: true }
+    selling_price: { type: number, nullable: true }
+    harvest_date: { type: string, format: date, nullable: true }
+    geo_lat: { type: number, nullable: true }
+    geo_lng: { type: number, nullable: true }
+
+Farmer360APIResponse:
+  type: object
+  properties:
+    success: { type: boolean, enum: [true] }
+    data:
+      type: object
+      description: Farmer 360° aggregated relationship profile
+      properties:
+        summary: { type: object }
+        statistics: { type: object }
+        timeline: { type: array, items: { type: object } }
+        services: { type: array, items: { type: object } }
+        farming: { type: array, items: { type: object } }
+        procurements: { type: array, items: { type: object } }
+        finance: { type: array, items: { type: object } }
+        ledger: { type: array, items: { type: object } }
+        crop_intelligence: { type: object }
+        land: { type: array, items: { $ref: '#/LandParcel' } }
+        documents: { type: array, items: { type: object } }
+        communication: { type: array, items: { type: object } }
+        analytics: { type: object }
+        recommendations: { type: array, items: { type: object } }
+        quick_actions: { type: array, items: { type: object } }
+        bank_accounts_count: { type: integer }
 
 LedgerEntry:
   type: object

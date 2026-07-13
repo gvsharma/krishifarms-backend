@@ -63,7 +63,7 @@ Mount routers           → app/main.py
 | audit | `/audit-logs`, `/activity-feed` |
 | dashboard | `/dashboard/summary`, `/health` |
 | platform | `/buyers`, `/field-agents`, comments, tags, price rules |
-| farmers | `/farmers` (+ bank accounts, land parcels, outstanding) |
+| farmers | `/farmers` (+ bank accounts, land parcels, outstanding, **profile-360**, crop-history, ledger) |
 | procurements | `/procurements` (full workflow) |
 
 Phase 2+ remaining (workforce, rentals, general payments): schema + OpenAPI ready; expenses/collections live — see [AGENT_GUIDE §11](./docs/AGENT_GUIDE.md#11-common-agent-workflows).

@@ -190,6 +190,24 @@ farmerLandParcelById:
     responses:
       '200': { description: Deleted }
 
+farmerProfile360:
+  get:
+    tags: [Farmers]
+    summary: Farmer 360° relationship profile
+    description: >
+      Aggregated CRM view — summary card, quick statistics, unified timeline,
+      services/farming/procurement/finance/ledger histories, crop intelligence,
+      land, documents, communication, analytics, AI-ready recommendations, and quick actions.
+    operationId: getFarmerProfile360
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/FarmerId'
+    responses:
+      '200':
+        content:
+          application/json:
+            schema: { $ref: '../schemas/farmers.yaml#/Farmer360APIResponse' }
+      '404': { $ref: '../openapi.yaml#/components/responses/NotFound' }
+
 farmerCropHistory:
   get:
     tags: [Farmers]
@@ -197,12 +215,26 @@ farmerCropHistory:
     parameters:
       - $ref: '../openapi.yaml#/components/parameters/FarmerId'
     responses:
-      '200': { description: OK }
+      '200':
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean }
+                data:
+                  type: array
+                  items: { $ref: '../schemas/farmers.yaml#/CropHistory' }
   post:
     tags: [Farmers]
     operationId: createFarmerCropHistory
     parameters:
       - $ref: '../openapi.yaml#/components/parameters/FarmerId'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: '../schemas/farmers.yaml#/CropHistoryCreate' }
     responses:
       '201': { description: Created }
 

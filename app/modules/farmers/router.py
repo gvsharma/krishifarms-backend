@@ -7,10 +7,14 @@ from sqlalchemy.orm import Session
 from app.core.client_context import ClientContext, get_client_context
 from app.core.dependencies import CurrentUserContext, get_db, require_permission, require_role
 from app.modules.farmers import service
+from app.modules.farmers.profile_360_schemas import Farmer360ProfileResponse
+from app.modules.farmers.profile_360_service import build_farmer_360
 from app.modules.farmers.schemas import (
     BankAccountCreateRequest,
     BankAccountResponse,
     BankAccountUpdateRequest,
+    CropHistoryCreateRequest,
+    CropHistoryResponse,
     FarmerCreateRequest,
     FarmerDetailResponse,
     FarmerListItemResponse,
@@ -20,6 +24,7 @@ from app.modules.farmers.schemas import (
     LandParcelCreateRequest,
     LandParcelResponse,
     LandParcelUpdateRequest,
+    LedgerListResponse,
     OutstandingResponse,
 )
 from app.modules.users.models import User
@@ -113,6 +118,18 @@ def get_farmer(
     return APIResponse(data=response)
 
 
+@router.get("/farmers/{farmer_id}/profile-360", response_model=APIResponse[Farmer360ProfileResponse])
+def get_farmer_profile_360(
+    farmer_id: UUID,
+    ctx: CurrentUserContext = Depends(require_permission("farmers:read")),
+    db: Session = Depends(get_db),
+):
+    """Complete Farmer 360° relationship profile — summary, stats, timeline, histories, AI-ready recommendations."""
+    tag_map = attach_tags_only(db, ctx.user.org_id, "farmer", [farmer_id])
+    profile = build_farmer_360(db, ctx.user.org_id, farmer_id, tags=tag_map.get(farmer_id, []))
+    return APIResponse(data=profile)
+
+
 @router.patch("/farmers/{farmer_id}", response_model=APIResponse[FarmerResponse])
 def update_farmer(
     farmer_id: UUID,
@@ -156,6 +173,55 @@ def get_farmer_outstanding(
             outstanding_amount=amount,
             as_of_date=date.today(),
         )
+    )
+
+
+@router.get("/farmers/{farmer_id}/crop-history", response_model=APIResponse[list[CropHistoryResponse]])
+def list_farmer_crop_history(
+    farmer_id: UUID,
+    ctx: CurrentUserContext = Depends(require_permission("farmers:read")),
+    db: Session = Depends(get_db),
+):
+    return APIResponse(data=service.list_crop_history(db, ctx.user.org_id, farmer_id))
+
+
+@router.post(
+    "/farmers/{farmer_id}/crop-history",
+    response_model=APIResponse[CropHistoryResponse],
+    status_code=201,
+)
+def create_farmer_crop_history(
+    farmer_id: UUID,
+    payload: CropHistoryCreateRequest,
+    ctx: CurrentUserContext = Depends(require_permission("farmers:update")),
+    client: ClientContext = Depends(get_client_context),
+    db: Session = Depends(get_db),
+):
+    row = service.create_crop_history(db, ctx.user.org_id, farmer_id, payload, ctx.user.id, client)
+    return APIResponse(data=row)
+
+
+@router.get("/farmers/{farmer_id}/ledger", response_model=APIResponse[LedgerListResponse])
+def get_farmer_ledger(
+    farmer_id: UUID,
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+    date_from: date | None = Query(default=None),
+    date_to: date | None = Query(default=None),
+    ctx: CurrentUserContext = Depends(require_permission("farmers:read")),
+    db: Session = Depends(get_db),
+):
+    items, total = service.list_ledger(
+        db,
+        ctx.user.org_id,
+        farmer_id,
+        page=page,
+        page_size=page_size,
+        date_from=date_from,
+        date_to=date_to,
+    )
+    return APIResponse(
+        data=LedgerListResponse(items=items, total=total, page=page, page_size=page_size)
     )
 
 
