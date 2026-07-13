@@ -15,7 +15,13 @@ export function useAuth() {
     queryKey: ["auth", "me"],
     queryFn: fetchAuthMe,
     staleTime: 5 * 60_000,
-    retry: 1,
+    // 401s are handled by fetchApi (refresh or force logout) — don't spam retries.
+    retry: (failureCount, error) => {
+      if (error instanceof Error && "status" in error && (error as { status: number }).status === 401) {
+        return false;
+      }
+      return failureCount < 1;
+    },
   });
 
   const roles = query.data?.roles ?? [];
