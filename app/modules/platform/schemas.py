@@ -188,6 +188,7 @@ class VehicleTypeCreateRequest(BaseModel):
 class VehicleTypeUpdateRequest(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=100)
     name_te: str | None = None
+    code: str | None = Field(default=None, min_length=1, max_length=50)
     capacity_quintals: Decimal | None = Field(default=None, ge=0)
     fuel_type: str | None = Field(default=None, max_length=30)
     notes: str | None = None

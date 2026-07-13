@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **Login password field invisible / broken eye toggle** — password row used a Tailwind-bordered wrapper; with MUI CSS layers, `border` utilities never get `border-style: solid`, so the shell was invisible and the show/hide control kept native button chrome. Login fields now use explicit `1px solid` borders + Lucide eye icons inside the field.
+- **Custom vehicle types (e.g. tractor4W) missing after add/update** — field-service dropdowns filtered by a hardcoded code allowlist, so new master-data codes never appeared; Edit also hid `code` (`createOnly`) and PATCH rejected code changes. Filter now includes custom types by `fuel_type` / code heuristics, code is editable on update (unique per org), and related React Query caches are invalidated.
+- **Dark-mode Edit User / admin dialog text** — `PremiumDialog` no longer keeps a light `#FAFAFA` paper while MUI `TextField`s render light/white text in dark mode (invisible labels/values). Dialog paper/title/content and form-control colors follow the active color scheme; `SoftAlert` and `.kf-premium` CSS tokens gain dark variants. Playwright users spec asserts dialog WCAG contrast in dark mode and matches `Edit user` aria-label.
 - **Payment modes settings 403** — production `/settings/master-data/payment-modes` failed with `Missing permission: payment_modes:read` because `payment_modes:*` was defined in code/`seed.py` but never inserted by Alembic (omitted from migration `018`). Migration `028` seeds and grants those permissions to OWNER / MANAGER / SUPERVISOR.
 
 ### Added

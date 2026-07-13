@@ -179,6 +179,12 @@ export function CatalogAdminPage<T extends { id: string }>({
       setEditing(null);
       setForm(defaultForm(fields));
       queryClient.invalidateQueries({ queryKey: [queryKey] });
+      // Keep fleet / field-service dropdowns in sync after master-data edits.
+      if (queryKey.includes("vehicle-types")) {
+        queryClient.invalidateQueries({ queryKey: ["fleet-vehicle-types"] });
+        queryClient.invalidateQueries({ queryKey: ["vehicle-types"] });
+        queryClient.invalidateQueries({ queryKey: ["vehicle-types-field-service"] });
+      }
     },
   });
 
@@ -190,6 +196,11 @@ export function CatalogAdminPage<T extends { id: string }>({
     onSuccess: () => {
       setDeleteId(null);
       queryClient.invalidateQueries({ queryKey: [queryKey] });
+      if (queryKey.includes("vehicle-types")) {
+        queryClient.invalidateQueries({ queryKey: ["fleet-vehicle-types"] });
+        queryClient.invalidateQueries({ queryKey: ["vehicle-types"] });
+        queryClient.invalidateQueries({ queryKey: ["vehicle-types-field-service"] });
+      }
     },
   });
 

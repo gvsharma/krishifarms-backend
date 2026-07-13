@@ -389,9 +389,12 @@ export function FieldServiceForm({
   const workProfile = useMemo(
     () =>
       fields.has("vehicle_type_id")
-        ? resolveVehicleWorkProfile(values.vehicle_type_code || selectedVehicle?.code)
+        ? resolveVehicleWorkProfile(
+            values.vehicle_type_code || selectedVehicle?.code,
+            selectedVehicle?.fuel_type,
+          )
         : null,
-    [fields, values.vehicle_type_code, selectedVehicle?.code],
+    [fields, values.vehicle_type_code, selectedVehicle?.code, selectedVehicle?.fuel_type],
   );
 
   const cropOptions = useMemo(
@@ -405,7 +408,7 @@ export function FieldServiceForm({
 
   const onVehicleChange = (vehicleTypeId: string) => {
     const next = vehicleOptions.find((v) => v.id === vehicleTypeId);
-    const profile = resolveVehicleWorkProfile(next?.code);
+    const profile = resolveVehicleWorkProfile(next?.code, next?.fuel_type);
     set({
       vehicle_type_id: vehicleTypeId,
       vehicle_type_code: next?.code ?? "",

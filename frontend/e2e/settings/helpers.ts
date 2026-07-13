@@ -12,6 +12,7 @@ export {
   assertCreateDialogFieldsNotOverlapping,
   dialogField,
   expectDialogLabelsNotOverlapping,
+  expectDialogTextContrast,
   expectLabeledFieldsNotOverlapping,
   openCatalogAddDialog,
 } from "../utils/dialog";
@@ -24,3 +25,5 @@ export {
   expectTableOrAlert,
   contentAlerts,
 } from "../utils/shell";
+
+export { enableDarkTheme, ensureDarkThemeViaToggle } from "../utils/theme";
