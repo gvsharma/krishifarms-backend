@@ -47,13 +47,37 @@ export interface FetchApiOptions extends Omit<RequestInit, "body"> {
   body?: unknown;
   /** Include X-Device-Id and X-Client-Type (default true for mutations). */
   clientHeaders?: boolean;
+  /** Skip 401 → refresh → retry (used by refresh/logout themselves). */
+  skipAuthRefresh?: boolean;
+  /** Internal: already retried once after refresh. */
+  _authRetried?: boolean;
+}
+
+function parseErrorMessage(status: number, payload: unknown): string {
+  let message = `Request failed (${status})`;
+  if (typeof payload === "object" && payload !== null) {
+    const body = payload as {
+      detail?: unknown;
+      error?: { message?: unknown };
+    };
+    if (typeof body.error?.message === "string") message = body.error.message;
+    else if (typeof body.detail === "string") message = body.detail;
+  }
+  return message;
 }
 
 export async function fetchApi<T>(
   path: string,
   options: FetchApiOptions = {},
 ): Promise<T> {
-  const { body, clientHeaders = options.method !== "GET", headers, ...rest } = options;
+  const {
+    body,
+    clientHeaders = options.method !== "GET",
+    headers,
+    skipAuthRefresh = false,
+    _authRetried = false,
+    ...rest
+  } = options;
   const base = getApiBaseUrl().replace(/\/$/, "");
   const url = path.startsWith("http") ? path : `${base}${path.startsWith("/") ? path : `/${path}`}`;
 
@@ -86,16 +110,14 @@ export async function fetchApi<T>(
   }
 
   if (!response.ok) {
-    let message = `Request failed (${response.status})`;
-    if (typeof payload === "object" && payload !== null) {
-      const body = payload as {
-        detail?: unknown;
-        error?: { message?: unknown };
-      };
-      if (typeof body.error?.message === "string") message = body.error.message;
-      else if (typeof body.detail === "string") message = body.detail;
+    if (response.status === 401 && !skipAuthRefresh && !_authRetried) {
+      const { recoverFromUnauthorized } = await import("@/features/auth/api");
+      const shouldRetry = await recoverFromUnauthorized(path);
+      if (shouldRetry) {
+        return fetchApi<T>(path, { ...options, _authRetried: true });
+      }
     }
-    throw new ApiError(message, response.status, payload);
+    throw new ApiError(parseErrorMessage(response.status, payload), response.status, payload);
   }
 
   if (
