@@ -145,6 +145,8 @@ paths:
     $ref: paths/farmers.yaml#/farmers
   /farmers/{farmer_id}:
     $ref: paths/farmers.yaml#/farmerById
+  /farmers/{farmer_id}/profile-360:
+    $ref: paths/farmers.yaml#/farmerProfile360
   /farmers/{farmer_id}/bank-accounts:
     $ref: paths/farmers.yaml#/farmerBankAccounts
   /farmers/{farmer_id}/bank-accounts/{account_id}:

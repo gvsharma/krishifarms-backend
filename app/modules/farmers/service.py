@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from uuid import UUID
 
@@ -10,18 +10,21 @@ from sqlalchemy.orm import Session
 
 from app.core.client_context import ClientContext
 from app.core.exceptions import ConflictError, NotFoundError
-from app.modules.farmers.models import Farmer, FarmerBankAccount, FarmerLandParcel
+from app.modules.farmers.models import Farmer, FarmerBankAccount, FarmerCropHistory, FarmerLandParcel
 from app.modules.farmers.schemas import (
     BankAccountCreateRequest,
     BankAccountResponse,
     BankAccountUpdateRequest,
+    CropHistoryCreateRequest,
+    CropHistoryResponse,
     LandParcelCreateRequest,
     LandParcelResponse,
     LandParcelUpdateRequest,
+    LedgerEntryResponse,
     FarmerCreateRequest,
     FarmerUpdateRequest,
 )
-from app.modules.master_data.models import Village
+from app.modules.master_data.models import CropType, Village
 from app.modules.procurements.models import FarmerLedgerEntry
 from app.shared.crypto import decrypt_value, encrypt_value, mask_account_number
 from app.shared.services.audit import write_activity_feed, write_audit_log
@@ -571,3 +574,100 @@ def delete_land_parcel(
         summary="Farmer land parcel deleted",
     )
     db.commit()
+
+
+def list_crop_history(db: Session, org_id: UUID, farmer_id: UUID) -> list[CropHistoryResponse]:
+    get_farmer(db, org_id, farmer_id)
+    rows = (
+        db.query(FarmerCropHistory, CropType.name)
+        .outerjoin(CropType, CropType.id == FarmerCropHistory.crop_type_id)
+        .filter(
+            FarmerCropHistory.org_id == org_id,
+            FarmerCropHistory.farmer_id == farmer_id,
+            FarmerCropHistory.deleted_at.is_(None),
+        )
+        .order_by(FarmerCropHistory.year.desc(), FarmerCropHistory.season)
+        .all()
+    )
+    return [
+        CropHistoryResponse.model_validate(row).model_copy(update={"crop_type_name": crop_name})
+        for row, crop_name in rows
+    ]
+
+
+def create_crop_history(
+    db: Session,
+    org_id: UUID,
+    farmer_id: UUID,
+    payload: CropHistoryCreateRequest,
+    actor_user_id: UUID,
+    client: ClientContext | None,
+) -> CropHistoryResponse:
+    get_farmer(db, org_id, farmer_id)
+    crop = (
+        db.query(CropType)
+        .filter(CropType.id == payload.crop_type_id, CropType.org_id == org_id, CropType.deleted_at.is_(None))
+        .first()
+    )
+    if crop is None:
+        raise NotFoundError("Crop type not found")
+    row = FarmerCropHistory(
+        org_id=org_id,
+        farmer_id=farmer_id,
+        created_by=actor_user_id,
+        updated_by=actor_user_id,
+        **payload.model_dump(),
+    )
+    db.add(row)
+    db.flush()
+    _audit(
+        db,
+        org_id=org_id,
+        actor_user_id=actor_user_id,
+        action="CREATE",
+        entity_id=farmer_id,
+        after={"crop_history_id": str(row.id), "season": row.season, "year": row.year},
+        client=client,
+        summary=f"Crop history added: {crop.name} ({row.season} {row.year})",
+    )
+    db.commit()
+    db.refresh(row)
+    return CropHistoryResponse.model_validate(row).model_copy(update={"crop_type_name": crop.name})
+
+
+def list_ledger(
+    db: Session,
+    org_id: UUID,
+    farmer_id: UUID,
+    *,
+    page: int = 1,
+    page_size: int = 20,
+    date_from: date | None = None,
+    date_to: date | None = None,
+) -> tuple[list[LedgerEntryResponse], int]:
+    get_farmer(db, org_id, farmer_id)
+    q = db.query(FarmerLedgerEntry).filter(
+        FarmerLedgerEntry.org_id == org_id,
+        FarmerLedgerEntry.farmer_id == farmer_id,
+    )
+    if date_from:
+        q = q.filter(FarmerLedgerEntry.entry_date >= date_from)
+    if date_to:
+        q = q.filter(FarmerLedgerEntry.entry_date <= date_to)
+    q = q.order_by(FarmerLedgerEntry.entry_date.desc(), FarmerLedgerEntry.posted_at.desc())
+    total = q.count()
+    rows = q.offset((page - 1) * page_size).limit(page_size).all()
+    return [
+        LedgerEntryResponse(
+            id=row.id,
+            entry_date=row.entry_date,
+            entry_type=row.entry_type,
+            reference_type=row.reference_type,
+            reference_id=row.reference_id,
+            debit=row.debit,
+            credit=row.credit,
+            balance_after=row.balance_after,
+            description=row.description,
+        )
+        for row in rows
+    ], total

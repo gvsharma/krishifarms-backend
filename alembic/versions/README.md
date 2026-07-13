@@ -51,6 +51,7 @@ alembic downgrade -1
 | `202506210027` | Financial | `expenses.source_type` / `source_id` + unique active source index; `expenses:*` / `collections:*` RBAC |
 | `202506210028` | Master data RBAC | `payment_modes:*` permissions (missed in `018`) granted to OWNER / MANAGER / SUPERVISOR |
 | `202506210029` | Field-ops RBAC | FARMER `comments:create`; AGENT/DRIVER `documents:read|create` for diesel receipts |
+| `202506210030` | Farmer 360° | Optional prefs/trust/VIP/GPS on farmers; land ownership/irrigation; crop-history farming detail columns |
 
 ## Partition Maintenance
 

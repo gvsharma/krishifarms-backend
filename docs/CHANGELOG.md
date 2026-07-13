@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **Farmer 360° relationship profile** — migration `030` adds optional prefs (`preferred_language` / payment cycle / method), `trust_rating`, `is_vip`, farmer GPS; land ownership/irrigation/soil; crop-history farming detail fields. Live `GET /farmers/{id}/profile-360` aggregates summary, stats, timeline, services/farming/procurement/finance/ledger, crop intelligence, analytics, recommendations, quick actions. Crop history + ledger list APIs implemented. Web `/farmers/{id}` circular orbit hub UI; tests in `tests/test_farmer_360.py`.
+
 ### Fixed
 
 - **Auto-logout on invalid/expired session** — `fetchApi` treats `401` by attempting `POST /auth/refresh` once (coalesced); on failure clears access/refresh tokens, marks signed-out, and hard-navigates to `/login`. App shell validates via `/auth/me` before render. Covers stale tokens that previously left users on dashboard with “Invalid token”.

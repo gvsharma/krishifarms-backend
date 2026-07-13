@@ -85,7 +85,7 @@ docs/deploy/           → CI/CD details
 | Devices / FCM push | ✅ | ✅ | ✅ | `020` | `paths/devices.yaml` | 1 |
 | Audit / Activity | ✅ | ✅ | ✅ | `001`, `013`, `017` | in platform paths | 1 |
 | Dashboard / Health | 🟡 | ✅ summary + reports catalog | `/reports` registry | — | `paths/dashboard.yaml` | KPI period APIs pending |
-| Farmers | ✅ | ✅ | ✅ | `004` | `paths/farmers.yaml` | 2a/2b (sub-resources) |
+| Farmers | ✅ | ✅ + profile-360, crop-history, ledger | ✅ | `004`, `030` | `paths/farmers.yaml` | 2a/2b + Farmer 360° |
 | Field services | ✅ | ✅ + diesel→expense | Detail + receipts/comments | `021`, `022` | `paths/field-services.yaml` | `diesel_amount` → Fuel expense (`field_service`) |
 | Farms | 🟡 | ✅ thin CRUD + activities | Placeholder | `006` | `paths/farms.yaml` | Own-farming UI remaining |
 | Procurements | ✅ | ✅ | ✅ | `008`, `019`, `026` | `paths/procurement.yaml` | 2b (+ buyer/terms) |
@@ -110,8 +110,8 @@ docs/deploy/           → CI/CD details
 | Synthetic UAT data | ✅ | `scripts/synthetic_seed/` |
 | CI/CD pipeline | ✅ | `.github/workflows/` |
 | Cache layer | ✅ | `app/core/cache/` |
-| Unit tests | 🟡 | `tests/` (farmers, platform, procurements, farmer_payments, expenses) |
-| Frontend | 🟡 | `frontend/` — MUI shell + master-data CRUD, farmers, location cascade, **procurement workflow** (submit→weigh→price→confirm), field services, **reports registry**; Phase 3+ finance pages still placeholders — [ANDROID_CRM_PARITY.md](./modules/ANDROID_CRM_PARITY.md) |
+| Unit tests | 🟡 | `tests/` (farmers + farmer_360, platform, procurements, farmer_payments, expenses) |
+| Frontend | 🟡 | `frontend/` — MUI shell + master-data CRUD, **Farmer 360° orbit profile**, location cascade, **procurement workflow** (submit→weigh→price→confirm), field services, **reports registry**; Phase 3+ finance pages still placeholders — [ANDROID_CRM_PARITY.md](./modules/ANDROID_CRM_PARITY.md) |
 
 ### 3.3 Registered SQLAlchemy models (`app/models.py`)
 

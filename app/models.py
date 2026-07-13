@@ -9,7 +9,7 @@ from app.modules.assets.vehicle_trip_models import VehicleTrip  # noqa: F401
 from app.modules.audit.models import ActivityFeed, AuditLog  # noqa: F401
 from app.modules.devices.models import UserDeviceToken  # noqa: F401
 from app.modules.documents.models import Document, DocumentLink  # noqa: F401
-from app.modules.farmers.models import Farmer, FarmerBankAccount, FarmerLandParcel  # noqa: F401
+from app.modules.farmers.models import Farmer, FarmerBankAccount, FarmerCropHistory, FarmerLandParcel  # noqa: F401
 from app.modules.farmer_payments.models import FarmerPayment, FarmerPaymentAllocation  # noqa: F401
 from app.modules.farms.models import Farm, FarmActivity  # noqa: F401
 from app.modules.procurements.models import (  # noqa: F401

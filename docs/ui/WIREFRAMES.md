@@ -80,9 +80,16 @@ Bulk bar (when selected):
 
 ---
 
-## 3. Farmer Profile 360 (7 Tabs)
+## 3. Farmer Profile 360 (circular hub)
 
-Route: `/farmers/{id}/{tab}` · Stripe/Linear-style detail page · P2
+Route: `/farmers/{id}` · Circular orbit UI + section panels · P2
+
+Desktop: left column sticky **360° orbit** (farmer center + module nodes); right column active section.
+Mobile: orbit on top, expandable section content below. Query `?tab=` selects section.
+
+Sections: Overview · Timeline · Services · Farming · Procure · Finance · Ledger · Land · Docs · Comms · Analytics · Actions
+
+API: `GET /farmers/{id}/profile-360`
 
 ```text
 ┌─ Profile Header ──────────────────────────────────────────────────────────────┐
