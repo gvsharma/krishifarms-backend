@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import {
   Alert,
@@ -11,26 +11,32 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import Visibility from "@mui/icons-material/Visibility";
-import VisibilityOff from "@mui/icons-material/VisibilityOff";
+import { Eye, EyeOff } from "lucide-react";
 import { isEmailIdentifier, loginWithPassword } from "@/features/auth/api";
 import { clearSignedOutFlag, wasExplicitlySignedOut } from "@/features/auth/session";
 import { getAccessToken } from "@/lib/api/client";
 import { ROUTES, SITE_NAME } from "@/constants/routes";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
-/** Login field: 54px / 16px radius, soft border + clear focus — no Material motion. */
-const loginFieldClassName = cn(
-  "h-[54px] rounded-2xl border border-[#E5E7EB] bg-white px-4 py-3.5 text-base leading-normal text-[#111827] shadow-none",
-  "placeholder:text-[#9CA3AF]",
-  "transition-none",
-  "hover:border-[#D1D5DB]",
-  "focus-visible:border-[#111827] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#111827]/12 focus-visible:ring-offset-0",
-  "disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:border-[#E5E7EB]",
-);
+/**
+ * Login fields use inline border styles — Tailwind `border-*` width utilities are
+ * ineffective here when MUI CSS layers omit preflight `border-style: solid`, which
+ * made the password wrapper invisible and left the eye toggle with a native button chrome.
+ */
+const fieldShellStyle: CSSProperties = {
+  border: "1px solid #E5E7EB",
+  backgroundColor: "#ffffff",
+  colorScheme: "light",
+};
 
 const fieldLabelClassName = "mb-2 block text-sm font-medium leading-none text-[#374151]";
+
+const fieldInputClassName = cn(
+  "h-full w-full min-w-0 border-0 bg-transparent px-4 text-base leading-normal text-[#111827]",
+  "placeholder:text-[#9CA3AF]",
+  "outline-none ring-0 focus:outline-none focus-visible:outline-none",
+  "disabled:cursor-not-allowed disabled:opacity-60",
+);
 
 function identifierLooksValid(value: string): boolean {
   const trimmed = value.trim();
@@ -98,6 +104,7 @@ export default function LoginPage() {
         placeItems: "center",
         px: 2,
         bgcolor: "#f8faf8",
+        colorScheme: "light",
       }}
     >
       <Box
@@ -109,6 +116,7 @@ export default function LoginPage() {
           borderRadius: 3,
           px: { xs: 3, sm: 5 },
           py: { xs: 4, sm: 5 },
+          colorScheme: "light",
         }}
       >
         <Stack spacing={1} alignItems="center" sx={{ mb: 3 }}>
@@ -148,22 +156,27 @@ export default function LoginPage() {
               <label htmlFor={identifierId} className={fieldLabelClassName}>
                 Phone or email
               </label>
-              <Input
-                id={identifierId}
-                name="identifier"
-                type="text"
-                inputMode="tel"
-                autoComplete="username"
-                autoFocus
-                required
-                placeholder="10-digit phone or email"
-                value={identifier}
-                onChange={(e) => setIdentifier(e.target.value)}
-                disabled={submitting}
-                aria-invalid={error ? true : undefined}
-                aria-describedby={error ? errorId : undefined}
-                className={loginFieldClassName}
-              />
+              <div
+                className="flex h-[54px] items-center overflow-hidden rounded-2xl transition-[border-color,box-shadow] focus-within:border-[#111827] focus-within:shadow-[0_0_0_3px_rgba(17,24,39,0.12)]"
+                style={fieldShellStyle}
+              >
+                <input
+                  id={identifierId}
+                  name="identifier"
+                  type="text"
+                  inputMode="tel"
+                  autoComplete="username"
+                  autoFocus
+                  required
+                  placeholder="10-digit phone or email"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
+                  disabled={submitting}
+                  aria-invalid={error ? true : undefined}
+                  aria-describedby={error ? errorId : undefined}
+                  className={fieldInputClassName}
+                />
+              </div>
               <Typography variant="caption" color="text.secondary" sx={{ mt: 0.75, display: "block" }}>
                 Prefer phone (10+ digits, +91 optional) — same password as email login
               </Typography>
@@ -174,12 +187,10 @@ export default function LoginPage() {
                 Password
               </label>
               <div
-                className={cn(
-                  loginFieldClassName,
-                  "flex items-center gap-0 p-0 focus-within:border-[#111827] focus-within:ring-[3px] focus-within:ring-[#111827]/12",
-                )}
+                className="flex h-[54px] items-center overflow-hidden rounded-2xl transition-[border-color,box-shadow] focus-within:border-[#111827] focus-within:shadow-[0_0_0_3px_rgba(17,24,39,0.12)]"
+                style={fieldShellStyle}
               >
-                <Input
+                <input
                   id={passwordId}
                   name="password"
                   type={showPassword ? "text" : "password"}
@@ -190,7 +201,7 @@ export default function LoginPage() {
                   disabled={submitting}
                   aria-invalid={error ? true : undefined}
                   aria-describedby={error ? errorId : undefined}
-                  className="h-full min-h-0 flex-1 border-0 bg-transparent px-4 py-3.5 shadow-none focus-visible:border-transparent focus-visible:ring-0"
+                  className={cn(fieldInputClassName, "pr-2")}
                 />
                 <button
                   type="button"
@@ -198,12 +209,19 @@ export default function LoginPage() {
                   disabled={submitting}
                   aria-label={showPassword ? "Hide password" : "Show password"}
                   aria-pressed={showPassword}
-                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[#6B7280] transition-none hover:bg-[#F3F4F6] hover:text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#111827]/20 disabled:opacity-50"
+                  className={cn(
+                    "mr-1.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
+                    "border-0 bg-transparent text-[#6B7280]",
+                    "hover:bg-[#F3F4F6] hover:text-[#111827]",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#111827]/20",
+                    "disabled:opacity-50",
+                  )}
+                  style={{ border: "none", background: "transparent", appearance: "none" }}
                 >
                   {showPassword ? (
-                    <VisibilityOff fontSize="small" aria-hidden />
+                    <EyeOff className="h-[18px] w-[18px]" strokeWidth={1.75} aria-hidden />
                   ) : (
-                    <Visibility fontSize="small" aria-hidden />
+                    <Eye className="h-[18px] w-[18px]" strokeWidth={1.75} aria-hidden />
                   )}
                 </button>
               </div>

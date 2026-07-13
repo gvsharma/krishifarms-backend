@@ -126,7 +126,10 @@ const DCM_PROFILE_CODES = new Set(["DCM", "EICHER_DCM"]);
 const PUMP_PROFILE_CODES = new Set(["FERTILIZER_PUMP", "PUMP"]);
 const DRONE_PROFILE_CODES = new Set(["DRONE"]);
 
-export function resolveVehicleWorkProfile(code: string | undefined | null): VehicleWorkProfile {
+export function resolveVehicleWorkProfile(
+  code: string | undefined | null,
+  fuelType?: string | null,
+): VehicleWorkProfile {
   if (!code) return null;
   const c = code.toUpperCase();
   if (TRACTOR_PROFILE_CODES.has(c)) return "tractor";
@@ -135,12 +138,69 @@ export function resolveVehicleWorkProfile(code: string | undefined | null): Vehi
   if (DCM_PROFILE_CODES.has(c)) return "dcm";
   if (PUMP_PROFILE_CODES.has(c)) return "pump";
   if (DRONE_PROFILE_CODES.has(c)) return "drone";
+
+  // Custom master-data codes (e.g. tractor4W) — infer from code / fuel_type.
+  if (c.includes("TROLLEY")) return "trolley";
+  if (c.includes("BOLERO")) return "bolero";
+  if (c.includes("DCM")) return "dcm";
+  if (c.includes("DRONE")) return "drone";
+  if (c.includes("PUMP")) return "pump";
+  if (
+    c.includes("TRACTOR") ||
+    c.includes("CULTIVATOR") ||
+    c.includes("ROTAVATOR") ||
+    c.includes("BALER") ||
+    c.includes("WEEDER") ||
+    c.includes("HARVESTER") ||
+    /[24]W/.test(c)
+  ) {
+    return "tractor";
+  }
+  const fuel = (fuelType ?? "").toLowerCase();
+  if (fuel === "tractor" || fuel === "implement") return "tractor";
+  if (fuel === "diesel") {
+    if (c.includes("BOLERO")) return "bolero";
+    if (c.includes("DCM")) return "dcm";
+  }
   return null;
 }
 
 interface VehicleLike {
   code: string;
   is_active?: boolean;
+  fuel_type?: string | null;
+}
+
+function codeInSet(code: string, set: Set<string>): boolean {
+  return set.has(code) || set.has(code.toUpperCase());
+}
+
+/** True when a custom vehicle type belongs in tractor / implement work lists. */
+function isTractorWorkCustom(v: VehicleLike): boolean {
+  const fuel = (v.fuel_type ?? "").toLowerCase();
+  if (fuel === "tractor" || fuel === "implement") return true;
+  if (fuel === "diesel") return false;
+  const c = v.code.toUpperCase();
+  return (
+    c.includes("TRACTOR") ||
+    c.includes("CULTIVATOR") ||
+    c.includes("ROTAVATOR") ||
+    c.includes("BALER") ||
+    c.includes("WEEDER") ||
+    c.includes("HARVESTER") ||
+    c.includes("TROLLEY") ||
+    c.includes("PUMP") ||
+    c.includes("DRONE") ||
+    /[24]W/.test(c)
+  );
+}
+
+function isTransportCustom(v: VehicleLike): boolean {
+  const fuel = (v.fuel_type ?? "").toLowerCase();
+  if (fuel === "diesel") return true;
+  if (fuel === "tractor" || fuel === "implement") return false;
+  const c = v.code.toUpperCase();
+  return c.includes("BOLERO") || c.includes("DCM");
 }
 
 export function filterVehiclesForCategory<T extends VehicleLike>(
@@ -149,10 +209,17 @@ export function filterVehiclesForCategory<T extends VehicleLike>(
 ): T[] {
   const active = vehicles.filter((v) => v.is_active !== false);
   if (category === "transport") {
-    return active.filter((v) => TRANSPORT_VEHICLE_CODES.has(v.code));
+    return active.filter(
+      (v) => codeInSet(v.code, TRANSPORT_VEHICLE_CODES) || isTransportCustom(v),
+    );
   }
   if (category === "tractor_work") {
-    return active.filter((v) => TRACTOR_WORK_VEHICLE_CODES.has(v.code));
+    return active.filter(
+      (v) => codeInSet(v.code, TRACTOR_WORK_VEHICLE_CODES) || isTractorWorkCustom(v),
+    );
+  }
+  if (category === "vehicle_ops") {
+    return active;
   }
   return active;
 }

@@ -9,6 +9,8 @@ import {
   type DialogContentProps,
   type DialogProps,
   type DialogTitleProps,
+  type SxProps,
+  type Theme,
 } from "@mui/material";
 import type { ReactNode } from "react";
 import { premiumTokens } from "@/lib/design/premium";
@@ -23,28 +25,71 @@ export const adminChrome = {
   border: colors.border,
 } as const;
 
-const paperSx = {
+/**
+ * Light premium chrome by default; dark mode follows MUI paper/text so
+ * TextField / FormLabel / helper text stay visible (no white-on-#FAFAFA).
+ */
+const paperBaseSx: SxProps<Theme> = {
   borderRadius: "24px",
   bgcolor: colors.bg,
   border: `1px solid ${colors.border}`,
   boxShadow: "0 24px 48px -12px rgba(17, 24, 39, 0.18)",
   backgroundImage: "none",
-} as const;
+  color: colors.primary,
+  position: "relative",
+  /** Ensure MUI form controls inherit scheme text (not stuck on light-only hex). */
+  "& .MuiInputBase-input": { color: "text.primary" },
+  "& .MuiInputBase-input::placeholder": { color: "text.secondary", opacity: 0.7 },
+  "& .MuiFormLabel-root": { color: "text.secondary" },
+  "& .MuiFormLabel-root.Mui-focused": { color: "primary.main" },
+  "& .MuiFormHelperText-root": { color: "text.secondary" },
+  "& .MuiSelect-icon": { color: "text.secondary" },
+  "& .MuiFormControlLabel-label": { color: "text.primary" },
+};
 
-const backdropSx = {
-  backdropFilter: "blur(8px)",
-  backgroundColor: "rgba(17, 24, 39, 0.28)",
-} as const;
+const paperDarkSx: SxProps<Theme> = (theme) =>
+  theme.applyStyles("dark", {
+    bgcolor: "background.paper",
+    borderColor: "divider",
+    color: "text.primary",
+    boxShadow: "0 24px 48px -12px rgba(0, 0, 0, 0.55)",
+  });
+
+const backdropSx: SxProps<Theme> = [
+  {
+    backdropFilter: "blur(8px)",
+    backgroundColor: "rgba(17, 24, 39, 0.28)",
+  },
+  (theme) =>
+    theme.applyStyles("dark", {
+      backgroundColor: "rgba(0, 0, 0, 0.55)",
+    }),
+];
 
 export type PremiumDialogProps = Omit<DialogProps, "PaperProps" | "slotProps"> & {
   /** Optional extra Paper sx merged after premium defaults. */
-  paperSx?: DialogProps["sx"];
+  paperSx?: SxProps<Theme>;
 };
+
+function mergeSx(...parts: Array<SxProps<Theme> | undefined>): SxProps<Theme> {
+  const out: Array<Exclude<SxProps<Theme>, ReadonlyArray<unknown>>> = [];
+  for (const part of parts) {
+    if (!part) continue;
+    if (Array.isArray(part)) {
+      for (const item of part) {
+        if (item && item !== false) out.push(item as Exclude<SxProps<Theme>, ReadonlyArray<unknown>>);
+      }
+    } else {
+      out.push(part as Exclude<SxProps<Theme>, ReadonlyArray<unknown>>);
+    }
+  }
+  return out;
+}
 
 /**
  * Premium admin Dialog — blur backdrop, 24px radius, MUI focus trap.
  * Drop-in for settings/catalog create-edit and confirm dialogs.
- * Palette aligned with `premiumTokens` / `.kf-premium`.
+ * Light palette aligned with `premiumTokens` / `.kf-premium`; dark mode uses MUI paper.
  */
 export function PremiumDialog({
   children,
@@ -59,12 +104,12 @@ export function PremiumDialog({
         backdrop: { sx: backdropSx },
         root: { sx: { zIndex: (theme) => theme.zIndex.modal } },
         paper: {
-          sx: {
-            ...paperSx,
-            position: "relative",
-            zIndex: (theme) => theme.zIndex.modal + 1,
-            ...(typeof paperSxProp === "object" && paperSxProp !== null ? paperSxProp : {}),
-          },
+          sx: mergeSx(
+            paperBaseSx,
+            { zIndex: (theme) => theme.zIndex.modal + 1 },
+            paperDarkSx,
+            paperSxProp,
+          ),
         },
       }}
     >
@@ -77,16 +122,19 @@ export function PremiumDialogTitle({ children, sx, ...props }: DialogTitleProps)
   return (
     <DialogTitle
       {...props}
-      sx={{
-        color: colors.primary,
-        fontWeight: 600,
-        fontSize: "1.125rem",
-        letterSpacing: "-0.01em",
-        px: 3,
-        pt: 2.5,
-        pb: 1,
-        ...sx,
-      }}
+      sx={mergeSx(
+        {
+          color: colors.primary,
+          fontWeight: 600,
+          fontSize: "1.125rem",
+          letterSpacing: "-0.01em",
+          px: 3,
+          pt: 2.5,
+          pb: 1,
+        },
+        (theme) => theme.applyStyles("dark", { color: "text.primary" }),
+        sx,
+      )}
     >
       {children}
     </DialogTitle>
@@ -97,15 +145,18 @@ export function PremiumDialogContent({ children, sx, ...props }: DialogContentPr
   return (
     <DialogContent
       {...props}
-      sx={{
-        px: 3,
-        pt: 1,
-        pb: 1,
-        color: colors.primary,
-        // Keep labels / first control from clipping under the title
-        overflow: "visible",
-        ...sx,
-      }}
+      sx={mergeSx(
+        {
+          px: 3,
+          pt: 1,
+          pb: 1,
+          color: colors.primary,
+          // Keep labels / first control from clipping under the title
+          overflow: "visible",
+        },
+        (theme) => theme.applyStyles("dark", { color: "text.primary" }),
+        sx,
+      )}
     >
       {children}
     </DialogContent>
@@ -116,13 +167,16 @@ export function PremiumDialogActions({ children, sx, ...props }: DialogActionsPr
   return (
     <DialogActions
       {...props}
-      sx={{
-        px: 3,
-        py: 2,
-        gap: 1,
-        borderTop: `1px solid ${colors.border}`,
-        ...sx,
-      }}
+      sx={mergeSx(
+        {
+          px: 3,
+          py: 2,
+          gap: 1,
+          borderTop: `1px solid ${colors.border}`,
+        },
+        (theme) => theme.applyStyles("dark", { borderColor: "divider" }),
+        sx,
+      )}
     >
       {children}
     </DialogActions>

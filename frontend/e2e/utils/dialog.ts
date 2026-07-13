@@ -2,6 +2,8 @@ import { expect, type Locator, type Page } from "@playwright/test";
 import { heavyOverlap } from "./overlap";
 import { dialogFieldRoles } from "./selectors";
 
+const MIN_DIALOG_TEXT_CONTRAST = 4.5;
+
 /**
  * Resolve a MUI / premium dialog field by accessible name.
  * Prefer role locators: getByLabel(exact) misses required asterisk / floating-label quirks.
@@ -144,3 +146,99 @@ export async function assertCreateDialogFieldsNotOverlapping(
 
   return true;
 }
+
+/**
+ * Assert dialog title / labels / filled inputs have WCAG AA contrast against their
+ * effective background (catches white-on-light premium dialog regressions in dark mode).
+ */
+export async function expectDialogTextContrast(
+  dialog: Locator,
+  minRatio = MIN_DIALOG_TEXT_CONTRAST,
+): Promise<void> {
+  const failures = await dialog.evaluate(
+    (root, minAA) => {
+      function parseColor(color: string): [number, number, number] | null {
+        const canvas = document.createElement("canvas");
+        canvas.width = canvas.height = 1;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return null;
+        ctx.fillStyle = color;
+        ctx.fillRect(0, 0, 1, 1);
+        const data = ctx.getImageData(0, 0, 1, 1).data;
+        return [data[0], data[1], data[2]];
+      }
+
+      function relativeLuminance(rgb: [number, number, number]): number {
+        const [r, g, b] = rgb.map((c) => {
+          const s = c / 255;
+          return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+        });
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      }
+
+      function contrastRatio(fg: string, bg: string): number {
+        const fgRgb = parseColor(fg);
+        const bgRgb = parseColor(bg);
+        if (!fgRgb || !bgRgb) return 0;
+        const l1 = relativeLuminance(fgRgb);
+        const l2 = relativeLuminance(bgRgb);
+        const lighter = Math.max(l1, l2);
+        const darker = Math.min(l1, l2);
+        return (lighter + 0.05) / (darker + 0.05);
+      }
+
+      function getEffectiveBackground(el: Element): string {
+        let current: Element | null = el;
+        while (current && current !== root.parentElement) {
+          const bg = window.getComputedStyle(current).backgroundColor;
+          if (bg && bg !== "rgba(0, 0, 0, 0)" && bg !== "transparent") return bg;
+          current = current.parentElement;
+        }
+        return window.getComputedStyle(root).backgroundColor || "rgb(255, 255, 255)";
+      }
+
+      const targets = [
+        ...root.querySelectorAll(
+          "h1, h2, h3, h4, h5, h6, .MuiDialogTitle-root, .MuiInputLabel-root, .MuiFormLabel-root, .MuiInputBase-input, .MuiFormHelperText-root, .MuiFormControlLabel-label, label",
+        ),
+      ];
+
+      const bad: Array<{ text: string; fg: string; bg: string; ratio: number }> = [];
+      for (const el of targets) {
+        const style = window.getComputedStyle(el);
+        const rect = el.getBoundingClientRect();
+        if (rect.width === 0 || rect.height === 0) continue;
+        if (style.visibility === "hidden" || style.opacity === "0") continue;
+
+        const fg = style.color;
+        const bg = getEffectiveBackground(el);
+        const ratio = contrastRatio(fg, bg);
+        if (ratio < minAA) {
+          const text =
+            (el as HTMLInputElement).value ||
+            el.textContent?.trim() ||
+            el.getAttribute("aria-label") ||
+            el.tagName;
+          bad.push({
+            text: String(text).slice(0, 48),
+            fg,
+            bg,
+            ratio: Math.round(ratio * 100) / 100,
+          });
+        }
+      }
+      return bad;
+    },
+    minRatio,
+  );
+
+  expect(
+    failures,
+    failures.length
+      ? `Dialog text contrast failures:\n${failures
+          .map((f) => `  "${f.text}" ${f.ratio}:1 (fg=${f.fg}, bg=${f.bg})`)
+          .join("\n")}`
+      : "Dialog text contrast OK",
+  ).toEqual([]);
+}
+

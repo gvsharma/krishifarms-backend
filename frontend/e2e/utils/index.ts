@@ -7,6 +7,7 @@ export * from "./page-errors";
 export * from "./perf";
 export * from "./selectors";
 export * from "./shell";
+export * from "./theme";
 export * from "./viewports";
 export * from "./validation";
 export * from "./visual";

@@ -3,22 +3,25 @@
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v15-appRouter";
 import CssBaseline from "@mui/material/CssBaseline";
 import GlobalStyles from "@mui/material/GlobalStyles";
-import { ThemeProvider } from "@mui/material/styles";
+import { ThemeProvider, useColorScheme } from "@mui/material/styles";
 import { useTheme } from "next-themes";
 import { useEffect, useMemo, type ReactNode } from "react";
 import { materialTheme } from "./material-theme";
 
 function MuiColorSchemeSync({ children }: { children: ReactNode }) {
   const { resolvedTheme } = useTheme();
+  const { setMode } = useColorScheme();
 
   useEffect(() => {
     const root = document.documentElement;
     if (resolvedTheme === "dark") {
       root.classList.add("dark");
-    } else {
+      setMode("dark");
+    } else if (resolvedTheme === "light") {
       root.classList.remove("dark");
+      setMode("light");
     }
-  }, [resolvedTheme]);
+  }, [resolvedTheme, setMode]);
 
   return <>{children}</>;
 }

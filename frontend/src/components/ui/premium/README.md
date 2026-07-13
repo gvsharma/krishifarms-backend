@@ -2,6 +2,8 @@
 
 Linear / Stripe / Apple-inspired form primitives. **Opt-in only** — wrap a subtree with `Scope` / `kf-premium` so the MUI shell theme stays untouched.
 
+Dark mode: `.dark .kf-premium` swaps CSS variables (`--kf-primary`, `--kf-surface`, …) so inputs/labels stay readable. `PremiumDialog` / `SoftAlert` also adapt via MUI `applyStyles("dark", …)`.
+
 ## Setup (already wired)
 
 | Piece | Path |

@@ -515,8 +515,22 @@ def update_vehicle_type(
     )
     if row is None:
         raise NotFoundError("Vehicle type not found")
-    before = {"name": row.name}
-    for field, value in payload.model_dump(exclude_unset=True).items():
+    updates = payload.model_dump(exclude_unset=True)
+    if "code" in updates and updates["code"] != row.code:
+        conflict = (
+            db.query(VehicleType)
+            .filter(
+                VehicleType.org_id == org_id,
+                VehicleType.code == updates["code"],
+                VehicleType.deleted_at.is_(None),
+                VehicleType.id != row_id,
+            )
+            .first()
+        )
+        if conflict:
+            raise ConflictError("Vehicle type code already exists")
+    before = {"name": row.name, "code": row.code}
+    for field, value in updates.items():
         setattr(row, field, value)
     row.updated_by = actor_user_id
     _audit(
