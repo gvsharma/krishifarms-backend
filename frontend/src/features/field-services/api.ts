@@ -22,6 +22,7 @@ export interface FieldServiceRecord {
   quantity_unit: string | null;
   rate_per_unit: string | null;
   diesel_amount: string;
+  diesel_expense_id?: string | null;
   amount_given: string;
   advance_amount: string;
   total_amount: string;

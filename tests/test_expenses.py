@@ -5,9 +5,13 @@ from decimal import Decimal
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
-from app.modules.financial.expense_service import _money, sync_vehicle_trip_diesel_expense
+from app.modules.financial.expense_service import (
+    _money,
+    sync_field_service_diesel_expense,
+    sync_vehicle_trip_diesel_expense,
+)
 from app.modules.financial.models import Collection, Expense
-from app.modules.financial.schemas import EXPENSE_STATUSES, VEHICLE_TRIP_SOURCE
+from app.modules.financial.schemas import EXPENSE_STATUSES, FIELD_SERVICE_SOURCE, VEHICLE_TRIP_SOURCE
 from app.shared.permissions import ROLE_PERMISSIONS, SYSTEM_PERMISSIONS
 
 
@@ -135,3 +139,78 @@ class TestDieselExpenseSync:
         find.assert_called_once()
         assert find.call_args.args[2] == VEHICLE_TRIP_SOURCE
         assert find.call_args.args[3] == trip_id
+
+
+class TestFieldServiceDieselExpenseSync:
+    def test_zero_diesel_skips_create(self):
+        db = MagicMock()
+        with patch(
+            "app.modules.financial.expense_service.find_expense_by_source",
+            return_value=None,
+        ) as find:
+            result = sync_field_service_diesel_expense(
+                db,
+                uuid4(),
+                record_id=uuid4(),
+                record_number="FSR-0001",
+                service_date=date(2026, 7, 12),
+                asset_id=None,
+                diesel_amount=Decimal("0"),
+                record_status="open",
+                actor_user_id=uuid4(),
+            )
+        assert result is None
+        find.assert_called_once()
+        assert find.call_args.args[2] == FIELD_SERVICE_SOURCE
+
+    def test_cancel_soft_deletes_existing(self):
+        existing = MagicMock()
+        existing.deleted_at = None
+        existing.status = "posted"
+        db = MagicMock()
+        with patch(
+            "app.modules.financial.expense_service.find_expense_by_source",
+            return_value=existing,
+        ):
+            result = sync_field_service_diesel_expense(
+                db,
+                uuid4(),
+                record_id=uuid4(),
+                record_number="FSR-0002",
+                service_date=date(2026, 7, 12),
+                asset_id=uuid4(),
+                diesel_amount=Decimal("800.00"),
+                record_status="cancelled",
+                actor_user_id=uuid4(),
+            )
+        assert result is None
+        assert existing.status == "reversed"
+        assert existing.deleted_at is not None
+
+    def test_positive_diesel_updates_existing(self):
+        existing = MagicMock()
+        existing.deleted_at = None
+        db = MagicMock()
+        record_id = uuid4()
+        with patch(
+            "app.modules.financial.expense_service.find_expense_by_source",
+            return_value=existing,
+        ) as find:
+            result = sync_field_service_diesel_expense(
+                db,
+                uuid4(),
+                record_id=record_id,
+                record_number="FSR-0003",
+                service_date=date(2026, 7, 12),
+                asset_id=uuid4(),
+                diesel_amount=Decimal("420.00"),
+                record_status="completed",
+                actor_user_id=uuid4(),
+            )
+        assert result is existing
+        assert existing.amount == Decimal("420.00")
+        assert existing.status == "posted"
+        assert "FSR-0003" in existing.description
+        find.assert_called_once()
+        assert find.call_args.args[2] == FIELD_SERVICE_SOURCE
+        assert find.call_args.args[3] == record_id

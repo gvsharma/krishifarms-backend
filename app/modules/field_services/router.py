@@ -26,11 +26,17 @@ def _with_audit_names(db: Session, row, enrich: dict[str, str | None]) -> FieldS
         for uid, name in db.query(User.id, User.full_name).filter(User.id.in_(ids)).all():
             names[uid] = name
     data = FieldServiceRecordResponse.model_validate(row)
+    diesel_raw = enrich.get("diesel_expense_id")
+    diesel_expense_id = UUID(diesel_raw) if diesel_raw else None
     return data.model_copy(
         update={
             "created_by_name": names.get(row.created_by) if getattr(row, "created_by", None) else None,
             "updated_by_name": names.get(row.updated_by) if getattr(row, "updated_by", None) else None,
-            **enrich,
+            "farmer_name": enrich.get("farmer_name"),
+            "farmer_phone": enrich.get("farmer_phone"),
+            "activity_type_name": enrich.get("activity_type_name"),
+            "vehicle_type_name": enrich.get("vehicle_type_name"),
+            "diesel_expense_id": diesel_expense_id,
         }
     )
 

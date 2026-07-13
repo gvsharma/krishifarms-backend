@@ -88,6 +88,11 @@ FieldServiceRecord:
         farmer_name: { type: string, nullable: true }
         farmer_phone: { type: string, nullable: true }
         vehicle_type_name: { type: string, nullable: true }
+        diesel_expense_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Linked Fuel expense when diesel_amount > 0 (source_type=field_service).
         created_at: { type: string, format: date-time }
         updated_at: { type: string, format: date-time }
         created_by_name: { type: string, nullable: true }
