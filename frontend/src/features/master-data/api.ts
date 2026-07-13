@@ -29,12 +29,21 @@ export interface Village {
   id: string;
   org_id: string;
   name: string;
+  village_code?: string | null;
   mandal: string | null;
   district: string | null;
   state: string | null;
   pincode: string | null;
   district_id: string | null;
   mandal_id: string | null;
+  geo_lat?: string | null;
+  geo_lng?: string | null;
+  agent_id?: string | null;
+  agent_name?: string | null;
+  status?: string;
+  population?: number | null;
+  estimated_cultivable_area?: string | null;
+  notes?: string | null;
   created_at: string;
   updated_at: string;
 }

@@ -23,6 +23,8 @@ from app.modules.master_data.schemas import (
     VillageResponse,
     VillageUpdateRequest,
 )
+from app.modules.villages.profile_360_schemas import Village360ProfileResponse, VillageSearchResponse
+from app.modules.villages.profile_360_service import build_village_360, search_villages
 from app.shared.schemas.common import APIResponse, MessageResponse
 
 router = APIRouter(tags=["Master Data"])
@@ -146,7 +148,8 @@ def list_villages(
     mandal_id: UUID | None = Query(default=None),
     district: str | None = Query(default=None, description="Filter by district name"),
     mandal: str | None = Query(default=None, description="Filter by mandal name"),
-    q: str | None = Query(default=None, description="Filter by village name"),
+    status: str | None = Query(default=None, pattern="^(active|inactive)$"),
+    q: str | None = Query(default=None, description="Search name, code, mandal, district, pincode"),
     ctx: CurrentUserContext = Depends(require_permission("villages:read")),
     db: Session = Depends(get_db),
 ):
@@ -159,16 +162,32 @@ def list_villages(
         mandal_id=mandal_id,
         district=district,
         mandal=mandal,
+        status=status,
         q=q,
     )
+    agents = service.agent_name_map(db, items)
     return APIResponse(
         data=VillageListResponse(
-            items=[VillageResponse.model_validate(item) for item in items],
+            items=[
+                VillageResponse.model_validate(item).model_copy(
+                    update={"agent_name": agents.get(item.agent_id) if item.agent_id else None}
+                )
+                for item in items
+            ],
             total=total,
             page=page,
             page_size=page_size,
         )
     )
+
+
+@router.get("/villages/search", response_model=APIResponse[VillageSearchResponse])
+def search_villages_endpoint(
+    q: str = Query(min_length=1, max_length=100, description="Village, mandal, farmer, buyer, or crop"),
+    ctx: CurrentUserContext = Depends(require_permission("villages:read")),
+    db: Session = Depends(get_db),
+):
+    return APIResponse(data=search_villages(db, ctx.user.org_id, q))
 
 
 @router.post("/villages", response_model=APIResponse[VillageResponse], status_code=201)
@@ -178,7 +197,37 @@ def create_village(
     db: Session = Depends(get_db),
 ):
     village = service.create_village(db, ctx.user.org_id, payload, ctx.user.id)
-    return APIResponse(data=VillageResponse.model_validate(village))
+    agents = service.agent_name_map(db, [village])
+    return APIResponse(
+        data=VillageResponse.model_validate(village).model_copy(
+            update={"agent_name": agents.get(village.agent_id) if village.agent_id else None}
+        )
+    )
+
+
+@router.get("/villages/{village_id}", response_model=APIResponse[VillageResponse])
+def get_village(
+    village_id: UUID,
+    ctx: CurrentUserContext = Depends(require_permission("villages:read")),
+    db: Session = Depends(get_db),
+):
+    village = service.get_village(db, ctx.user.org_id, village_id)
+    agents = service.agent_name_map(db, [village])
+    return APIResponse(
+        data=VillageResponse.model_validate(village).model_copy(
+            update={"agent_name": agents.get(village.agent_id) if village.agent_id else None}
+        )
+    )
+
+
+@router.get("/villages/{village_id}/profile-360", response_model=APIResponse[Village360ProfileResponse])
+def get_village_profile_360(
+    village_id: UUID,
+    ctx: CurrentUserContext = Depends(require_permission("villages:read")),
+    db: Session = Depends(get_db),
+):
+    """Village 360° dashboard — farmers, procurement, services, vehicles, finance, analytics."""
+    return APIResponse(data=build_village_360(db, ctx.user.org_id, village_id))
 
 
 @router.patch("/villages/{village_id}", response_model=APIResponse[VillageResponse])
@@ -189,7 +238,12 @@ def update_village(
     db: Session = Depends(get_db),
 ):
     village = service.update_village(db, ctx.user.org_id, village_id, payload, ctx.user.id)
-    return APIResponse(data=VillageResponse.model_validate(village))
+    agents = service.agent_name_map(db, [village])
+    return APIResponse(
+        data=VillageResponse.model_validate(village).model_copy(
+            update={"agent_name": agents.get(village.agent_id) if village.agent_id else None}
+        )
+    )
 
 
 @router.delete("/villages/{village_id}", response_model=APIResponse[MessageResponse])

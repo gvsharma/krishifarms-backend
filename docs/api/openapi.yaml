@@ -100,8 +100,12 @@ paths:
     $ref: paths/platform.yaml#/mandalById
   /villages:
     $ref: paths/platform.yaml#/villages
+  /villages/search:
+    $ref: paths/platform.yaml#/villageSearch
   /villages/{village_id}:
     $ref: paths/platform.yaml#/villageById
+  /villages/{village_id}/profile-360:
+    $ref: paths/platform.yaml#/villageProfile360
   /crop-types:
     $ref: paths/platform.yaml#/cropTypes
   /crop-types/{crop_type_id}:

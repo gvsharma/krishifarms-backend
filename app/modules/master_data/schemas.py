@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -56,12 +57,21 @@ class VillageResponse(ORMModel):
     id: UUID
     org_id: UUID
     name: str
+    village_code: str | None = None
     mandal: str | None = None
     district: str | None = None
     state: str | None = None
     pincode: str | None = None
     district_id: UUID | None = None
     mandal_id: UUID | None = None
+    geo_lat: Decimal | None = None
+    geo_lng: Decimal | None = None
+    agent_id: UUID | None = None
+    agent_name: str | None = None
+    status: str = "active"
+    population: int | None = None
+    estimated_cultivable_area: Decimal | None = None
+    notes: str | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -74,6 +84,13 @@ class VillageCreateRequest(BaseModel):
     pincode: str | None = None
     district_id: UUID | None = None
     mandal_id: UUID | None = None
+    geo_lat: Decimal | None = None
+    geo_lng: Decimal | None = None
+    agent_id: UUID | None = None
+    status: str = Field(default="active", pattern="^(active|inactive)$")
+    population: int | None = Field(default=None, ge=0)
+    estimated_cultivable_area: Decimal | None = Field(default=None, ge=0)
+    notes: str | None = None
 
 
 class VillageUpdateRequest(BaseModel):
@@ -84,6 +101,13 @@ class VillageUpdateRequest(BaseModel):
     pincode: str | None = None
     district_id: UUID | None = None
     mandal_id: UUID | None = None
+    geo_lat: Decimal | None = None
+    geo_lng: Decimal | None = None
+    agent_id: UUID | None = None
+    status: str | None = Field(default=None, pattern="^(active|inactive)$")
+    population: int | None = Field(default=None, ge=0)
+    estimated_cultivable_area: Decimal | None = Field(default=None, ge=0)
+    notes: str | None = None
 
 
 class VillageListResponse(PaginatedResponse[VillageResponse]):

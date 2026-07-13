@@ -20,6 +20,7 @@ Backend API for Indian farm operations: procurement, farmer ledger, workforce, f
 
 | Doc | Purpose |
 |-----|---------|
+| [docs/APP_INVENTORY.md](./docs/APP_INVENTORY.md) | Features, live APIs, DB tables — single inventory |
 | [docs/AGENT_GUIDE.md](./docs/AGENT_GUIDE.md) | Master agent reference |
 | [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) | System topology, AWS, data flow |
 | [docs/CHANGELOG.md](./docs/CHANGELOG.md) | What changed (update on every change) |
@@ -57,7 +58,7 @@ Mount routers           → app/main.py
 |--------|--------|
 | auth | `/auth` |
 | users | `/users`, `/roles` |
-| master_data | `/villages`, `/crop-types` |
+| master_data | `/villages` (+ search, **profile-360**), `/crop-types`, districts/mandals |
 | financial | `/expense-categories` |
 | documents | `/documents` (partial — see DOCUMENT_MANAGEMENT.md) |
 | audit | `/audit-logs`, `/activity-feed` |

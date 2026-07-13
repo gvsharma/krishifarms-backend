@@ -49,6 +49,7 @@
 README.md              → Human onboarding, quick start
 AGENTS.md              → Scannable agent entry (read first)
 docs/AGENT_GUIDE.md    → This file — comprehensive reference
+docs/APP_INVENTORY.md  → Features, live APIs, database (single inventory)
 docs/ARCHITECTURE.md   → System topology, data flow, AWS
 docs/CHANGELOG.md      → What changed (update on every PR)
 docs/api/              → OpenAPI contract (source of truth for API shape)
@@ -77,7 +78,7 @@ docs/deploy/           → CI/CD details
 |--------|--------|---------------------|------------------|--------------|---------|-------|
 | Auth | ✅ | ✅ | — | `001` | `paths/auth.yaml` | 1 |
 | Users / Roles | ✅ | ✅ | ✅ | `001`, `002`, `015` | in `001` spec | 1 |
-| Villages / Crop types | ✅ | ✅ | ✅ | `001`, `003` | in master paths | 1 |
+| Villages / Crop types | ✅ | ✅ + village search/get/profile-360 | ✅ | `001`, `003`, `031` | master + platform paths | 1 + Village 360° |
 | Districts / Mandals | ✅ | ✅ | ✅ | `023` | `paths/platform.yaml` | 1 |
 | Platform (buyers, agents, services, prices, payment modes, comments, tags) | ✅ | ✅ | ✅ | `003`, `017`, `018`, `028` | `paths/platform.yaml` | 1b |
 | Expense categories | ✅ | ✅ | ✅ | `001` | `paths/platform.yaml` | 1 |
@@ -567,6 +568,7 @@ Database migrations for Phases 2–5 already exist; Python routes follow increme
 | Document | Path |
 |----------|------|
 | Agent entry | [AGENTS.md](../AGENTS.md) |
+| App inventory | [APP_INVENTORY.md](./APP_INVENTORY.md) |
 | Human README | [README.md](../README.md) |
 | Architecture | [ARCHITECTURE.md](./ARCHITECTURE.md) |
 | Changelog | [CHANGELOG.md](./CHANGELOG.md) |

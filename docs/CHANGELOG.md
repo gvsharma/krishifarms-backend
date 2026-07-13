@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Village 360° module** — migration `031` adds `village_code`, GPS, agent, status, population, cultivable area, notes. Live `GET /villages/{id}`, `/villages/{id}/profile-360`, `/villages/search`; enhanced list filters. Web `/villages` + circular orbit dashboard. Android parity backlog documented. Tests `tests/test_village_360.py`. Module doc [VILLAGES.md](./modules/VILLAGES.md).
+- **App inventory doc** — single reference [docs/APP_INVENTORY.md](./APP_INVENTORY.md) listing live features, mounted `/api/v1` APIs, OpenAPI-only gaps, DB tables/migrations, web screens, and roles.
 - **Farmer 360° relationship profile** — migration `030` adds optional prefs (`preferred_language` / payment cycle / method), `trust_rating`, `is_vip`, farmer GPS; land ownership/irrigation/soil; crop-history farming detail fields. Live `GET /farmers/{id}/profile-360` aggregates summary, stats, timeline, services/farming/procurement/finance/ledger, crop intelligence, analytics, recommendations, quick actions. Crop history + ledger list APIs implemented. Web `/farmers/{id}` circular orbit hub UI; tests in `tests/test_farmer_360.py`.
 
 ### Fixed

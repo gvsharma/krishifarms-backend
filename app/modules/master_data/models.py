@@ -1,6 +1,7 @@
+from decimal import Decimal
 from uuid import UUID
 
-from sqlalchemy import Boolean, ForeignKey, String, UniqueConstraint
+from sqlalchemy import Boolean, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -41,6 +42,16 @@ class Village(Base, UUIDPrimaryKeyMixin, TimestampMixin, AuditActorMixin, SoftDe
         PGUUID(as_uuid=True), ForeignKey("districts.id"), nullable=True
     )
     mandal_id: Mapped[UUID | None] = mapped_column(PGUUID(as_uuid=True), ForeignKey("mandals.id"), nullable=True)
+    village_code: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    geo_lat: Mapped[Decimal | None] = mapped_column(Numeric(10, 7), nullable=True)
+    geo_lng: Mapped[Decimal | None] = mapped_column(Numeric(10, 7), nullable=True)
+    agent_id: Mapped[UUID | None] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("field_agents.id", ondelete="SET NULL"), nullable=True
+    )
+    status: Mapped[str] = mapped_column(String(20), default="active", nullable=False)
+    population: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    estimated_cultivable_area: Mapped[Decimal | None] = mapped_column(Numeric(12, 3), nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
 class CropType(Base, UUIDPrimaryKeyMixin, TimestampMixin, AuditActorMixin, SoftDeleteMixin):
