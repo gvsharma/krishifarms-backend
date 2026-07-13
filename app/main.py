@@ -23,6 +23,7 @@ from app.modules.farms.router import router as farms_router
 from app.modules.procurements.router import router as procurements_router
 from app.modules.master_data.router import router as master_data_router
 from app.modules.platform.router import router as platform_router
+from app.modules.legal.router import router as legal_router
 from app.modules.users.router import router as users_router
 
 
@@ -51,6 +52,7 @@ app.add_middleware(
 
 api_v1 = FastAPI(title=f"{settings.app_name} API v1", lifespan=lifespan)
 api_v1.include_router(auth_router)
+api_v1.include_router(legal_router)
 api_v1.include_router(users_router)
 api_v1.include_router(master_data_router)
 api_v1.include_router(platform_router)

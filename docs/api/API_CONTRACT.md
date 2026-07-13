@@ -129,6 +129,26 @@ OpenAPI: `docs/api/paths/platform.yaml`. Web admin: Settings → Master data.
 | POST | `/auth/logout` | `{ refresh_token }` | `{ message }` |
 | GET | `/auth/me` | — | User profile + `preferred_locale` |
 
+### Legal / Play Store (public)
+
+| Method | Path | Notes |
+|--------|------|-------|
+| GET | `/legal` | Privacy + account-deletion links bundle |
+| GET | `/legal/privacy` | Privacy policy URL/summary (`PRIVACY_POLICY_URL`) |
+| GET | `/legal/account-deletion` | Deletion instructions + web URL; in-app via `DELETE /users/me` |
+
+OpenAPI: `docs/api/paths/legal.yaml`. Public pages: `https://krishifarms-privacy.vercel.app` (+ `/delete-account`).
+
+### Users
+
+| Method | Path | Notes |
+|--------|------|-------|
+| GET/PATCH | `/users/me` | Profile |
+| DELETE | `/users/me` | Play Store in-app account deletion (soft-delete + revoke sessions) |
+| GET/DELETE | `/users/me/sessions…` | Device sessions |
+| GET/POST | `/users` | List/create (`users:read` / `users:create`) |
+| PATCH/DELETE | `/users/{id}` | Update / Admin soft-delete (`users:update` / `users:delete` — **OWNER only**) |
+
 ### Dashboard / reports (live thin)
 
 | Method | Path | Notes |

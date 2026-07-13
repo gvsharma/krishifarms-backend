@@ -15,6 +15,95 @@ from app.modules.users.schemas import UserCreateRequest, UserSelfUpdateRequest, 
 from app.shared.services.audit import write_audit_log
 
 
+def _active_owner_count(db: Session, org_id: UUID, *, exclude_user_id: UUID | None = None) -> int:
+    query = (
+        db.query(User)
+        .join(Role, User.role_id == Role.id)
+        .filter(
+            User.org_id == org_id,
+            User.deleted_at.is_(None),
+            User.is_active.is_(True),
+            Role.code == "OWNER",
+        )
+    )
+    if exclude_user_id is not None:
+        query = query.filter(User.id != exclude_user_id)
+    return query.count()
+
+
+def _revoke_all_sessions(db: Session, user_id: UUID) -> None:
+    now = datetime.now(UTC)
+    (
+        db.query(RefreshToken)
+        .filter(RefreshToken.user_id == user_id, RefreshToken.revoked_at.is_(None))
+        .update({"revoked_at": now}, synchronize_session=False)
+    )
+
+
+def _soft_delete_user(
+    db: Session,
+    user: User,
+    *,
+    actor_user_id: UUID,
+    action: str,
+) -> None:
+    before = {
+        "email": user.email,
+        "phone": user.phone,
+        "full_name": user.full_name,
+        "is_active": user.is_active,
+        "role_id": str(user.role_id),
+    }
+    user.deleted_at = datetime.now(UTC)
+    user.is_active = False
+    user.updated_by = actor_user_id
+    _revoke_all_sessions(db, user.id)
+    write_audit_log(
+        db,
+        org_id=user.org_id,
+        actor_user_id=actor_user_id,
+        action=action,
+        entity_type="user",
+        entity_id=user.id,
+        before_state=before,
+        after_state={"deleted_at": user.deleted_at.isoformat(), "is_active": False},
+    )
+    db.commit()
+    get_cache_provider().delete(user_permissions_key(user.id))
+
+
+def delete_user(
+    db: Session,
+    org_id: UUID,
+    user_id: UUID,
+    actor_user_id: UUID,
+) -> None:
+    """Admin soft-delete. OWNER-only via `users:delete` permission."""
+    if user_id == actor_user_id:
+        raise ConflictError("Cannot delete your own account from admin users; use DELETE /users/me")
+
+    user = get_user(db, org_id, user_id)
+
+    if user.role and user.role.code == "OWNER":
+        if _active_owner_count(db, org_id, exclude_user_id=user_id) < 1:
+            raise ConflictError("Cannot delete the last active Admin / Owner account")
+
+    _soft_delete_user(db, user, actor_user_id=actor_user_id, action="DELETE")
+
+
+def delete_own_account(db: Session, user_id: UUID) -> None:
+    """Play Store in-app account deletion — soft-delete self + revoke sessions."""
+    user = get_current_profile(db, user_id)
+
+    if user.role and user.role.code == "OWNER":
+        if _active_owner_count(db, user.org_id, exclude_user_id=user_id) < 1:
+            raise ConflictError(
+                "Cannot delete the last Admin / Owner account. Transfer ownership first."
+            )
+
+    _soft_delete_user(db, user, actor_user_id=user_id, action="SELF_DELETE")
+
+
 def list_users(db: Session, org_id: UUID, page: int, page_size: int) -> tuple[list[User], int]:
     query = (
         db.query(User)

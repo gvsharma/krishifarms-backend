@@ -110,3 +110,85 @@ UserAPIResponse:
       $ref: '#/UserResponse'
     meta:
       $ref: 'common.yaml#/Meta'
+
+UserListResponse:
+  type: object
+  required: [items, total, page, page_size]
+  properties:
+    items:
+      type: array
+      items:
+        $ref: '#/UserResponse'
+    total:
+      type: integer
+    page:
+      type: integer
+    page_size:
+      type: integer
+
+UserListAPIResponse:
+  type: object
+  required: [success, data]
+  properties:
+    success:
+      type: boolean
+      enum: [true]
+    data:
+      $ref: '#/UserListResponse'
+    meta:
+      $ref: 'common.yaml#/Meta'
+
+UserCreateRequest:
+  type: object
+  required: [full_name, phone, role_id]
+  properties:
+    email:
+      type: string
+      nullable: true
+    password:
+      type: string
+      nullable: true
+      minLength: 8
+    full_name:
+      type: string
+      minLength: 2
+      maxLength: 200
+    phone:
+      type: string
+      minLength: 10
+      maxLength: 20
+    role_id:
+      type: string
+      format: uuid
+    village_id:
+      type: string
+      format: uuid
+      nullable: true
+    preferred_locale:
+      type: string
+      default: en
+
+UserUpdateRequest:
+  type: object
+  properties:
+    full_name:
+      type: string
+      minLength: 2
+      maxLength: 200
+    phone:
+      type: string
+      nullable: true
+    village_id:
+      type: string
+      format: uuid
+      nullable: true
+    role_id:
+      type: string
+      format: uuid
+    preferred_locale:
+      type: string
+    is_active:
+      type: boolean
+    password:
+      type: string
+      minLength: 8

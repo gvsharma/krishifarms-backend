@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Admin-only user delete + Play Store legal APIs** — `DELETE /users/{id}` requires `users:delete` (OWNER only; UI Delete on Settings → Users); public `GET /legal`, `/legal/privacy`, `/legal/account-deletion` for Play Console links; `DELETE /users/me` in-app account deletion (soft-delete + revoke sessions; last OWNER blocked).
 - **Farmer comments on field work + field-ops document RBAC** — FARMER gains `comments:create` (web + Android catalog); AGENT/DRIVER gain `documents:read|create` for diesel receipt uploads. Migration `029` grants these on all orgs. Work→comment→diesel receipt edge-case tests in `tests/test_field_service_work_flow.py`.
 - **Web + Android role × screen QA audit** — `docs/qa/ROLE_SCREEN_AUDIT.md`: live Vercel API/UI matrix for OWNER/MANAGER/AGENT; static SUPERVISOR/DRIVER/FARMER; web P0s (OWNER farmer-payments 403, mobile vs backend `PermissionGuard` codes, FARMER→OWNER nav default, AGENT procurement nav); Android matrix retained; ERP checklist QA board updated
 - **Playwright role × screen smoke** — `frontend/e2e/tests/workflows/settings/role-screen-smoke.spec.ts`: OWNER (+ demo MANAGER/AGENT when seeded) visits main nav routes; SUPERVISOR/DRIVER/FARMER via `E2E_<ROLE>_EMAIL`/`PASSWORD` only

@@ -1,0 +1,71 @@
+legalPrivacy:
+  get:
+    tags: [Legal]
+    summary: Privacy policy metadata (public)
+    operationId: getPrivacyPolicy
+    security: []
+    responses:
+      '200':
+        description: Privacy policy URL and summary
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean }
+                data:
+                  type: object
+                  required: [title, url, support_email]
+                  properties:
+                    title: { type: string }
+                    url: { type: string, format: uri }
+                    support_email: { type: string, format: email }
+                    summary: { type: string }
+
+legalAccountDeletion:
+  get:
+    tags: [Legal]
+    summary: Account deletion info (public, Play Store)
+    operationId: getAccountDeletionInfo
+    security: []
+    responses:
+      '200':
+        description: Account/data deletion instructions and URLs
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean }
+                data:
+                  type: object
+                  required: [title, url, support_email, supports_in_app_deletion]
+                  properties:
+                    title: { type: string }
+                    url: { type: string, format: uri }
+                    support_email: { type: string }
+                    supports_in_app_deletion: { type: boolean }
+                    in_app_path: { type: string }
+                    instructions: { type: string }
+
+legalLinks:
+  get:
+    tags: [Legal]
+    summary: Privacy + account-deletion links (public)
+    operationId: getLegalLinks
+    security: []
+    responses:
+      '200':
+        description: Bundled legal links
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean }
+                data:
+                  type: object
+                  required: [privacy, account_deletion]
+                  properties:
+                    privacy: { type: object }
+                    account_deletion: { type: object }
