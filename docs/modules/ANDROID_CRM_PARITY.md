@@ -84,6 +84,7 @@ Full matrix (visible / stub / hidden) + field-ops gaps: [docs/qa/ROLE_SCREEN_AUD
 - Entity document gallery needs `GET /documents?entity_type=&entity_id=` (CRM done; Android photo attach optional)
 - Finance ops expenses/collections still schema-only on backend (or newly landing — check Android sync)
 - WhatsApp / full Firebase OTP UX
+- **Admin Analytics — Android executive pocket (Phase 2)** — OWNER/MANAGER entry → Executive KPI strip + 2 charts calling `GET /analytics/executive/summary`. Not in Phase 1 critical path; do **not** build a full 15-module Android analytics suite. Web Analytics Hub Phase 1 is complete — see [ANALYTICS.md](./ANALYTICS.md).
 
 ## Mobile sync note
 

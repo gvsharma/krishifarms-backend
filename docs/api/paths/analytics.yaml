@@ -1,0 +1,270 @@
+analyticsCatalog:
+  get:
+    tags: [Analytics]
+    operationId: getAnalyticsCatalog
+    summary: Analytics hub module catalog (live + scaffold)
+    description: |
+      Requires `dashboard:read`. Returns 15 hub modules: 4 live (executive,
+      operations, procurement, finance) and 11 scaffolds with honest
+      data-availability notes. Does not invent weather/inventory/AI KPIs.
+    responses:
+      '200':
+        description: Analytics catalog
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean }
+                data:
+                  type: object
+                  properties:
+                    modules:
+                      type: array
+                      items:
+                        type: object
+                        required: [id, name, description, status, href, group]
+                        properties:
+                          id: { type: string }
+                          name: { type: string }
+                          name_te: { type: string, nullable: true }
+                          description: { type: string }
+                          status:
+                            type: string
+                            enum: [live, scaffold]
+                          href: { type: string }
+                          group: { type: string }
+                          missing_sources:
+                            type: array
+                            items: { type: string }
+                    live_count: { type: integer }
+                    scaffold_count: { type: integer }
+                    data_plane: { type: string }
+                    permission: { type: string }
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '403':
+        $ref: ../openapi.yaml#/components/responses/Forbidden
+
+analyticsModuleSummary:
+  get:
+    tags: [Analytics]
+    operationId: getAnalyticsModuleSummary
+    summary: Module KPI summary (live or scaffold empty state)
+    description: |
+      Requires `dashboard:read`. Org from JWT. Cached under
+      `analytics:{org}:{module}:summary:{filter_hash}` (TTL 60–300s).
+      Money fields are Decimal/NUMERIC — never float fabrication for
+      cash book / weather / AI.
+    parameters:
+      - name: module
+        in: path
+        required: true
+        schema:
+          type: string
+          enum:
+            - executive
+            - operations
+            - procurement
+            - finance
+            - farming
+            - vehicle
+            - village
+            - farmer
+            - buyer
+            - employee
+            - service
+            - crop-intelligence
+            - inventory
+            - ai-prediction
+            - alerts
+      - name: date_from
+        in: query
+        schema: { type: string, format: date }
+      - name: date_to
+        in: query
+        schema: { type: string, format: date }
+      - name: preset
+        in: query
+        schema:
+          type: string
+          enum: [today, 7d, 30d, season, custom]
+      - name: village_id
+        in: query
+        schema: { type: string, format: uuid }
+      - name: crop_type_id
+        in: query
+        schema: { type: string, format: uuid }
+      - name: farmer_id
+        in: query
+        schema: { type: string, format: uuid }
+      - name: buyer_id
+        in: query
+        schema: { type: string, format: uuid }
+      - name: asset_id
+        in: query
+        schema: { type: string, format: uuid }
+      - name: season
+        in: query
+        schema: { type: string }
+    responses:
+      '200':
+        description: Module summary with KPIs, series preview, tables, availability
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean }
+                data:
+                  type: object
+                  required: [module, status, filters, kpis]
+                  properties:
+                    module: { type: string }
+                    status:
+                      type: string
+                      enum: [live, scaffold]
+                    kpis:
+                      type: array
+                      items:
+                        type: object
+                        required: [id, label, status]
+                        properties:
+                          id: { type: string }
+                          label: { type: string }
+                          value: {}
+                          unit: { type: string, nullable: true }
+                          format: { type: string }
+                          status:
+                            type: string
+                            enum: [live, unavailable, coming_soon, estimate]
+                          note: { type: string, nullable: true }
+                          drill:
+                            type: object
+                            nullable: true
+                            properties:
+                              href: { type: string }
+                              label: { type: string, nullable: true }
+                    health_score: { type: integer, nullable: true }
+                    health_score_method: { type: string, nullable: true }
+                    cache_hit: { type: boolean }
+                    latency_ms: { type: integer, nullable: true }
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '403':
+        $ref: ../openapi.yaml#/components/responses/Forbidden
+      '404':
+        description: Unknown module
+
+analyticsModuleSeries:
+  get:
+    tags: [Analytics]
+    operationId: getAnalyticsModuleSeries
+    summary: Time series for a module
+    parameters:
+      - name: module
+        in: path
+        required: true
+        schema: { type: string }
+      - name: date_from
+        in: query
+        schema: { type: string, format: date }
+      - name: date_to
+        in: query
+        schema: { type: string, format: date }
+      - name: preset
+        in: query
+        schema: { type: string }
+      - name: village_id
+        in: query
+        schema: { type: string, format: uuid }
+      - name: crop_type_id
+        in: query
+        schema: { type: string, format: uuid }
+    responses:
+      '200':
+        description: Series points
+        content:
+          application/json:
+            schema:
+              type: object
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '403':
+        $ref: ../openapi.yaml#/components/responses/Forbidden
+
+analyticsModuleTables:
+  get:
+    tags: [Analytics]
+    operationId: getAnalyticsModuleTables
+    summary: Top/bottom tables for a module
+    parameters:
+      - name: module
+        in: path
+        required: true
+        schema: { type: string }
+      - name: date_from
+        in: query
+        schema: { type: string, format: date }
+      - name: date_to
+        in: query
+        schema: { type: string, format: date }
+      - name: preset
+        in: query
+        schema: { type: string }
+      - name: village_id
+        in: query
+        schema: { type: string, format: uuid }
+    responses:
+      '200':
+        description: Tables payload
+        content:
+          application/json:
+            schema:
+              type: object
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '403':
+        $ref: ../openapi.yaml#/components/responses/Forbidden
+
+analyticsExport:
+  post:
+    tags: [Analytics]
+    operationId: postAnalyticsExport
+    summary: Export module KPIs/tables as CSV
+    description: |
+      Requires `dashboard:read`. Phase 1 returns CSV attachment only
+      (Excel/PDF Phase 2). Org from JWT.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [module]
+            properties:
+              module: { type: string }
+              format:
+                type: string
+                enum: [csv]
+                default: csv
+              date_from: { type: string, format: date, nullable: true }
+              date_to: { type: string, format: date, nullable: true }
+              preset: { type: string, nullable: true }
+              village_id: { type: string, format: uuid, nullable: true }
+              crop_type_id: { type: string, format: uuid, nullable: true }
+              farmer_id: { type: string, format: uuid, nullable: true }
+              buyer_id: { type: string, format: uuid, nullable: true }
+              asset_id: { type: string, format: uuid, nullable: true }
+              season: { type: string, nullable: true }
+    responses:
+      '200':
+        description: CSV attachment
+        content:
+          text/csv:
+            schema:
+              type: string
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '403':
+        $ref: ../openapi.yaml#/components/responses/Forbidden

@@ -8,9 +8,9 @@
 
 ## 1. Executive Summary
 
-KrishiFarms CRM reporting is built directly on the operational PostgreSQL schema. There is no separate warehouse today; analytics flow through **parameterized SQL** (see `docs/reporting/sql/`) executed by the API or a BI tool (Metabase, Grafana, Superset) against the same database.
+KrishiFarms CRM reporting is built directly on the operational PostgreSQL schema. There is no separate warehouse today; analytics flow through **parameterized SQL** (see `docs/reporting/sql/`) and the **Analytics Hub API** (`/analytics/*`, see [ANALYTICS.md](../modules/ANALYTICS.md)) executed by the API or a BI tool (Metabase, Grafana, Superset) against the same database.
 
-Eight operational dashboards cover procurement, farmer payments, workforce, fleet, rentals, expenses, profitability, and farm operations. All queries enforce **multi-tenant isolation** via `org_id` and respect **partition pruning** on date-keyed tables.
+Eight operational SQL dashboards cover procurement, farmer payments, workforce, fleet, rentals, expenses, profitability, and farm operations. Phase 1 Admin Analytics Hub exposes live Executive / Operations / Procurement / Finance modules with Redis/memory TTL cache and optional `analytics_daily_org_facts` rollups (migration `033`). All queries enforce **multi-tenant isolation** via `org_id` and respect **partition pruning** on date-keyed tables.
 
 ---
 
@@ -18,17 +18,35 @@ Eight operational dashboards cover procurement, farmer payments, workforce, flee
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│  Presentation — React dashboards / Metabase / API aggregation endpoints │
+│  Presentation — Analytics Hub (/analytics) / Metabase / API endpoints     │
+├─────────────────────────────────────────────────────────────────────────┤
+│  Analytics API layer — GET /analytics/{module}/summary|series|tables,     │
+│                        POST /export; catalog; filter hash cache (60–300s) │
 ├─────────────────────────────────────────────────────────────────────────┤
 │  Semantic layer — KPI definitions (kpi_definitions.md), date grains,    │
 │                    RBAC dashboard registry, drill-down routes           │
 ├─────────────────────────────────────────────────────────────────────────┤
+│  Summary tables — analytics_daily_org_facts (org × day rollups)         │
 │  Reporting views (Phase 1b) — regular views wrapping soft-delete +      │
 │                    org filters; optional materialized views (see §6)    │
 ├─────────────────────────────────────────────────────────────────────────┤
 │  Operational tables — partitioned facts + dimension tables (org-scoped) │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
+
+### 2.0 Analytics API layer (Phase 1)
+
+| Endpoint | Role |
+|----------|------|
+| `GET /analytics/catalog` | Hub module registry (live vs scaffold + missing sources) |
+| `GET /analytics/{module}/summary` | KPI cards, series/tables preview, data availability |
+| `GET /analytics/{module}/series` | Time series for charts |
+| `GET /analytics/{module}/tables` | Top/bottom rankings |
+| `POST /analytics/export` | CSV (Excel/PDF Phase 2) |
+
+**Live modules:** executive, operations, procurement, finance.  
+**Scaffold:** farming, vehicle, village, farmer, buyer, employee, service, crop-intelligence, inventory, ai-prediction, alerts — honest empty states (no fabricated weather/inventory/AI cash figures).  
+**Permission:** `dashboard:read`. **Cache:** `analytics:{org}:{module}:{kind}:{filter_hash}`. Module doc: [ANALYTICS.md](../modules/ANALYTICS.md).
 
 ### 2.1 Raw tables (facts)
 
@@ -317,6 +335,7 @@ GET /api/v1/reports/{dashboard}/widgets/{widget_id}?...
 - Bind `:org_id` from JWT, dates from query params.
 - Enforce RBAC via `require_permission()` matching dashboard registry (§7).
 - Cache responses 5–15 min in Redis (`settings.cache_provider`) for summary endpoints.
+- Analytics Hub Phase 1 uses 60–300s TTL (`analytics:{org}:{module}:{kind}:{filter_hash}`); see [ANALYTICS.md](../modules/ANALYTICS.md).
 
 ---
 

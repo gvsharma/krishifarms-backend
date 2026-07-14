@@ -3,6 +3,7 @@
 import {
   AccountBalance,
   Agriculture,
+  Analytics,
   Dashboard,
   Dataset,
   Handshake,
@@ -34,7 +35,15 @@ export interface NavSection {
 export const NAV_SECTIONS: NavSection[] = [
   {
     title: "Overview",
-    items: [{ href: ROUTES.dashboard, label: "Dashboard", icon: Dashboard }],
+    items: [
+      { href: ROUTES.dashboard, label: "Dashboard", icon: Dashboard },
+      {
+        href: ROUTES.analytics,
+        label: "Analytics",
+        icon: Analytics,
+        roles: ["OWNER", "MANAGER", "ACCOUNTANT"],
+      },
+    ],
   },
   {
     title: "Operations",

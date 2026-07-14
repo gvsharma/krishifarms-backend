@@ -85,7 +85,8 @@ docs/deploy/           → CI/CD details
 | Documents | 🟡 | ✅ | 🟡 | `001`, `007` | `paths/documents.yaml` | 1 |
 | Devices / FCM push | ✅ | ✅ | ✅ | `020` | `paths/devices.yaml` | 1 |
 | Audit / Activity | ✅ | ✅ | ✅ | `001`, `013`, `017` | in platform paths | 1 |
-| Dashboard / Health | 🟡 | ✅ summary + reports catalog | `/reports` registry | — | `paths/dashboard.yaml` | KPI period APIs pending |
+| Dashboard / Health | 🟡 | ✅ summary + reports catalog | `/reports` → Analytics Hub | — | `paths/dashboard.yaml` | Thin counts; period KPIs via Analytics |
+| Analytics Hub | ✅ Phase 1 | ✅ catalog/summary/series/tables/export | `/analytics` + 4 live + 11 scaffold | `033` facts | `paths/analytics.yaml` | Live exec/ops/procurement/finance; scaffolds honest empty |
 | Farmers | ✅ | ✅ + profile-360, crop-history, ledger | ✅ | `004`, `030` | `paths/farmers.yaml` | 2a/2b + Farmer 360° |
 | Field services | ✅ | ✅ + diesel→expense | Detail + receipts/comments | `021`, `022` | `paths/field-services.yaml` | `diesel_amount` → Fuel expense (`field_service`) |
 | Farms | 🟡 | ✅ thin CRUD + activities | Placeholder | `006` | `paths/farms.yaml` | Own-farming UI remaining |
@@ -104,19 +105,20 @@ docs/deploy/           → CI/CD details
 
 | System | Status | Location |
 |--------|--------|----------|
-| Full DB schema | ✅ | `alembic/versions/202506210001`–`027` |
+| Full DB schema | ✅ | `alembic/versions/202506210001`–`033` |
 | RBAC permissions (DB seed) | ✅ | Migration `015` (+ `018`/`022`/`024`/`025`/`027`) |
 | RBAC permissions (Python seed) | 🟡 Phase 1–3 finance + platform + location/RBAC + assets | `app/shared/permissions.py` |
 | Reporting SQL (8 dashboards) | ✅ | `docs/reporting/sql/` |
+| Analytics Hub API | ✅ Phase 1 | `app/modules/analytics/` + [ANALYTICS.md](./modules/ANALYTICS.md) |
 | Synthetic UAT data | ✅ | `scripts/synthetic_seed/` |
 | CI/CD pipeline | ✅ | `.github/workflows/` |
 | Cache layer | ✅ | `app/core/cache/` |
 | Unit tests | 🟡 | `tests/` (farmers + farmer_360, platform, procurements, farmer_payments, expenses) |
-| Frontend | 🟡 | `frontend/` — MUI shell + master-data CRUD, **Farmer 360° orbit profile**, location cascade, **procurement workflow** (submit→weigh→price→confirm), field services, **reports registry**; Phase 3+ finance pages still placeholders — [ANDROID_CRM_PARITY.md](./modules/ANDROID_CRM_PARITY.md) |
+| Frontend | 🟡 | `frontend/` — MUI shell + master-data CRUD, **Farmer 360° orbit profile**, location cascade, **procurement workflow** (submit→weigh→price→confirm), field services, **Analytics Hub** (`/analytics`, charts); `/reports` redirects to hub — [ANALYTICS.md](./modules/ANALYTICS.md), [ANDROID_CRM_PARITY.md](./modules/ANDROID_CRM_PARITY.md) |
 
 ### 3.3 Registered SQLAlchemy models (`app/models.py`)
 
-Phase 1–2b live models include: org/IAM, districts, mandals, villages, crop types, expense categories, expenses, collections, platform catalogs (`ActivityType`, `PaymentMode`, `Buyer`, `FieldAgent`, `VehicleType`, `CropPriceRule`, comments/tags), farmers (+ bank/land), procurements (+ ledger/deductions + buyer/payment terms), farmer payments (+ allocations), documents, devices (`UserDeviceToken`), field services (`FieldServiceRecord`), assets (`Asset`), vehicle trips (`VehicleTrip`), farms (`Farm`/`FarmActivity`), audit/activity.
+Phase 1–2b live models include: org/IAM, districts, mandals, villages, crop types, expense categories, expenses, collections, platform catalogs (`ActivityType`, `PaymentMode`, `Buyer`, `FieldAgent`, `VehicleType`, `CropPriceRule`, comments/tags), farmers (+ bank/land), procurements (+ ledger/deductions + buyer/payment terms), farmer payments (+ allocations), documents, devices (`UserDeviceToken`), field services (`FieldServiceRecord`), assets (`Asset`), vehicle trips (`VehicleTrip`), farms (`Farm`/`FarmActivity`), analytics (`AnalyticsDailyOrgFact`), audit/activity.
 
 Phase 3–5 remaining tables (workers, rentals, financial_transactions posting, etc.) exist in DB; expenses/collections CRUD live; diesel posts from vehicle trips and field-service `diesel_amount`.
 

@@ -60,7 +60,10 @@ const NAV_SECTIONS: NavSection[] = [
   },
   {
     title: "Insights",
-    items: [{ href: ROUTES.reports, label: "Reports", icon: BarChart3 }],
+    items: [
+      { href: ROUTES.analytics, label: "Analytics", icon: BarChart3 },
+      { href: ROUTES.reports, label: "Reports", icon: BarChart3 },
+    ],
   },
   {
     title: "System",
