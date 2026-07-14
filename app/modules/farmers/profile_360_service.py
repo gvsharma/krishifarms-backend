@@ -666,7 +666,7 @@ def _quick_actions(farmer_id: UUID) -> list[QuickActionItem]:
             QuickActionItem(
                 code="call_farmer",
                 label="Call Farmer",
-                href=f"tel:",
+                href="tel:",
                 category="comms",
             ),
             QuickActionItem(
