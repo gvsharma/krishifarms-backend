@@ -20,6 +20,7 @@ import {
 import { Add } from "@mui/icons-material";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { MuiPageShell } from "@/components/shell/mui-page-shell";
 import {
@@ -31,11 +32,25 @@ import {
 } from "@/features/procurements/api";
 
 export default function ProcurementPage() {
+  const searchParams = useSearchParams();
   const [status, setStatus] = useState<ProcurementStatus | "">("");
+  const dateFrom = searchParams.get("date_from") ?? undefined;
+  const dateTo = searchParams.get("date_to") ?? undefined;
+  const villageId = searchParams.get("village_id") ?? undefined;
+  const cropTypeId = searchParams.get("crop_type_id") ?? undefined;
+  const farmerId = searchParams.get("farmer_id") ?? undefined;
 
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ["procurements", status],
-    queryFn: () => fetchProcurements({ status: status || undefined }),
+    queryKey: ["procurements", status, dateFrom, dateTo, villageId, cropTypeId, farmerId],
+    queryFn: () =>
+      fetchProcurements({
+        status: status || undefined,
+        date_from: dateFrom,
+        date_to: dateTo,
+        village_id: villageId,
+        crop_type_id: cropTypeId,
+        farmer_id: farmerId,
+      }),
   });
 
   return (

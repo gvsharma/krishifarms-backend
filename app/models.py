@@ -4,6 +4,7 @@ from sqlalchemy import Column, Table
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 
 from app.core.database import Base
+from app.modules.analytics.models import AnalyticsDailyOrgFact  # noqa: F401
 from app.modules.assets.models import Asset  # noqa: F401
 from app.modules.assets.vehicle_trip_models import VehicleTrip  # noqa: F401
 from app.modules.audit.models import ActivityFeed, AuditLog  # noqa: F401

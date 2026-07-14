@@ -53,6 +53,7 @@ alembic downgrade -1
 | `202506210029` | Field-ops RBAC | FARMER `comments:create`; AGENT/DRIVER `documents:read|create` for diesel receipts |
 | `202506210030` | Farmer 360° | Optional prefs/trust/VIP/GPS on farmers; land ownership/irrigation; crop-history farming detail columns |
 | `202506210031` | Village 360° | `village_code`, GPS, agent, status, population, cultivable area, notes; backfill codes |
+| `202506210033` | Analytics | `analytics_daily_org_facts` org-day summary table (Phase 1 live compute; rollups optional). Note: `032` reserved for farmer-relationship hub WIP |
 
 ## Partition Maintenance
 

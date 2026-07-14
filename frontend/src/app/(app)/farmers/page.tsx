@@ -19,17 +19,20 @@ import {
 import { Add, Search } from "@mui/icons-material";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { MuiPageShell } from "@/components/shell/mui-page-shell";
 import { fetchFarmers } from "@/features/farmers/api";
 
 export default function FarmersPage() {
+  const searchParams = useSearchParams();
+  const villageFromUrl = searchParams.get("village_id") ?? undefined;
   const [search, setSearch] = useState("");
   const [query, setQuery] = useState("");
 
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ["farmers", query],
-    queryFn: () => fetchFarmers({ q: query || undefined }),
+    queryKey: ["farmers", query, villageFromUrl],
+    queryFn: () => fetchFarmers({ q: query || undefined, villageId: villageFromUrl }),
   });
 
   return (

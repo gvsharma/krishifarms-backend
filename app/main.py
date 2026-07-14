@@ -12,6 +12,7 @@ from app.modules.assets.router import router as assets_router
 from app.modules.assets.vehicle_trip_router import router as vehicle_trips_router
 from app.modules.audit.router import router as audit_router
 from app.modules.auth.router import router as auth_router
+from app.modules.analytics.router import router as analytics_router
 from app.modules.dashboard.router import router as dashboard_router
 from app.modules.devices.router import router as devices_router
 from app.modules.documents.router import router as documents_router
@@ -68,6 +69,7 @@ api_v1.include_router(documents_router)
 api_v1.include_router(devices_router)
 api_v1.include_router(audit_router)
 api_v1.include_router(dashboard_router)
+api_v1.include_router(analytics_router)
 
 
 @api_v1.exception_handler(AppError)

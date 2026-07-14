@@ -46,6 +46,7 @@ tags:
   - name: Devices
   - name: Search
   - name: Dashboard
+  - name: Analytics
 
 security:
   - BearerAuth: []
@@ -68,6 +69,17 @@ paths:
     $ref: paths/dashboard.yaml#/dashboardSummary
   /dashboard/reports:
     $ref: paths/dashboard.yaml#/dashboardReports
+
+  /analytics/catalog:
+    $ref: paths/analytics.yaml#/analyticsCatalog
+  /analytics/{module}/summary:
+    $ref: paths/analytics.yaml#/analyticsModuleSummary
+  /analytics/{module}/series:
+    $ref: paths/analytics.yaml#/analyticsModuleSeries
+  /analytics/{module}/tables:
+    $ref: paths/analytics.yaml#/analyticsModuleTables
+  /analytics/export:
+    $ref: paths/analytics.yaml#/analyticsExport
 
   /devices/push-tokens:
     $ref: paths/devices.yaml#/pushTokens

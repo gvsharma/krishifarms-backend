@@ -88,6 +88,10 @@ export function fetchProcurements(params?: {
   pageSize?: number;
   status?: ProcurementStatus;
   farmer_id?: string;
+  village_id?: string;
+  crop_type_id?: string;
+  date_from?: string;
+  date_to?: string;
 }): Promise<ProcurementListData> {
   const search = new URLSearchParams({
     page: String(params?.page ?? 1),
@@ -95,6 +99,10 @@ export function fetchProcurements(params?: {
   });
   if (params?.status) search.set("status", params.status);
   if (params?.farmer_id) search.set("farmer_id", params.farmer_id);
+  if (params?.village_id) search.set("village_id", params.village_id);
+  if (params?.crop_type_id) search.set("crop_type_id", params.crop_type_id);
+  if (params?.date_from) search.set("date_from", params.date_from);
+  if (params?.date_to) search.set("date_to", params.date_to);
   return fetchApi<ProcurementListData>(`/procurements?${search}`, {
     method: "GET",
     clientHeaders: false,
