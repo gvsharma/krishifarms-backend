@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **npm audit HIGH (CI security scan)** — bump/override `brace-expansion` (`1.1.16` / `5.0.7`, GHSA-3jxr-9vmj-r5cp), `js-yaml` `^4.3.0` (GHSA-52cp-r559-cp3m), and nested `next`→`postcss` `8.5.10` (GHSA-qx2v-qp2m-jg93); refresh `frontend/package-lock.json`.
 - **Trivy HIGH frontend deps** — bump `next` to `^15.5.21` (CVE-2026-64641/64645/64649) and override transitive `sharp` to `^0.35.0` (GHSA-f88m-g3jw-g9cj); refresh `frontend/package-lock.json`.
 - **Auto-logout on invalid/expired session** — `fetchApi` treats `401` by attempting `POST /auth/refresh` once (coalesced); on failure clears access/refresh tokens, marks signed-out, and hard-navigates to `/login`. App shell validates via `/auth/me` before render. Covers stale tokens that previously left users on dashboard with “Invalid token”.
 - **Login password field invisible / broken eye toggle** — password row used a Tailwind-bordered wrapper; with MUI CSS layers, `border` utilities never get `border-style: solid`, so the shell was invisible and the show/hide control kept native button chrome. Login fields now use explicit `1px solid` borders + Lucide eye icons inside the field.
