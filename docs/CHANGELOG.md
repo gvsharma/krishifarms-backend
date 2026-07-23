@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **Trivy HIGH frontend deps** — bump `next` to `^15.5.21` (CVE-2026-64641/64645/64649) and override transitive `sharp` to `^0.35.0` (GHSA-f88m-g3jw-g9cj); refresh `frontend/package-lock.json`.
 - **Auto-logout on invalid/expired session** — `fetchApi` treats `401` by attempting `POST /auth/refresh` once (coalesced); on failure clears access/refresh tokens, marks signed-out, and hard-navigates to `/login`. App shell validates via `/auth/me` before render. Covers stale tokens that previously left users on dashboard with “Invalid token”.
 - **Login password field invisible / broken eye toggle** — password row used a Tailwind-bordered wrapper; with MUI CSS layers, `border` utilities never get `border-style: solid`, so the shell was invisible and the show/hide control kept native button chrome. Login fields now use explicit `1px solid` borders + Lucide eye icons inside the field.
 - **Custom vehicle types (e.g. tractor4W) missing after add/update** — field-service dropdowns filtered by a hardcoded code allowlist, so new master-data codes never appeared; Edit also hid `code` (`createOnly`) and PATCH rejected code changes. Filter now includes custom types by `fuel_type` / code heuristics, code is editable on update (unique per org), and related React Query caches are invalidated.
