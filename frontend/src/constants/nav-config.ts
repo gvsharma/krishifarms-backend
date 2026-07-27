@@ -48,14 +48,29 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     title: "Operations",
     items: [
-      { href: ROUTES.farmers, label: "Farmers", icon: Agriculture },
-      { href: ROUTES.villages, label: "Villages", icon: HolidayVillage },
-      { href: ROUTES.procurement, label: "Procurement", icon: Spa },
+      {
+        href: ROUTES.farmers,
+        label: "Farmers",
+        icon: Agriculture,
+        roles: ["OWNER", "MANAGER", "SUPERVISOR", "ACCOUNTANT"],
+      },
+      {
+        href: ROUTES.villages,
+        label: "Villages",
+        icon: HolidayVillage,
+        roles: ["OWNER", "MANAGER", "SUPERVISOR", "ACCOUNTANT", "AGENT", "DRIVER"],
+      },
+      {
+        href: ROUTES.procurement,
+        label: "Procurement",
+        icon: Spa,
+        roles: ["OWNER", "MANAGER", "SUPERVISOR"],
+      },
       {
         href: ROUTES.services,
-        label: "Services",
+        label: "Field services",
         icon: Handshake,
-        roles: ["OWNER", "MANAGER", "AGENT"],
+        roles: ["OWNER", "MANAGER", "SUPERVISOR", "AGENT", "DRIVER"],
       },
     ],
   },

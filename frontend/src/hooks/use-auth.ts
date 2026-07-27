@@ -2,8 +2,10 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { fetchAuthMe } from "@/features/auth/api";
+import { permissionMatches } from "@/features/auth/permission-aliases";
 import {
   canAccessAdmin,
+  canCreateUsers,
   canDelete,
   canManageUsers,
   primaryRole,
@@ -29,7 +31,7 @@ export function useAuth() {
   const role = primaryRole(roles);
 
   const hasPermission = (permission: string): boolean => {
-    if (permissions.includes(permission)) return true;
+    if (permissionMatches(permissions, permission)) return true;
     // OWNER is treated as superuser for UI guards when catalog is sparse.
     if (roles.includes("OWNER")) return true;
     return false;
@@ -44,11 +46,25 @@ export function useAuth() {
     hasPermission,
     canDelete: canDelete(roles),
     canManageUsers: canManageUsers(roles),
+    canCreateUsers: canCreateUsers(roles, permissions),
     canAccessAdmin: canAccessAdmin(roles),
   };
 }
 
+const NAV_ROLES = [
+  "OWNER",
+  "MANAGER",
+  "SUPERVISOR",
+  "AGENT",
+  "DRIVER",
+  "WORKER",
+  "ACCOUNTANT",
+] as const;
+
 export function useNavRole(): NavRole {
   const { role } = useAuth();
-  return (role ?? "OWNER") as NavRole;
+  if (role && NAV_ROLES.includes(role as (typeof NAV_ROLES)[number])) {
+    return role as NavRole;
+  }
+  return "WORKER";
 }

@@ -25,9 +25,9 @@ def test_owner_has_every_system_permission():
     assert system <= owner
 
 
-def test_manager_cannot_delete_or_create_users():
+def test_manager_can_create_users_but_not_delete():
     manager = set(ROLE_PERMISSIONS["MANAGER"])
-    assert "users:create" not in manager
+    assert "users:create" in manager
     assert "users:delete" not in manager
     assert "delete" not in manager
     assert not any(p.endswith(":delete") for p in manager)

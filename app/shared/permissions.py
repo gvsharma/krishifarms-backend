@@ -184,6 +184,7 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
     "OWNER": [code for code, _ in SYSTEM_PERMISSIONS],
     "MANAGER": [
         "users:read",
+        "users:create",
         "users:update",
         "roles:read",
         *_MANAGER_MASTER,

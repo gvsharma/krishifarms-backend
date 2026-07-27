@@ -29,6 +29,15 @@ export function canManageUsers(roles: string[]): boolean {
   return roles.some((r) => r === "OWNER" || r === "MANAGER");
 }
 
+/** Create user — requires users:create (OWNER/MANAGER after RBAC simplify). */
+export function canCreateUsers(roles: string[], permissions: string[]): boolean {
+  if (roles.includes("OWNER")) return true;
+  return (
+    permissions.includes("users:create") ||
+    permissions.includes("USER_CREATE")
+  );
+}
+
 export function canAccessAdmin(roles: string[]): boolean {
   return canManageUsers(roles);
 }

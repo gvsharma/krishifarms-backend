@@ -64,6 +64,7 @@ REPORT_EXPORT = "REPORT_EXPORT"
 SETTINGS_VIEW = "SETTINGS_VIEW"
 SETTINGS_MANAGE = "SETTINGS_MANAGE"
 USER_MANAGE = "USER_MANAGE"
+USER_CREATE = "USER_CREATE"
 SYNC_MANAGE = "SYNC_MANAGE"
 
 VEHICLE_VIEW = "VEHICLE_VIEW"
@@ -126,6 +127,7 @@ ALL_MOBILE_PERMISSIONS: frozenset[str] = frozenset(
         SETTINGS_VIEW,
         SETTINGS_MANAGE,
         USER_MANAGE,
+        USER_CREATE,
         SYNC_MANAGE,
         VEHICLE_VIEW,
         TRIP_VIEW,
@@ -175,11 +177,13 @@ _MANAGER: frozenset[str] = frozenset(
         DOCUMENT_CREATE,
         COLLECTION_VIEW,
         PAYMENT_VIEW,
+        PAYMENT_CREATE,
         REPORT_VIEW,
         REPORT_EXPORT,
         SETTINGS_VIEW,
         SETTINGS_MANAGE,
         USER_MANAGE,
+        USER_CREATE,
         SYNC_MANAGE,
         VEHICLE_VIEW,
         TRIP_VIEW,
@@ -365,7 +369,7 @@ BACKEND_TO_MOBILE: dict[str, str] = {
     "documents:delete": DOCUMENT_DELETE,
     "dashboard:read": REPORT_VIEW,
     "users:read": USER_MANAGE,
-    "users:create": USER_MANAGE,
+    "users:create": USER_CREATE,
     "users:update": USER_MANAGE,
     "users:delete": USER_MANAGE,
     "roles:read": USER_MANAGE,
