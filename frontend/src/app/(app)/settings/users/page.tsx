@@ -63,7 +63,7 @@ const emptyForm = (): FormState => ({
 
 export default function SettingsUsersPage() {
   const queryClient = useQueryClient();
-  const { canDelete, canManageUsers, user: currentUser } = useAuth();
+  const { canDelete, canCreateUsers, user: currentUser } = useAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<User | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
@@ -149,7 +149,7 @@ export default function SettingsUsersPage() {
       title="Users"
       description="Organization members, roles, and access. Requires users:read permission."
       actions={
-        canManageUsers ? (
+        canCreateUsers ? (
           <Button variant="contained" startIcon={<Add />} onClick={openCreate}>
             Add user
           </Button>
