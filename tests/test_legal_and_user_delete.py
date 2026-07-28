@@ -25,6 +25,8 @@ def test_legal_privacy_uses_configured_urls():
     assert privacy.url == settings.privacy_policy_url
     assert privacy.support_email == settings.support_email
     assert privacy.url.startswith("https://")
+    assert privacy.title_te
+    assert privacy.summary_te
 
 
 def test_legal_account_deletion_uses_configured_urls():
@@ -33,6 +35,8 @@ def test_legal_account_deletion_uses_configured_urls():
     assert info.support_email == settings.support_email
     assert info.supports_in_app_deletion is True
     assert info.in_app_path == "DELETE /users/me"
+    assert info.title_te
+    assert info.instructions_te
 
 
 def test_legal_links_bundle():

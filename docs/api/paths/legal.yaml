@@ -16,11 +16,13 @@ legalPrivacy:
                 data:
                   type: object
                   required: [title, url, support_email]
-                  properties:
+                    properties:
                     title: { type: string }
+                    title_te: { type: string, description: Telugu display title }
                     url: { type: string, format: uri }
                     support_email: { type: string, format: email }
                     summary: { type: string }
+                    summary_te: { type: string, description: Telugu summary }
 
 legalAccountDeletion:
   get:
@@ -42,11 +44,13 @@ legalAccountDeletion:
                   required: [title, url, support_email, supports_in_app_deletion]
                   properties:
                     title: { type: string }
+                    title_te: { type: string, description: Telugu display title }
                     url: { type: string, format: uri }
                     support_email: { type: string }
                     supports_in_app_deletion: { type: boolean }
                     in_app_path: { type: string }
                     instructions: { type: string }
+                    instructions_te: { type: string, description: Telugu instructions }
 
 legalLinks:
   get:

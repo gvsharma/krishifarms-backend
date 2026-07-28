@@ -95,6 +95,7 @@ def build_village_360(db: Session, org_id: UUID, village_id: UUID) -> Village360
         id=village.id,
         village_code=village.village_code,
         name=village.name,
+        name_te=village.name_te,
         mandal=village.mandal,
         district=village.district,
         state=village.state,
@@ -677,6 +678,7 @@ def search_villages(db: Session, org_id: UUID, q: str, *, limit: int = 30) -> Vi
             Village.deleted_at.is_(None),
             or_(
                 Village.name.ilike(like),
+                Village.name_te.ilike(like),
                 Village.village_code.ilike(like),
                 Village.mandal.ilike(like),
                 Village.district.ilike(like),
@@ -697,6 +699,7 @@ def search_villages(db: Session, org_id: UUID, q: str, *, limit: int = 30) -> Vi
             id=v.id,
             village_code=v.village_code,
             name=v.name,
+            name_te=v.name_te,
             mandal=v.mandal,
             district=v.district,
             match_reason=reason,
@@ -721,6 +724,7 @@ def search_villages(db: Session, org_id: UUID, q: str, *, limit: int = 30) -> Vi
                 id=v.id,
                 village_code=v.village_code,
                 name=v.name,
+                name_te=v.name_te,
                 mandal=v.mandal,
                 district=v.district,
                 match_reason=f"farmer:{farmer.full_name}",
@@ -746,6 +750,7 @@ def search_villages(db: Session, org_id: UUID, q: str, *, limit: int = 30) -> Vi
                 id=v.id,
                 village_code=v.village_code,
                 name=v.name,
+                name_te=v.name_te,
                 mandal=v.mandal,
                 district=v.district,
                 match_reason=f"buyer:{buyer.name}",
@@ -760,7 +765,7 @@ def search_villages(db: Session, org_id: UUID, q: str, *, limit: int = 30) -> Vi
             Village.org_id == org_id,
             Village.deleted_at.is_(None),
             CropType.deleted_at.is_(None),
-            or_(CropType.name.ilike(like), CropType.code.ilike(like)),
+            or_(CropType.name.ilike(like), CropType.name_te.ilike(like), CropType.code.ilike(like)),
         )
         .limit(limit)
         .all()
@@ -771,6 +776,7 @@ def search_villages(db: Session, org_id: UUID, q: str, *, limit: int = 30) -> Vi
                 id=v.id,
                 village_code=v.village_code,
                 name=v.name,
+                name_te=v.name_te,
                 mandal=v.mandal,
                 district=v.district,
                 match_reason=f"crop:{crop.name}",

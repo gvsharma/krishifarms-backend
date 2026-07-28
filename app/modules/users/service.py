@@ -182,6 +182,7 @@ def create_user(
         phone=normalized_phone or payload.phone,
         password_hash=password_hash,
         full_name=payload.full_name,
+        full_name_te=payload.full_name_te,
         role_id=payload.role_id,
         village_id=payload.village_id,
         preferred_locale=payload.preferred_locale,
@@ -222,6 +223,8 @@ def update_user(
 
     if payload.full_name is not None:
         user.full_name = payload.full_name
+    if payload.full_name_te is not None:
+        user.full_name_te = payload.full_name_te
     if payload.phone is not None:
         user.phone = normalize_phone_for_lookup(payload.phone) or payload.phone
     if payload.village_id is not None:
@@ -255,6 +258,8 @@ def update_current_user(db: Session, user_id: UUID, payload: UserSelfUpdateReque
 
     if payload.full_name is not None:
         user.full_name = payload.full_name
+    if payload.full_name_te is not None:
+        user.full_name_te = payload.full_name_te
     if payload.preferred_locale is not None:
         user.preferred_locale = payload.preferred_locale
 
