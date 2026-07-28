@@ -21,6 +21,8 @@ export type NavRole = "OWNER" | "MANAGER" | "SUPERVISOR" | "AGENT" | "DRIVER" | 
 export interface NavItem {
   href: string;
   label: string;
+  /** i18n message key for translated label */
+  labelKey?: string;
   icon: SvgIconComponent;
   /** Empty = visible to all authenticated roles. */
   roles?: NavRole[];
@@ -28,6 +30,8 @@ export interface NavItem {
 
 export interface NavSection {
   title: string;
+  /** i18n message key for translated section title */
+  titleKey?: string;
   items: NavItem[];
 }
 
@@ -35,11 +39,13 @@ export interface NavSection {
 export const NAV_SECTIONS: NavSection[] = [
   {
     title: "Overview",
+    titleKey: "nav.overview",
     items: [
-      { href: ROUTES.dashboard, label: "Dashboard", icon: Dashboard },
+      { href: ROUTES.dashboard, label: "Dashboard", labelKey: "nav.dashboard", icon: Dashboard },
       {
         href: ROUTES.analytics,
         label: "Analytics",
+        labelKey: "nav.analytics",
         icon: Analytics,
         roles: ["OWNER", "MANAGER", "ACCOUNTANT"],
       },
@@ -47,28 +53,33 @@ export const NAV_SECTIONS: NavSection[] = [
   },
   {
     title: "Operations",
+    titleKey: "nav.operations",
     items: [
       {
         href: ROUTES.farmers,
         label: "Farmers",
+        labelKey: "nav.farmers",
         icon: Agriculture,
         roles: ["OWNER", "MANAGER", "SUPERVISOR", "ACCOUNTANT"],
       },
       {
         href: ROUTES.villages,
         label: "Villages",
+        labelKey: "nav.villages",
         icon: HolidayVillage,
         roles: ["OWNER", "MANAGER", "SUPERVISOR", "ACCOUNTANT", "AGENT", "DRIVER"],
       },
       {
         href: ROUTES.procurement,
         label: "Procurement",
+        labelKey: "nav.procurement",
         icon: Spa,
         roles: ["OWNER", "MANAGER", "SUPERVISOR"],
       },
       {
         href: ROUTES.services,
         label: "Field services",
+        labelKey: "nav.fieldServices",
         icon: Handshake,
         roles: ["OWNER", "MANAGER", "SUPERVISOR", "AGENT", "DRIVER"],
       },
@@ -76,10 +87,12 @@ export const NAV_SECTIONS: NavSection[] = [
   },
   {
     title: "Finance",
+    titleKey: "nav.finance",
     items: [
       {
         href: ROUTES.payments,
         label: "Finance",
+        labelKey: "nav.payments",
         icon: AccountBalance,
         roles: ["OWNER", "MANAGER", "ACCOUNTANT"],
       },
@@ -87,22 +100,26 @@ export const NAV_SECTIONS: NavSection[] = [
   },
   {
     title: "System",
+    titleKey: "nav.system",
     items: [
       {
         href: ROUTES.settingsUsers,
         label: "Users",
+        labelKey: "nav.users",
         icon: People,
         roles: ["OWNER", "MANAGER"],
       },
       {
         href: ROUTES.settingsMasterData,
         label: "Master data",
+        labelKey: "nav.masterData",
         icon: Dataset,
         roles: ["OWNER", "MANAGER"],
       },
       {
         href: ROUTES.settings,
         label: "Settings",
+        labelKey: "nav.settings",
         icon: Settings,
         roles: ["OWNER", "MANAGER"],
       },

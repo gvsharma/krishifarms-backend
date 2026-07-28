@@ -44,6 +44,8 @@ import {
 import { ROUTES, SITE_NAME } from "@/constants/routes";
 import { signOut } from "@/features/auth/api";
 import { useAuth } from "@/hooks/use-auth";
+import { useTranslation } from "@/i18n/use-translation";
+import type { MessageKey } from "@/i18n/messages";
 import { DRAWER_WIDTH, DRAWER_WIDTH_COLLAPSED } from "@/theme/material-theme";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -56,6 +58,7 @@ export function MuiAppShell({ children }: MuiAppShellProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const muiTheme = useTheme();
+  const { t } = useTranslation();
   const isMobile = useMediaQuery(muiTheme.breakpoints.down("md"));
   const collapsed = useUiStore((s) => s.sidebarCollapsed);
   const toggleSidebar = useUiStore((s) => s.toggleSidebar);
@@ -128,7 +131,7 @@ export function MuiAppShell({ children }: MuiAppShellProps) {
                   textTransform: "uppercase",
                 }}
               >
-                {section.title}
+                {section.titleKey ? t(section.titleKey as MessageKey) : section.title}
               </Typography>
             )}
             <List dense disablePadding>
@@ -160,7 +163,7 @@ export function MuiAppShell({ children }: MuiAppShellProps) {
                       </ListItemIcon>
                       {(!collapsed || isMobile) && (
                         <ListItemText
-                          primary={item.label}
+                          primary={item.labelKey ? t(item.labelKey as MessageKey) : item.label}
                           primaryTypographyProps={{
                             fontSize: 14,
                             fontWeight: active ? 600 : 500,
@@ -180,7 +183,7 @@ export function MuiAppShell({ children }: MuiAppShellProps) {
         <>
           <Divider />
           <Box sx={{ p: 1 }}>
-            <Tooltip title={collapsed ? "Expand sidebar" : "Collapse sidebar"}>
+            <Tooltip title={collapsed ? t("common.expandSidebar") : t("common.collapseSidebar")}>
               <IconButton onClick={toggleSidebar} sx={{ width: "100%", borderRadius: 2 }}>
                 {collapsed ? <ChevronRight /> : <ChevronLeft />}
               </IconButton>
@@ -204,7 +207,7 @@ export function MuiAppShell({ children }: MuiAppShellProps) {
       >
         <Toolbar sx={{ gap: 1, minHeight: 64 }}>
           {isMobile && (
-            <IconButton edge="start" onClick={() => setMobileOpen(true)} aria-label="Open menu">
+            <IconButton edge="start" onClick={() => setMobileOpen(true)} aria-label={t("common.openMenu")}>
               <MenuIcon />
             </IconButton>
           )}
@@ -224,17 +227,17 @@ export function MuiAppShell({ children }: MuiAppShellProps) {
           >
             <Search fontSize="small" color="action" />
             <Typography variant="body2" color="text.secondary">
-              Search farmers, procurements…
+              {t("common.search")}
             </Typography>
           </Box>
 
           <Stack direction="row" spacing={0.5} sx={{ ml: "auto" }}>
-            <IconButton aria-label="Notifications">
+            <IconButton aria-label={t("common.notifications")}>
               <NotificationsNone />
             </IconButton>
             {mounted && (
               <IconButton
-                aria-label="Toggle theme"
+                aria-label={t("common.toggleTheme")}
                 onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
               >
                 {resolvedTheme === "dark" ? <LightMode /> : <DarkMode />}
@@ -257,7 +260,7 @@ export function MuiAppShell({ children }: MuiAppShellProps) {
         <MenuItem disabled>
           <Stack>
             <Typography variant="body2" fontWeight={600}>
-              {user?.name ?? "User"}
+              {user?.name ?? t("common.user")}
             </Typography>
             <Typography variant="caption" color="text.secondary">
               {user?.email ?? user?.mobile ?? role ?? ""}
@@ -265,14 +268,17 @@ export function MuiAppShell({ children }: MuiAppShellProps) {
           </Stack>
         </MenuItem>
         <Divider />
+        <MenuItem component={Link} href={ROUTES.settingsPreferences} onClick={() => setUserMenuAnchor(null)}>
+          {t("settings.preferences")}
+        </MenuItem>
         <MenuItem component={Link} href={ROUTES.settings} onClick={() => setUserMenuAnchor(null)}>
-          Settings
+          {t("common.settings")}
         </MenuItem>
         <MenuItem onClick={() => void handleSignOut()}>
           <ListItemIcon sx={{ minWidth: 36 }}>
             <Logout fontSize="small" />
           </ListItemIcon>
-          Sign out
+          {t("common.signOut")}
         </MenuItem>
       </Menu>
 

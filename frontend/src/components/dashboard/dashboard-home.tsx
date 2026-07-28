@@ -25,66 +25,68 @@ import { MuiPageShell } from "@/components/shell/mui-page-shell";
 import { ROUTES } from "@/constants/routes";
 import { fetchDashboardSummary } from "@/features/dashboard/api";
 import { useAuth } from "@/hooks/use-auth";
+import { useTranslation } from "@/i18n/use-translation";
+import type { MessageKey } from "@/i18n/messages";
 
 const ADMIN_LINKS = [
   {
     href: ROUTES.settingsUsers,
-    title: "Users & roles",
-    description: "Add and edit organization members",
+    titleKey: "dashboard.admin.usersRoles",
+    descriptionKey: "dashboard.admin.usersRolesDesc",
     icon: People,
   },
   {
     href: ROUTES.settingsMasterData,
-    title: "Master data hub",
-    description: "All catalogs in one place",
+    titleKey: "dashboard.admin.masterData",
+    descriptionKey: "dashboard.admin.masterDataDesc",
     icon: Dataset,
   },
   {
     href: "/settings/master-data/crops",
-    title: "Crop types",
-    description: "Paddy, corn, seasonal crops",
+    titleKey: "dashboard.admin.crops",
+    descriptionKey: "dashboard.admin.cropsDesc",
     icon: Agriculture,
   },
   {
     href: "/settings/master-data/vehicle-types",
-    title: "Vehicle types",
-    description: "Fleet categories for trips",
+    titleKey: "dashboard.admin.vehicleTypes",
+    descriptionKey: "dashboard.admin.vehicleTypesDesc",
     icon: DirectionsCar,
   },
   {
     href: "/settings/master-data/activity-types",
-    title: "Activity types",
-    description: "Field service and work types",
+    titleKey: "dashboard.admin.activityTypes",
+    descriptionKey: "dashboard.admin.activityTypesDesc",
     icon: WorkOutline,
   },
   {
     href: "/settings/master-data/buyers",
-    title: "Buyers",
-    description: "Mills and traders",
+    titleKey: "dashboard.admin.buyers",
+    descriptionKey: "dashboard.admin.buyersDesc",
     icon: LocalAtm,
   },
   {
     href: "/settings/master-data/agents",
-    title: "Field agents",
-    description: "Collection agent roster",
+    titleKey: "dashboard.admin.agents",
+    descriptionKey: "dashboard.admin.agentsDesc",
     icon: Groups,
   },
   {
     href: ROUTES.settingsVillages,
-    title: "Villages",
-    description: "Geography master (District → Mandal cascade)",
+    titleKey: "dashboard.admin.villages",
+    descriptionKey: "dashboard.admin.villagesDesc",
     icon: Agriculture,
   },
 ] as const;
 
-const ROLE_HINTS: Record<string, string> = {
-  OWNER: "Admin overview — users, masters, and ops counts.",
-  MANAGER: "Operations overview — farmers, procurement, and field services.",
-  SUPERVISOR: "Farming supervisor — field services and farmer intake.",
-  DRIVER: "Vehicle supervisor — transport and diesel-related ops.",
-  AGENT: "Field agent — farmers and procurement drafts.",
-  WORKER: "Field ops — use the sidebar for assigned work.",
-  ACCOUNTANT: "Finance focus — expenses and collections (when live).",
+const ROLE_HINT_KEYS: Record<string, MessageKey> = {
+  OWNER: "dashboard.role.OWNER",
+  MANAGER: "dashboard.role.MANAGER",
+  SUPERVISOR: "dashboard.role.SUPERVISOR",
+  DRIVER: "dashboard.role.DRIVER",
+  AGENT: "dashboard.role.AGENT",
+  WORKER: "dashboard.role.WORKER",
+  ACCOUNTANT: "dashboard.role.ACCOUNTANT",
 };
 
 function SummaryStat({ label, value }: { label: string; value: number | string }) {
@@ -103,6 +105,7 @@ function SummaryStat({ label, value }: { label: string; value: number | string }
 }
 
 export function DashboardHome() {
+  const { t } = useTranslation();
   const { user, role, canAccessAdmin, isError, error, isLoading } = useAuth();
   const summaryQuery = useQuery({
     queryKey: ["dashboard", "summary"],
@@ -111,43 +114,41 @@ export function DashboardHome() {
     retry: 1,
   });
 
+  const roleHint = role ? t(ROLE_HINT_KEYS[role] ?? "dashboard.sidebarHint") : t("dashboard.sidebarHint");
+
   return (
     <MuiPageShell
-      title="Home"
+      title={t("dashboard.home")}
       description={
-        canAccessAdmin
-          ? "Farm operations overview and administration shortcuts."
-          : "Farm operations overview for Bhairkhanpally."
+        canAccessAdmin ? t("dashboard.descriptionAdmin") : t("dashboard.description")
       }
     >
       <Stack spacing={3}>
         {isError && (
           <Alert severity="warning">
-            {error instanceof Error
-              ? error.message
-              : "Could not load your session. Sign in again if pages look empty."}
+            {error instanceof Error ? error.message : t("common.signInAgain")}
           </Alert>
         )}
 
         <Card>
           <CardContent>
             <Typography variant="h6" fontWeight={600}>
-              Welcome{user?.name ? `, ${user.name}` : ""}
+              {t("dashboard.welcome", { suffix: user?.name ? `, ${user.name}` : "" })}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
               {isLoading
-                ? "Loading session…"
+                ? t("dashboard.loadingSession")
                 : role
-                  ? `Signed in as ${role}`
-                  : "Session unavailable"}{" "}
-              — {role ? ROLE_HINTS[role] ?? "use the sidebar for farmers, procurement, and field services." : "use the sidebar for farmers, procurement, and field services."}
+                  ? t("dashboard.signedInAs", { role })
+                  : t("common.sessionUnavailable")}{" "}
+              — {roleHint}
             </Typography>
           </CardContent>
         </Card>
 
         {summaryQuery.isError && (
           <Alert severity="info">
-            Dashboard counts unavailable
+            {t("dashboard.countsUnavailable")}
             {summaryQuery.error instanceof Error ? `: ${summaryQuery.error.message}` : ""}.
           </Alert>
         )}
@@ -156,36 +157,51 @@ export function DashboardHome() {
           <>
             <Grid container spacing={2}>
               <Grid size={{ xs: 6, sm: 4, md: 2 }}>
-                <SummaryStat label="Farmers" value={summaryQuery.data.farmers ?? 0} />
+                <SummaryStat label={t("dashboard.stat.farmers")} value={summaryQuery.data.farmers ?? 0} />
               </Grid>
               <Grid size={{ xs: 6, sm: 4, md: 2 }}>
-                <SummaryStat label="Procurements" value={summaryQuery.data.procurements ?? 0} />
+                <SummaryStat
+                  label={t("dashboard.stat.procurements")}
+                  value={summaryQuery.data.procurements ?? 0}
+                />
               </Grid>
               <Grid size={{ xs: 6, sm: 4, md: 2 }}>
-                <SummaryStat label="Payments" value={summaryQuery.data.farmer_payments ?? 0} />
+                <SummaryStat
+                  label={t("dashboard.stat.payments")}
+                  value={summaryQuery.data.farmer_payments ?? 0}
+                />
               </Grid>
               <Grid size={{ xs: 6, sm: 4, md: 2 }}>
-                <SummaryStat label="Assets" value={summaryQuery.data.assets ?? 0} />
+                <SummaryStat label={t("dashboard.stat.assets")} value={summaryQuery.data.assets ?? 0} />
               </Grid>
               <Grid size={{ xs: 6, sm: 4, md: 2 }}>
-                <SummaryStat label="Field services" value={summaryQuery.data.field_services ?? 0} />
+                <SummaryStat
+                  label={t("dashboard.stat.fieldServices")}
+                  value={summaryQuery.data.field_services ?? 0}
+                />
               </Grid>
               <Grid size={{ xs: 6, sm: 4, md: 2 }}>
-                <SummaryStat label="Trips" value={summaryQuery.data.vehicle_trips ?? 0} />
+                <SummaryStat label={t("dashboard.stat.trips")} value={summaryQuery.data.vehicle_trips ?? 0} />
               </Grid>
             </Grid>
             <Grid container spacing={2}>
               <Grid size={{ xs: 6, sm: 3 }}>
-                <SummaryStat label="Users" value={summaryQuery.data.users} />
+                <SummaryStat label={t("dashboard.stat.users")} value={summaryQuery.data.users} />
               </Grid>
               <Grid size={{ xs: 6, sm: 3 }}>
-                <SummaryStat label="Villages" value={summaryQuery.data.villages} />
+                <SummaryStat label={t("dashboard.stat.villages")} value={summaryQuery.data.villages} />
               </Grid>
               <Grid size={{ xs: 6, sm: 3 }}>
-                <SummaryStat label="Crop types" value={summaryQuery.data.crop_types} />
+                <SummaryStat
+                  label={t("dashboard.stat.cropTypes")}
+                  value={summaryQuery.data.crop_types}
+                />
               </Grid>
               <Grid size={{ xs: 6, sm: 3 }}>
-                <SummaryStat label="Documents" value={summaryQuery.data.documents} />
+                <SummaryStat
+                  label={t("dashboard.stat.documents")}
+                  value={summaryQuery.data.documents}
+                />
               </Grid>
             </Grid>
           </>
@@ -194,7 +210,7 @@ export function DashboardHome() {
         {canAccessAdmin && (
           <>
             <Typography variant="subtitle1" fontWeight={600}>
-              Administration
+              {t("dashboard.administration")}
             </Typography>
             <Grid container spacing={2}>
               {ADMIN_LINKS.map((link) => {
@@ -213,12 +229,12 @@ export function DashboardHome() {
                                 justifyContent="space-between"
                               >
                                 <Typography variant="subtitle1" fontWeight={600}>
-                                  {link.title}
+                                  {t(link.titleKey)}
                                 </Typography>
                                 <ChevronRight fontSize="small" color="action" />
                               </Stack>
                               <Typography variant="body2" color="text.secondary">
-                                {link.description}
+                                {t(link.descriptionKey)}
                               </Typography>
                             </Stack>
                           </Stack>

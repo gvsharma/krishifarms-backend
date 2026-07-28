@@ -16,6 +16,7 @@ export const ROUTES = {
   reports: "/reports",
   analytics: "/analytics",
   settings: "/settings",
+  settingsPreferences: "/settings/preferences",
   settingsUsers: "/settings/users",
   settingsVillages: "/settings/villages",
   settingsMasterData: "/settings/master-data",

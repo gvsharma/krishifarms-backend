@@ -1,5 +1,6 @@
 import { getApiBaseUrl } from "./config";
 import { getDeviceId } from "./device-id";
+import { getPersistedLocale } from "@/stores/locale-store";
 
 const TOKEN_KEY = "krishi-access-token";
 
@@ -90,6 +91,7 @@ export async function fetchApi<T>(
   if (token) {
     reqHeaders.set("Authorization", `Bearer ${token}`);
   }
+  reqHeaders.set("Accept-Language", getPersistedLocale());
   if (clientHeaders) {
     reqHeaders.set("X-Device-Id", getDeviceId());
     reqHeaders.set("X-Client-Type", "web");
