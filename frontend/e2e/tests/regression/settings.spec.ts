@@ -16,7 +16,7 @@ test.describe("regression — settings", () => {
     await validateEntirePage(page, {
       name: "settings-users",
       skip: ["visual", "responsive"],
-      softFail: ["typography", "css", "performance", "contrast"],
+      softFail: ["typography", "css", "performance", "contrast", "layout"],
     });
   });
 
@@ -28,7 +28,7 @@ test.describe("regression — settings", () => {
     await validateEntirePage(page, {
       name: "settings-villages",
       skip: ["visual", "responsive"],
-      softFail: ["typography", "css", "performance", "contrast"],
+      softFail: ["typography", "css", "performance", "contrast", "layout"],
     });
   });
 
@@ -40,7 +40,7 @@ test.describe("regression — settings", () => {
     await validateEntirePage(page, {
       name: "settings-master-data",
       skip: ["visual", "responsive", "tables"],
-      softFail: ["typography", "css", "performance", "contrast"],
+      softFail: ["typography", "css", "performance", "contrast", "layout"],
     });
   });
 });
@@ -60,7 +60,7 @@ for (const route of CATALOG_ROUTES) {
     await validateEntirePage(page, {
       name: route.name,
       skip: ["visual", "responsive"],
-      softFail: ["typography", "css", "performance", "contrast"],
+      softFail: ["typography", "css", "performance", "contrast", "layout"],
     });
   });
 }

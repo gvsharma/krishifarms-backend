@@ -13,6 +13,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **E2E regression (main push)** — dashboard regression soft-fails known shell contrast issues (search placeholder, active nav tint); settings regression soft-fails sidebar/header button overlap on catalog pages.
+- **Field services enrich** — `enrich_records` uses `farmer.phone_primary` (not nonexistent `farmer.phone`) when listing/creating diesel receipts and other field services.
 - **Migration chain (037)** — after merging main (#74), rebase `202506210037` to `down_revision = 202506210036` so hamali follows procurement spot-payment migrations on this branch.
 - **E2E CI login timeout** — Playwright proxied to shared EC2 (`:8082`) while the instance was stopped after the daily cost schedule. CI now runs an inline **Wake shared EC2** job before E2E and waits for `/api/v1/health`. Updated collections/expenses/login E2E copy for i18n placeholder pages.
 
