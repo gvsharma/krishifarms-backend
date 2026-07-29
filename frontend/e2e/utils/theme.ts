@@ -11,7 +11,7 @@ export async function enableDarkTheme(page: Page): Promise<void> {
     } catch {
       /* ignore quota / private mode */
     }
-    document.documentElement.classList.add("dark");
+    document.documentElement?.classList.add("dark");
   });
 }
 
@@ -24,7 +24,7 @@ export async function ensureDarkThemeViaToggle(page: Page): Promise<void> {
   if ((await toggle.count()) === 0) {
     await page.evaluate(() => {
       localStorage.setItem("theme", "dark");
-      document.documentElement.classList.add("dark");
+      document.documentElement?.classList.add("dark");
     });
     await page.reload({ waitUntil: "domcontentloaded" });
     return;
