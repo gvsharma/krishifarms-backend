@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **E2E CI (PR #70 follow-up)** — farmers create smoke soft-fails a11y contrast; Edit user dialog resolves filled MUI Role select via label regex + combobox wait; payments spec waits for loading spinner before empty/table assertion.
+
 ### Added
 
 - **Mobile-friendly Telugu i18n + appearance settings** — `frontend/src/i18n/` message catalogs (`en`/`te`), `locale-store`, `LocaleProvider` (html `lang`, Noto Sans Telugu font), `Accept-Language` on API client; Settings → **Preferences** (`/settings/preferences`) with English/Telugu radio + Light/Dark/System theme; login EN/తె toggle; shell nav, dashboard, auth, and placeholder pages wired to `useTranslation()`. Locale syncs to `PATCH /users/me` (`preferred_locale`). Android parity note in `ANDROID_CRM_PARITY.md`.
