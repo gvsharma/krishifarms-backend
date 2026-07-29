@@ -126,6 +126,10 @@ test.describe("Settings — Users", () => {
     await editBtn.click();
     const dialog = page.getByRole("dialog");
     await expect(dialog.getByRole("heading", { name: /Edit user/i })).toBeVisible();
+    // Filled MUI selects expose the selected value as the combobox name — wait for role options.
+    await expect(dialog.getByRole("combobox").filter({ hasText: /OWNER|MANAGER|AGENT|Role/i }).first()).toBeVisible({
+      timeout: 20_000,
+    });
     await expectDialogLabelsNotOverlapping(dialog, ["Full name", "Phone", "Role"]);
 
     await dialog.getByRole("button", { name: /Cancel/i }).click();
