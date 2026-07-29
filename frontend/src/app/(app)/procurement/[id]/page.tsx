@@ -17,6 +17,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useParams, useSearchParams } from "next/navigation";
 import { CommentThread } from "@/components/comments/CommentThread";
 import { MuiPageShell } from "@/components/shell/mui-page-shell";
+import { useAuth } from "@/hooks/use-auth";
 import { EntityDocumentUpload } from "@/features/documents/entity-document-upload";
 import {
   fetchProcurement,
@@ -31,6 +32,8 @@ export default function ProcurementDetailPage() {
   const params = useParams<{ id: string }>();
   const searchParams = useSearchParams();
   const procurementDate = searchParams.get("date") ?? new Date().toISOString().slice(0, 10);
+  const { roles } = useAuth();
+  const isFarmerViewer = roles.includes("FARMER");
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["procurement", params.id, procurementDate],
@@ -110,6 +113,12 @@ export default function ProcurementDetailPage() {
                 <Field label="Gross weight (kg)" value={data.gross_weight_kg} />
               </Grid>
               <Grid size={{ xs: 6, sm: 4 }}>
+                <Field
+                  label="Per-bag deduction (kg)"
+                  value={`${data.per_bag_deduction_kg} × ${data.bag_count} = ${data.bag_weight_deduction_kg} kg`}
+                />
+              </Grid>
+              <Grid size={{ xs: 6, sm: 4 }}>
                 <Field label="Net weight (kg)" value={data.net_weight_kg} />
               </Grid>
               <Grid size={{ xs: 6, sm: 4 }}>
@@ -140,11 +149,29 @@ export default function ProcurementDetailPage() {
                 <Field label="Gross amount" value={formatInr(data.gross_amount)} />
               </Grid>
               <Grid size={{ xs: 6, sm: 4 }}>
-                <Field label="Deductions" value={formatInr(data.deduction_amount)} />
+                <Field label="Line deductions" value={formatInr(data.deduction_amount)} />
               </Grid>
+              {data.is_spot_payment && (
+                <Grid size={{ xs: 6, sm: 4 }}>
+                  <Field
+                    label="Spot payment deduction"
+                    value={`${formatInr(data.spot_deduction_amount)} (₹${data.spot_deduction_per_quintal}/qtl)`}
+                  />
+                </Grid>
+              )}
               <Grid size={{ xs: 6, sm: 4 }}>
-                <Field label="Net amount" value={formatInr(data.net_amount)} />
+                <Field
+                  label="Net payment (farmer)"
+                  value={formatInr(data.net_amount)}
+                />
               </Grid>
+              {data.is_spot_payment && (
+                <Grid size={{ xs: 12 }}>
+                  <Typography variant="caption" color="text.secondary">
+                    Spot payment — 100% cash on delivery; ₹100 per net quintal deducted from payment.
+                  </Typography>
+                </Grid>
+              )}
               {data.confirmed_by_name && (
                 <Grid size={{ xs: 6, sm: 4 }}>
                   <Field
@@ -179,6 +206,48 @@ export default function ProcurementDetailPage() {
               </Box>
             )}
           </Card>
+
+          {!isFarmerViewer && data.profit_summary && (
+            <Card sx={{ p: 2, bgcolor: "action.hover" }}>
+              <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1.5 }}>
+                Buyer profit (internal)
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 6, sm: 4 }}>
+                  <Field
+                    label="Gross quintals"
+                    value={data.profit_summary.gross_quintals}
+                  />
+                </Grid>
+                <Grid size={{ xs: 6, sm: 4 }}>
+                  <Field
+                    label="Net quintals (payable)"
+                    value={data.profit_summary.net_quintals}
+                  />
+                </Grid>
+                <Grid size={{ xs: 6, sm: 4 }}>
+                  <Field
+                    label="Weight deduction profit"
+                    value={`${formatInr(data.profit_summary.weight_deduction_profit_amount)} (${data.profit_summary.weight_deduction_kg} kg)`}
+                  />
+                </Grid>
+                {data.is_spot_payment && (
+                  <Grid size={{ xs: 6, sm: 4 }}>
+                    <Field
+                      label="Spot payment deduction"
+                      value={formatInr(data.profit_summary.spot_deduction_amount)}
+                    />
+                  </Grid>
+                )}
+                <Grid size={{ xs: 6, sm: 4 }}>
+                  <Field
+                    label="Total profit"
+                    value={formatInr(data.profit_summary.total_profit_amount)}
+                  />
+                </Grid>
+              </Grid>
+            </Card>
+          )}
 
           <ProcurementWorkflowActions
             procurement={data}

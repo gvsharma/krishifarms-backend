@@ -15,9 +15,12 @@ from app.modules.platform.models import Buyer, CropPriceRule
 from app.modules.procurements.models import FarmerLedgerEntry, Procurement, ProcurementDeduction
 from app.modules.procurements.schemas import (
     CANCELLABLE_STATUSES,
+    DEFAULT_PER_BAG_DEDUCTION_KG,
+    DEFAULT_SPOT_DEDUCTION_PER_QUINTAL,
     ProcurementCancelRequest,
     ProcurementCreateRequest,
     ProcurementDeductionInput,
+    ProcurementProfitSummary,
     ProcurementReverseRequest,
     ProcurementUpdateRequest,
     WeighmentRequest,
@@ -48,6 +51,7 @@ _PROCUREMENT_NUMBER_PREFIX = "PR-"
 _QUINTAL_KG = Decimal("100")
 _ZERO = Decimal("0")
 _TWOPLACES = Decimal("0.01")
+_THREEPLACES = Decimal("0.001")
 _PAYMENT_TERM_DAYS = {
     "one_week": 7,
     "10_days": 10,
@@ -70,6 +74,10 @@ def can_transition(current: str, target: str) -> bool:
 
 def _money(value: Decimal) -> Decimal:
     return value.quantize(_TWOPLACES, rounding=ROUND_HALF_UP)
+
+
+def _weight(value: Decimal) -> Decimal:
+    return value.quantize(_THREEPLACES, rounding=ROUND_HALF_UP)
 
 
 def _next_procurement_number(db: Session, org_id: UUID) -> str:
@@ -239,17 +247,79 @@ def resolve_rate_per_quintal(
     return rule.rate_per_quintal
 
 
+def compute_bag_weight_deduction(bag_count: int, per_bag_deduction_kg: Decimal) -> Decimal:
+    """Total weight (kg) deducted for bags (kata) = bag_count * per_bag_deduction_kg."""
+    return _weight(Decimal(bag_count) * per_bag_deduction_kg)
+
+
+def compute_net_weight(
+    gross_weight_kg: Decimal,
+    tare_weight_kg: Decimal,
+    bag_count: int,
+    per_bag_deduction_kg: Decimal,
+) -> tuple[Decimal, Decimal]:
+    """Return (bag_weight_deduction_kg, net_weight_kg).
+
+    net_weight = gross - tare - (bag_count * per_bag_deduction_kg)
+    """
+    bag_weight_deduction = compute_bag_weight_deduction(bag_count, per_bag_deduction_kg)
+    net_weight = _weight(gross_weight_kg - tare_weight_kg - bag_weight_deduction)
+    return bag_weight_deduction, net_weight
+
+
+def compute_spot_deduction_amount(
+    net_weight_kg: Decimal,
+    is_spot_payment: bool,
+    spot_deduction_per_quintal: Decimal,
+) -> Decimal:
+    """Cash discount when farmer accepts 100% payment on spot: net_quintals × rate."""
+    if not is_spot_payment or spot_deduction_per_quintal <= _ZERO:
+        return _ZERO
+    net_quintals = net_weight_kg / _QUINTAL_KG
+    return _money(net_quintals * spot_deduction_per_quintal)
+
+
 def compute_amounts(
     net_weight_kg: Decimal,
     rate_per_quintal: Decimal,
-    deduction_amount: Decimal,
-) -> tuple[Decimal, Decimal, Decimal]:
+    line_deduction_amount: Decimal,
+    *,
+    is_spot_payment: bool = False,
+    spot_deduction_per_quintal: Decimal = DEFAULT_SPOT_DEDUCTION_PER_QUINTAL,
+) -> tuple[Decimal, Decimal, Decimal, Decimal]:
+    """Return (gross_amount, line_deduction_amount, spot_deduction_amount, net_amount)."""
     gross_amount = _money((net_weight_kg / _QUINTAL_KG) * rate_per_quintal)
-    deduction_amount = _money(deduction_amount)
-    net_amount = _money(gross_amount - deduction_amount)
+    line_deduction_amount = _money(line_deduction_amount)
+    spot_deduction_amount = compute_spot_deduction_amount(
+        net_weight_kg, is_spot_payment, spot_deduction_per_quintal
+    )
+    net_amount = _money(gross_amount - line_deduction_amount - spot_deduction_amount)
     if net_amount < _ZERO:
         raise ConflictError("Deductions exceed gross amount")
-    return gross_amount, deduction_amount, net_amount
+    return gross_amount, line_deduction_amount, spot_deduction_amount, net_amount
+
+
+def compute_profit_summary(procurement: Procurement) -> ProcurementProfitSummary | None:
+    """Buyer margin from weight kata + spot discount. Requires priced weights/rate."""
+    if procurement.rate_per_quintal <= _ZERO or procurement.gross_weight_kg <= _ZERO:
+        return None
+    rate = procurement.rate_per_quintal
+    weight_deduction_kg = compute_bag_weight_deduction(
+        procurement.bag_count, procurement.per_bag_deduction_kg
+    )
+    weight_quintals = weight_deduction_kg / _QUINTAL_KG
+    weight_profit = _money(weight_quintals * rate)
+    spot_amount = procurement.spot_deduction_amount
+    gross_quintals = _weight(procurement.gross_weight_kg / _QUINTAL_KG)
+    net_quintals = _weight(procurement.net_weight_kg / _QUINTAL_KG)
+    return ProcurementProfitSummary(
+        gross_quintals=gross_quintals,
+        net_quintals=net_quintals,
+        weight_deduction_kg=weight_deduction_kg,
+        weight_deduction_profit_amount=weight_profit,
+        spot_deduction_amount=spot_amount,
+        total_profit_amount=_money(weight_profit + spot_amount),
+    )
 
 
 def _sum_deductions(procurement: Procurement) -> Decimal:
@@ -257,13 +327,16 @@ def _sum_deductions(procurement: Procurement) -> Decimal:
 
 
 def _sync_amounts(procurement: Procurement) -> None:
-    gross_amount, deduction_amount, net_amount = compute_amounts(
+    gross_amount, line_deduction, spot_deduction, net_amount = compute_amounts(
         procurement.net_weight_kg,
         procurement.rate_per_quintal,
         _sum_deductions(procurement),
+        is_spot_payment=procurement.is_spot_payment,
+        spot_deduction_per_quintal=procurement.spot_deduction_per_quintal,
     )
     procurement.gross_amount = gross_amount
-    procurement.deduction_amount = deduction_amount
+    procurement.deduction_amount = line_deduction
+    procurement.spot_deduction_amount = spot_deduction
     procurement.net_amount = net_amount
 
 
@@ -396,6 +469,18 @@ def create_procurement(
         procurement_number=_next_procurement_number(db, org_id),
         status="draft",
         bag_count=payload.bag_count,
+        per_bag_deduction_kg=(
+            payload.per_bag_deduction_kg
+            if payload.per_bag_deduction_kg is not None
+            else DEFAULT_PER_BAG_DEDUCTION_KG
+        ),
+        is_spot_payment=payload.is_spot_payment,
+        spot_deduction_per_quintal=(
+            payload.spot_deduction_per_quintal
+            if payload.spot_deduction_per_quintal is not None
+            else DEFAULT_SPOT_DEDUCTION_PER_QUINTAL
+        ),
+        spot_deduction_amount=_ZERO,
         gross_weight_kg=_ZERO,
         net_weight_kg=_ZERO,
         rate_per_quintal=_ZERO,
@@ -451,6 +536,9 @@ def update_procurement(
         raise ConflictError("Only draft procurements can be updated")
 
     data = payload.model_dump(exclude_unset=True)
+    # per_bag_deduction_kg is NOT NULL; ignore an explicit null so it keeps its value.
+    if data.get("per_bag_deduction_kg") is None:
+        data.pop("per_bag_deduction_kg", None)
     if "farmer_id" in data and data["farmer_id"] is not None:
         _validate_farmer(db, org_id, data["farmer_id"])
     if "village_id" in data and data["village_id"] is not None:
@@ -535,15 +623,28 @@ def record_weighment(
     before_status = row.status
     _transition(row, "weighed")
 
-    net_weight = payload.gross_weight_kg - payload.tare_weight_kg
+    effective_bag_count = payload.bag_count if payload.bag_count is not None else row.bag_count
+    effective_per_bag = (
+        payload.per_bag_deduction_kg
+        if payload.per_bag_deduction_kg is not None
+        else row.per_bag_deduction_kg
+    )
+    bag_weight_deduction, net_weight = compute_net_weight(
+        payload.gross_weight_kg,
+        payload.tare_weight_kg,
+        effective_bag_count,
+        effective_per_bag,
+    )
     if net_weight <= _ZERO:
-        raise ConflictError("Net weight must be positive after tare deduction")
+        raise ConflictError(
+            "Net weight must be positive after tare and per-bag weight deductions"
+        )
 
     row.gross_weight_kg = payload.gross_weight_kg
     row.net_weight_kg = net_weight
     row.moisture_pct = payload.moisture_pct
-    if payload.bag_count is not None:
-        row.bag_count = payload.bag_count
+    row.bag_count = effective_bag_count
+    row.per_bag_deduction_kg = effective_per_bag
     row.updated_by = actor_user_id
 
     _audit(
@@ -553,7 +654,13 @@ def record_weighment(
         action="WEIGH",
         entity_id=row.id,
         before={"status": before_status},
-        after={"status": row.status, "net_weight_kg": str(row.net_weight_kg)},
+        after={
+            "status": row.status,
+            "net_weight_kg": str(row.net_weight_kg),
+            "bag_count": row.bag_count,
+            "per_bag_deduction_kg": str(row.per_bag_deduction_kg),
+            "bag_weight_deduction_kg": str(bag_weight_deduction),
+        },
         client=client,
         summary=f"Weighment recorded: {row.procurement_number}",
     )

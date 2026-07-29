@@ -6,6 +6,8 @@ import {
   Button,
   Card,
   CircularProgress,
+  FormControlLabel,
+  Checkbox,
   MenuItem,
   Stack,
   TextField,
@@ -57,6 +59,8 @@ export default function NewProcurementPage() {
   const [location, setLocation] = useState<LocationCascadeValue>({ ...EMPTY_LOCATION_CASCADE });
   const [hydrateVillageId, setHydrateVillageId] = useState<string | null>(null);
   const [bagCount, setBagCount] = useState("0");
+  const [perBagDeduction, setPerBagDeduction] = useState("2");
+  const [isSpotPayment, setIsSpotPayment] = useState(false);
   const [buyerId, setBuyerId] = useState("");
   const [paymentTerms, setPaymentTerms] = useState<PaymentTermValue | "">("one_week");
   const [paymentTermsCustom, setPaymentTermsCustom] = useState("");
@@ -129,6 +133,8 @@ export default function NewProcurementPage() {
         village_id: location.villageId,
         procurement_date: today,
         bag_count: Number(bagCount) || 0,
+        per_bag_deduction_kg: perBagDeduction.trim() || null,
+        is_spot_payment: isSpotPayment,
         buyer_id: buyerId || null,
         payment_terms: paymentTerms || null,
         payment_terms_custom:
@@ -294,14 +300,41 @@ export default function NewProcurementPage() {
               />
             </Stack>
 
-            <TextField
-              label="Bag count"
-              type="number"
-              sx={TOUCH_FIELD_SX}
-              inputProps={{ min: 0 }}
-              value={bagCount}
-              onChange={(e) => setBagCount(e.target.value)}
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+              <TextField
+                fullWidth
+                label="Bag count"
+                type="number"
+                sx={TOUCH_FIELD_SX}
+                inputProps={{ min: 0 }}
+                value={bagCount}
+                onChange={(e) => setBagCount(e.target.value)}
+              />
+              <TextField
+                fullWidth
+                label="Per-bag deduction (kg)"
+                type="number"
+                sx={TOUCH_FIELD_SX}
+                inputProps={{ min: 0, step: 0.001 }}
+                value={perBagDeduction}
+                onChange={(e) => setPerBagDeduction(e.target.value)}
+                helperText="Kata weight deducted per bag at weighment. Default 2 kg."
+              />
+            </Stack>
+
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={isSpotPayment}
+                  onChange={(e) => setIsSpotPayment(e.target.checked)}
+                />
+              }
+              label="100% payment on spot"
+              sx={{ alignItems: "flex-start", ml: 0 }}
             />
+            <Typography variant="caption" color="text.secondary" sx={{ mt: -1.5, display: "block" }}>
+              When checked, deducts ₹100 per net quintal from farmer payment (cash discount).
+            </Typography>
 
             <TextField
               label="Notes"
