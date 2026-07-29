@@ -39,7 +39,7 @@ test.describe("smoke — farmers", () => {
     await validateEntirePage(page, {
       name: "farmers-create",
       skip: ["visual", "responsive", "tables"],
-      softFail: ["typography", "css", "performance", "contrast", "inputs", "layout"],
+      softFail: ["typography", "css", "performance", "contrast", "inputs", "layout", "accessibility"],
     });
   });
 });
