@@ -47,8 +47,22 @@ def _audit_names(db: Session, row, response_cls, *, confirmed_by_name: str | Non
     return data.model_copy(update=extra)
 
 
-def _enrich_response(db: Session, row, *, include_deductions: bool = True) -> ProcurementResponse:
+def _viewer_role_code(ctx: CurrentUserContext) -> str | None:
+    role = getattr(ctx.user, "role", None)
+    return role.code if role is not None else None
+
+
+def _enrich_response(
+    db: Session,
+    row,
+    *,
+    include_deductions: bool = True,
+    viewer_role_code: str | None = None,
+) -> ProcurementResponse:
     farmers, villages, crops, buyers = service.related_names(db, [row])
+    profit_summary = None
+    if viewer_role_code and viewer_role_code.upper() != "FARMER":
+        profit_summary = service.compute_profit_summary(row)
     response = _audit_names(db, row, ProcurementResponse).model_copy(
         update={
             "farmer_name": farmers.get(row.farmer_id),
@@ -56,6 +70,7 @@ def _enrich_response(db: Session, row, *, include_deductions: bool = True) -> Pr
             "crop_type_name": crops.get(row.crop_type_id),
             "buyer_name": buyers.get(row.buyer_id) if row.buyer_id else None,
             "deductions": row.deductions if include_deductions else [],
+            "profit_summary": profit_summary,
         }
     )
     return attach_entity_notes(db, row.org_id, "procurement", row.id, response)
@@ -120,7 +135,7 @@ def create_procurement(
     row = service.create_procurement(
         db, ctx.user.org_id, payload, ctx.user.id, client, idempotency_key=idempotency_key
     )
-    return APIResponse(data=_enrich_response(db, row))
+    return APIResponse(data=_enrich_response(db, row, viewer_role_code=_viewer_role_code(ctx)))
 
 
 @router.get("/procurements/{procurement_id}", response_model=APIResponse[ProcurementResponse])
@@ -131,7 +146,7 @@ def get_procurement(
     db: Session = Depends(get_db),
 ):
     row = service.get_procurement(db, ctx.user.org_id, procurement_id, procurement_date)
-    return APIResponse(data=_enrich_response(db, row))
+    return APIResponse(data=_enrich_response(db, row, viewer_role_code=_viewer_role_code(ctx)))
 
 
 @router.patch("/procurements/{procurement_id}", response_model=APIResponse[ProcurementResponse])
@@ -146,7 +161,7 @@ def update_procurement(
     row = service.update_procurement(
         db, ctx.user.org_id, procurement_id, procurement_date, payload, ctx.user.id, client
     )
-    return APIResponse(data=_enrich_response(db, row))
+    return APIResponse(data=_enrich_response(db, row, viewer_role_code=_viewer_role_code(ctx)))
 
 
 @router.post("/procurements/{procurement_id}/submit", response_model=APIResponse[ProcurementResponse])
@@ -160,7 +175,7 @@ def submit_procurement(
     row = service.submit_procurement(
         db, ctx.user.org_id, procurement_id, procurement_date, ctx.user.id, client
     )
-    return APIResponse(data=_enrich_response(db, row))
+    return APIResponse(data=_enrich_response(db, row, viewer_role_code=_viewer_role_code(ctx)))
 
 
 @router.post("/procurements/{procurement_id}/weighment", response_model=APIResponse[ProcurementResponse])
@@ -175,7 +190,7 @@ def record_weighment(
     row = service.record_weighment(
         db, ctx.user.org_id, procurement_id, procurement_date, payload, ctx.user.id, client
     )
-    return APIResponse(data=_enrich_response(db, row))
+    return APIResponse(data=_enrich_response(db, row, viewer_role_code=_viewer_role_code(ctx)))
 
 
 @router.post("/procurements/{procurement_id}/apply-price", response_model=APIResponse[ProcurementResponse])
@@ -187,7 +202,7 @@ def apply_price(
     db: Session = Depends(get_db),
 ):
     row = service.apply_price(db, ctx.user.org_id, procurement_id, procurement_date, ctx.user.id, client)
-    return APIResponse(data=_enrich_response(db, row))
+    return APIResponse(data=_enrich_response(db, row, viewer_role_code=_viewer_role_code(ctx)))
 
 
 @router.post("/procurements/{procurement_id}/confirm", response_model=APIResponse[ProcurementResponse])
@@ -201,7 +216,7 @@ def confirm_procurement(
     row = service.confirm_procurement(
         db, ctx.user.org_id, procurement_id, procurement_date, ctx.user.id, client
     )
-    return APIResponse(data=_enrich_response(db, row))
+    return APIResponse(data=_enrich_response(db, row, viewer_role_code=_viewer_role_code(ctx)))
 
 
 @router.post("/procurements/{procurement_id}/cancel", response_model=APIResponse[ProcurementResponse])
@@ -216,7 +231,7 @@ def cancel_procurement(
     row = service.cancel_procurement(
         db, ctx.user.org_id, procurement_id, procurement_date, payload, ctx.user.id, client
     )
-    return APIResponse(data=_enrich_response(db, row))
+    return APIResponse(data=_enrich_response(db, row, viewer_role_code=_viewer_role_code(ctx)))
 
 
 @router.post("/procurements/{procurement_id}/reverse", response_model=APIResponse[ProcurementResponse])
@@ -232,7 +247,7 @@ def reverse_procurement(
     row = service.reverse_procurement(
         db, ctx.user.org_id, procurement_id, procurement_date, payload, ctx.user.id, client
     )
-    return APIResponse(data=_enrich_response(db, row))
+    return APIResponse(data=_enrich_response(db, row, viewer_role_code=_viewer_role_code(ctx)))
 
 
 @router.post(
@@ -251,4 +266,4 @@ def add_deduction(
     row = service.add_deduction(
         db, ctx.user.org_id, procurement_id, procurement_date, payload, ctx.user.id, client
     )
-    return APIResponse(data=_enrich_response(db, row))
+    return APIResponse(data=_enrich_response(db, row, viewer_role_code=_viewer_role_code(ctx)))

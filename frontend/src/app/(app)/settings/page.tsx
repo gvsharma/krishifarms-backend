@@ -8,38 +8,46 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import { ChevronRight, Dataset, LocationCity, People } from "@mui/icons-material";
+import { ChevronRight, Dataset, Language, LocationCity, People } from "@mui/icons-material";
 import Link from "next/link";
 import { ROUTES } from "@/constants/routes";
 import { MuiPageShell } from "@/components/shell/mui-page-shell";
+import { useTranslation } from "@/i18n/use-translation";
+import type { MessageKey } from "@/i18n/messages";
 
 const SETTINGS_LINKS = [
   {
+    href: ROUTES.settingsPreferences,
+    titleKey: "settings.preferences",
+    descriptionKey: "settings.preferencesDesc",
+    icon: Language,
+    allRoles: true,
+  },
+  {
     href: ROUTES.settingsUsers,
-    title: "Users & roles",
-    description: "Members, RBAC roles, and access control",
+    titleKey: "settings.usersRoles",
+    descriptionKey: "settings.usersRolesDesc",
     icon: People,
   },
   {
     href: ROUTES.settingsVillages,
-    title: "Villages",
-    description: "Geography master for farmers and trips",
+    titleKey: "settings.villages",
+    descriptionKey: "settings.villagesDesc",
     icon: LocationCity,
   },
   {
     href: ROUTES.settingsMasterData,
-    title: "Master data",
-    description: "Crops, buyers, agents, and catalogs",
+    titleKey: "settings.masterData",
+    descriptionKey: "settings.masterDataDesc",
     icon: Dataset,
   },
 ] as const;
 
 export default function SettingsPage() {
+  const { t } = useTranslation();
+
   return (
-    <MuiPageShell
-      title="Settings"
-      description="Organization, users, roles, master data, and locale preferences."
-    >
+    <MuiPageShell title={t("settings.title")} description={t("settings.description")}>
       <Grid container spacing={2}>
         {SETTINGS_LINKS.map((link) => {
           const Icon = link.icon;
@@ -53,12 +61,12 @@ export default function SettingsPage() {
                       <Stack spacing={0.5} sx={{ flex: 1 }}>
                         <Stack direction="row" alignItems="center" justifyContent="space-between">
                           <Typography variant="subtitle1" fontWeight={600}>
-                            {link.title}
+                            {t(link.titleKey as MessageKey)}
                           </Typography>
                           <ChevronRight fontSize="small" color="action" />
                         </Stack>
                         <Typography variant="body2" color="text.secondary">
-                          {link.description}
+                          {t(link.descriptionKey as MessageKey)}
                         </Typography>
                       </Stack>
                     </Stack>

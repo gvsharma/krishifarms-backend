@@ -17,6 +17,7 @@ export function dialogField(dialog: Locator, label: string): Locator {
     locator = locator.or(dialog.getByRole(role, exact));
   }
   locator = locator.or(dialog.getByLabel(label, { exact: true }));
+  locator = locator.or(dialog.getByLabel(new RegExp(`^${label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`, "i")));
   return locator.first();
 }
 
