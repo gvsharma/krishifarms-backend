@@ -16,9 +16,11 @@ from app.modules.procurements.models import FarmerLedgerEntry, Procurement, Proc
 from app.modules.procurements.schemas import (
     CANCELLABLE_STATUSES,
     DEFAULT_PER_BAG_DEDUCTION_KG,
+    DEFAULT_SPOT_DEDUCTION_PER_QUINTAL,
     ProcurementCancelRequest,
     ProcurementCreateRequest,
     ProcurementDeductionInput,
+    ProcurementProfitSummary,
     ProcurementReverseRequest,
     ProcurementUpdateRequest,
     WeighmentRequest,
@@ -265,17 +267,59 @@ def compute_net_weight(
     return bag_weight_deduction, net_weight
 
 
+def compute_spot_deduction_amount(
+    net_weight_kg: Decimal,
+    is_spot_payment: bool,
+    spot_deduction_per_quintal: Decimal,
+) -> Decimal:
+    """Cash discount when farmer accepts 100% payment on spot: net_quintals × rate."""
+    if not is_spot_payment or spot_deduction_per_quintal <= _ZERO:
+        return _ZERO
+    net_quintals = net_weight_kg / _QUINTAL_KG
+    return _money(net_quintals * spot_deduction_per_quintal)
+
+
 def compute_amounts(
     net_weight_kg: Decimal,
     rate_per_quintal: Decimal,
-    deduction_amount: Decimal,
-) -> tuple[Decimal, Decimal, Decimal]:
+    line_deduction_amount: Decimal,
+    *,
+    is_spot_payment: bool = False,
+    spot_deduction_per_quintal: Decimal = DEFAULT_SPOT_DEDUCTION_PER_QUINTAL,
+) -> tuple[Decimal, Decimal, Decimal, Decimal]:
+    """Return (gross_amount, line_deduction_amount, spot_deduction_amount, net_amount)."""
     gross_amount = _money((net_weight_kg / _QUINTAL_KG) * rate_per_quintal)
-    deduction_amount = _money(deduction_amount)
-    net_amount = _money(gross_amount - deduction_amount)
+    line_deduction_amount = _money(line_deduction_amount)
+    spot_deduction_amount = compute_spot_deduction_amount(
+        net_weight_kg, is_spot_payment, spot_deduction_per_quintal
+    )
+    net_amount = _money(gross_amount - line_deduction_amount - spot_deduction_amount)
     if net_amount < _ZERO:
         raise ConflictError("Deductions exceed gross amount")
-    return gross_amount, deduction_amount, net_amount
+    return gross_amount, line_deduction_amount, spot_deduction_amount, net_amount
+
+
+def compute_profit_summary(procurement: Procurement) -> ProcurementProfitSummary | None:
+    """Buyer margin from weight kata + spot discount. Requires priced weights/rate."""
+    if procurement.rate_per_quintal <= _ZERO or procurement.gross_weight_kg <= _ZERO:
+        return None
+    rate = procurement.rate_per_quintal
+    weight_deduction_kg = compute_bag_weight_deduction(
+        procurement.bag_count, procurement.per_bag_deduction_kg
+    )
+    weight_quintals = weight_deduction_kg / _QUINTAL_KG
+    weight_profit = _money(weight_quintals * rate)
+    spot_amount = procurement.spot_deduction_amount
+    gross_quintals = _weight(procurement.gross_weight_kg / _QUINTAL_KG)
+    net_quintals = _weight(procurement.net_weight_kg / _QUINTAL_KG)
+    return ProcurementProfitSummary(
+        gross_quintals=gross_quintals,
+        net_quintals=net_quintals,
+        weight_deduction_kg=weight_deduction_kg,
+        weight_deduction_profit_amount=weight_profit,
+        spot_deduction_amount=spot_amount,
+        total_profit_amount=_money(weight_profit + spot_amount),
+    )
 
 
 def _sum_deductions(procurement: Procurement) -> Decimal:
@@ -283,13 +327,16 @@ def _sum_deductions(procurement: Procurement) -> Decimal:
 
 
 def _sync_amounts(procurement: Procurement) -> None:
-    gross_amount, deduction_amount, net_amount = compute_amounts(
+    gross_amount, line_deduction, spot_deduction, net_amount = compute_amounts(
         procurement.net_weight_kg,
         procurement.rate_per_quintal,
         _sum_deductions(procurement),
+        is_spot_payment=procurement.is_spot_payment,
+        spot_deduction_per_quintal=procurement.spot_deduction_per_quintal,
     )
     procurement.gross_amount = gross_amount
-    procurement.deduction_amount = deduction_amount
+    procurement.deduction_amount = line_deduction
+    procurement.spot_deduction_amount = spot_deduction
     procurement.net_amount = net_amount
 
 
@@ -427,6 +474,13 @@ def create_procurement(
             if payload.per_bag_deduction_kg is not None
             else DEFAULT_PER_BAG_DEDUCTION_KG
         ),
+        is_spot_payment=payload.is_spot_payment,
+        spot_deduction_per_quintal=(
+            payload.spot_deduction_per_quintal
+            if payload.spot_deduction_per_quintal is not None
+            else DEFAULT_SPOT_DEDUCTION_PER_QUINTAL
+        ),
+        spot_deduction_amount=_ZERO,
         gross_weight_kg=_ZERO,
         net_weight_kg=_ZERO,
         rate_per_quintal=_ZERO,

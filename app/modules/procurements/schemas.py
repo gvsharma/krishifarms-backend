@@ -9,6 +9,8 @@ from app.shared.schemas.audit_meta import AuditMetaMixin
 
 # Standard grain-procurement weight deducted per bag (kata) before pricing.
 DEFAULT_PER_BAG_DEDUCTION_KG = Decimal("2.000")
+# Cash discount per net quintal when farmer takes 100% payment on spot.
+DEFAULT_SPOT_DEDUCTION_PER_QUINTAL = Decimal("100.00")
 _THREEPLACES = Decimal("0.001")
 
 PROCUREMENT_STATUSES = (
@@ -53,6 +55,8 @@ class ProcurementCreateRequest(BaseModel):
     procurement_date: date
     bag_count: int = Field(default=0, ge=0)
     per_bag_deduction_kg: Decimal | None = Field(default=None, ge=0)
+    is_spot_payment: bool = False
+    spot_deduction_per_quintal: Decimal | None = Field(default=None, ge=0)
     buyer_id: UUID | None = None
     payment_terms: str | None = Field(default=None, pattern=_PAYMENT_TERMS_PATTERN)
     payment_terms_custom: str | None = None
@@ -66,6 +70,8 @@ class ProcurementUpdateRequest(BaseModel):
     village_id: UUID | None = None
     bag_count: int | None = Field(default=None, ge=0)
     per_bag_deduction_kg: Decimal | None = Field(default=None, ge=0)
+    is_spot_payment: bool | None = None
+    spot_deduction_per_quintal: Decimal | None = Field(default=None, ge=0)
     buyer_id: UUID | None = None
     payment_terms: str | None = Field(default=None, pattern=_PAYMENT_TERMS_PATTERN)
     payment_terms_custom: str | None = None
@@ -90,6 +96,17 @@ class ProcurementReverseRequest(BaseModel):
     reason: str = Field(min_length=3)
 
 
+class ProcurementProfitSummary(BaseModel):
+    """Buyer/org margin breakdown — omit for FARMER role clients."""
+
+    gross_quintals: Decimal
+    net_quintals: Decimal
+    weight_deduction_kg: Decimal
+    weight_deduction_profit_amount: Decimal
+    spot_deduction_amount: Decimal
+    total_profit_amount: Decimal
+
+
 class ProcurementResponse(AuditMetaMixin):
     model_config = ConfigDict(from_attributes=True)
 
@@ -111,6 +128,9 @@ class ProcurementResponse(AuditMetaMixin):
     procurement_date: date
     bag_count: int
     per_bag_deduction_kg: Decimal
+    is_spot_payment: bool
+    spot_deduction_per_quintal: Decimal
+    spot_deduction_amount: Decimal
     gross_weight_kg: Decimal
     moisture_pct: Decimal | None
     net_weight_kg: Decimal
@@ -128,6 +148,7 @@ class ProcurementResponse(AuditMetaMixin):
     deductions: list[ProcurementDeductionResponse] = []
     tags: list[str] = []
     comments: list[CommentResponse] = []
+    profit_summary: ProcurementProfitSummary | None = None
 
     @computed_field  # type: ignore[prop-decorator]
     @property

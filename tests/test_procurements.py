@@ -11,7 +11,11 @@ from app.modules.procurements.service import (
     compute_amounts,
     compute_bag_weight_deduction,
     compute_net_weight,
+    compute_profit_summary,
+    compute_spot_deduction_amount,
 )
+from app.modules.procurements.models import Procurement
+from app.modules.procurements.schemas import DEFAULT_SPOT_DEDUCTION_PER_QUINTAL
 from app.shared.permissions import ROLE_PERMISSIONS
 
 
@@ -48,19 +52,61 @@ class TestProcurementStateMachine:
 
 class TestProcurementPricing:
     def test_compute_amounts_uses_decimal(self):
-        gross, deduction, net = compute_amounts(
+        gross, line_deduction, spot_deduction, net = compute_amounts(
             Decimal("706.621"),
             Decimal("2145.43"),
             Decimal("209.36"),
         )
         assert gross == Decimal("15160.06")
-        assert deduction == Decimal("209.36")
+        assert line_deduction == Decimal("209.36")
+        assert spot_deduction == Decimal("0.00")
         assert net == Decimal("14950.70")
 
     def test_compute_amounts_rejects_over_deduction(self):
         with pytest.raises(Exception) as exc:
             compute_amounts(Decimal("100"), Decimal("2000"), Decimal("2500"))
         assert "Deductions exceed gross amount" in str(exc.value)
+
+    def test_spot_payment_worked_example(self):
+        # 50 bags × 50 kg = 2500 kg gross; 2 kg/bag → 2400 kg net = 24 quintals @ ₹2100.
+        net_kg = Decimal("2400")
+        rate = Decimal("2100")
+        gross, line, spot, net = compute_amounts(
+            net_kg,
+            rate,
+            Decimal("0"),
+            is_spot_payment=True,
+            spot_deduction_per_quintal=DEFAULT_SPOT_DEDUCTION_PER_QUINTAL,
+        )
+        assert gross == Decimal("50400.00")
+        assert line == Decimal("0.00")
+        assert spot == Decimal("2400.00")
+        assert net == Decimal("48000.00")
+
+    def test_spot_deduction_zero_when_not_spot(self):
+        assert compute_spot_deduction_amount(
+            Decimal("2400"), False, DEFAULT_SPOT_DEDUCTION_PER_QUINTAL
+        ) == Decimal("0.00")
+
+    def test_profit_summary_worked_example(self):
+        row = Procurement(
+            bag_count=50,
+            per_bag_deduction_kg=Decimal("2.000"),
+            gross_weight_kg=Decimal("2500"),
+            net_weight_kg=Decimal("2400"),
+            rate_per_quintal=Decimal("2100"),
+            is_spot_payment=True,
+            spot_deduction_per_quintal=DEFAULT_SPOT_DEDUCTION_PER_QUINTAL,
+            spot_deduction_amount=Decimal("2400.00"),
+        )
+        summary = compute_profit_summary(row)
+        assert summary is not None
+        assert summary.gross_quintals == Decimal("25.000")
+        assert summary.net_quintals == Decimal("24.000")
+        assert summary.weight_deduction_kg == Decimal("100.000")
+        assert summary.weight_deduction_profit_amount == Decimal("2100.00")
+        assert summary.spot_deduction_amount == Decimal("2400.00")
+        assert summary.total_profit_amount == Decimal("4500.00")
 
 
 class TestPerBagWeightDeduction:

@@ -11,6 +11,15 @@ export type ProcurementStatus =
   | "cancelled"
   | "reversed";
 
+export interface ProcurementProfitSummary {
+  gross_quintals: string;
+  net_quintals: string;
+  weight_deduction_kg: string;
+  weight_deduction_profit_amount: string;
+  spot_deduction_amount: string;
+  total_profit_amount: string;
+}
+
 export interface ProcurementDeduction {
   id: string;
   deduction_type: string;
@@ -46,6 +55,9 @@ export interface ProcurementDetail extends ProcurementListItem {
   bag_count: number;
   per_bag_deduction_kg: string;
   bag_weight_deduction_kg: string;
+  is_spot_payment: boolean;
+  spot_deduction_per_quintal: string;
+  spot_deduction_amount: string;
   gross_weight_kg: string;
   moisture_pct: string | null;
   rate_per_quintal: string;
@@ -58,6 +70,8 @@ export interface ProcurementDetail extends ProcurementListItem {
   cancellation_reason: string | null;
   deductions: ProcurementDeduction[];
   comments: { id: string; body: string; author_name: string | null; created_at: string }[];
+  /** Present for staff roles only; omitted for FARMER. */
+  profit_summary?: ProcurementProfitSummary | null;
 }
 
 export interface ProcurementListData {
@@ -125,6 +139,8 @@ export function createProcurement(payload: {
   procurement_date: string;
   bag_count?: number;
   per_bag_deduction_kg?: string | null;
+  is_spot_payment?: boolean;
+  spot_deduction_per_quintal?: string | null;
   buyer_id?: string | null;
   payment_terms?: string | null;
   payment_terms_custom?: string | null;
@@ -146,6 +162,9 @@ export function updateProcurement(
     crop_type_id?: string;
     village_id?: string;
     bag_count?: number;
+    per_bag_deduction_kg?: string | null;
+    is_spot_payment?: boolean;
+    spot_deduction_per_quintal?: string | null;
     buyer_id?: string | null;
     payment_terms?: string | null;
     payment_terms_custom?: string | null;
