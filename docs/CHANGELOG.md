@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **E2E CI login timeout** — Playwright proxied to shared EC2 (`:8082`) while the instance was stopped after the daily cost schedule. CI now runs **`wake-ec2`** before E2E and waits for `/api/v1/health` before tests start.
+
 ### Added
 
 - **Hamali labor tracking** — daily bag-lifting charges for procurement godown work. Migration `037`: `hamali_workers` (roster, default **₹20/bag**), `hamali_daily_entries` (bags, labor, maintenance, tips), `hamali_weekly_payments` (weekly settlement batches). API `/hamali/*` with RBAC `hamali:read|create|update|pay`. Web **Operations → Hamali** (`/hamali`) for OWNER/MANAGER/ACCOUNTANT: daily log, worker roster, weekly batch + mark paid. Docs: `docs/modules/HAMALI.md`, OpenAPI `hamali.yaml`; tests `tests/test_hamali.py`.
