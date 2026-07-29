@@ -94,6 +94,13 @@
     font-feature-settings: "kern" 1, "liga" 1, "tnum" 1;
   }
 
+  html.locale-te body,
+  html.locale-te .MuiTypography-root,
+  html.locale-te .MuiButton-root,
+  html.locale-te .MuiInputBase-root {
+    font-family: var(--font-noto-telugu), "Helvetica Neue", Helvetica, Arial, sans-serif;
+  }
+
   .font-helvetica {
     font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
   }

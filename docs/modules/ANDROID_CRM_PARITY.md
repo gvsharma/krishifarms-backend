@@ -22,6 +22,7 @@ Inventory of create/update/delete (and admin management) capabilities across the
 | Vehicles / trips / assets / rentals / farms | Stub | ✅ Thin assets/trips/farms APIs | 🟡 Assets list; farms/trips placeholders |
 | Documents / comments | Create + list | 🟡 Partial (no entity list filter) / ✅ | 🟡 Comments on detail; upload session-local gallery |
 | Devices / FCM | Background register | ✅ Live | N/A |
+| Locale / theme (Settings) | ✅ Preferences screen (`en`/`te` + light/dark/system) | ✅ `preferred_locale` on user; push uses locale | ✅ `/settings/preferences` |
 
 **Legend:** ✅ Done | 🟡 Partial | 📋 DB + OpenAPI, no Python routes | ⬜ UI placeholder / missing
 
@@ -66,6 +67,7 @@ Full matrix (visible / stub / hidden) + field-ops gaps: [docs/qa/ROLE_SCREEN_AUD
 |----------|------|------------------------|----------------|
 | **P0** | Ops tab landing include `field_services` (DRIVER) | `MainBottomNav.kt` | — |
 | **P0** | Fleet screens for DRIVER (or hide stubs) | vehicles / trips / assets nav | ✅ thin assets/trips |
+| **P1** | Settings → Preferences (Telugu + light/dark theme) | `SettingsScreen`, `LocaleStore`, `ThemeStore` | ✅ web `/settings/preferences`; `PATCH /users/me` |
 | **P1** | Village 360 cards + expandable tabs (farmers/proc/services) + Room cache of `GET /villages/{id}/profile-360` | new `feature/villages/` | ✅ profile-360 + search |
 | **P1** | Procurement photos (reuse expense `BillAttachmentPicker`) | `ProcurementFormScreen` | documents API partial |
 | **P1** | Crop price rules admin catalog | `AdminCatalogType`, `AdminApi` | ✅ `/crop-prices` |
