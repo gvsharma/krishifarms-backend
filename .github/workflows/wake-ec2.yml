@@ -4,6 +4,7 @@ name: Wake shared EC2
 # Vercel proxies to http://13.232.200.243:8082 — if EC2 is stopped, mobile firebase-login times out.
 
 on:
+  workflow_call:
   workflow_dispatch:
     description: Start shared EC2 now (i-0426cdc00ff15bfe9)
   schedule:

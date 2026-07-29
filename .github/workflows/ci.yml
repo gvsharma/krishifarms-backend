@@ -18,8 +18,13 @@ jobs:
   validate:
     uses: ./.github/workflows/validate.yml
 
+  wake-ec2:
+    name: Wake shared EC2
+    uses: ./.github/workflows/wake-ec2.yml
+    secrets: inherit
+
   e2e:
     name: E2E (Playwright)
-    needs: validate
+    needs: [validate, wake-ec2]
     uses: ./.github/workflows/e2e.yml
     secrets: inherit
