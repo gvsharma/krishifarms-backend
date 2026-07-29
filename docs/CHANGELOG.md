@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **Field services farmer phone attribute error** — `service.py` line 435 incorrectly referenced `farmer.phone` instead of `farmer.phone_primary`, causing form submission failures with "'Farmer' object has no attribute 'phone'" error when creating tractor work services with diesel receipts.
 - **CI deploy failure (run #64)** — pin `ruff>=0.8.0,<0.16` so GitHub Actions does not pull ruff 0.16’s 742 new lint hits; bump nested `postcss` override to `8.5.18` (Trivy HIGH) and override `minimatch` to `^10.2.5` so `npm audit --audit-level=high` clears brace-expansion GHSA-mh99-v99m-4gvg without breaking ESLint.
 - **npm audit HIGH (CI security scan)** — bump/override `brace-expansion` (`1.1.16` / `5.0.7`, GHSA-3jxr-9vmj-r5cp), `js-yaml` `^4.3.0` (GHSA-52cp-r559-cp3m), and nested `next`→`postcss` `8.5.10` (GHSA-qx2v-qp2m-jg93); refresh `frontend/package-lock.json`.
 - **Trivy HIGH frontend deps** — bump `next` to `^15.5.21` (CVE-2026-64641/64645/64649) and override transitive `sharp` to `^0.35.0` (GHSA-f88m-g3jw-g9cj); refresh `frontend/package-lock.json`.

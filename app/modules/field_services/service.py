@@ -432,7 +432,7 @@ def enrich_records(
         diesel_id = diesel_expenses.get(row.id)
         result[row.id] = {
             "farmer_name": farmer.full_name if farmer else None,
-            "farmer_phone": farmer.phone if farmer else None,
+            "farmer_phone": farmer.phone_primary if farmer else None,
             "activity_type_name": activities.get(row.activity_type_id) if row.activity_type_id else None,
             "vehicle_type_name": vehicle_types.get(row.vehicle_type_id) if row.vehicle_type_id else None,
             "diesel_expense_id": str(diesel_id) if diesel_id else None,
