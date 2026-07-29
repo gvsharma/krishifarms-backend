@@ -170,7 +170,7 @@ git add e2e/baselines/
 | Nightly cron (02:30 UTC) | Full suite (all projects, cross-browser) |
 | `workflow_dispatch` | Full suite |
 
-CI builds the PR frontend, proxies API to EC2 (`API_PROXY_TARGET`), starts `npm run start` on port 3000, then runs Playwright.
+CI builds the PR frontend, **wakes shared EC2 if stopped**, waits for API health, proxies to EC2 (`API_PROXY_TARGET`), starts `npm run start` on port 3000, then runs Playwright.
 
 ### Artifacts
 

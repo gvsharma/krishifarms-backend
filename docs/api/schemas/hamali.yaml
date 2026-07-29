@@ -1,0 +1,79 @@
+HamaliWorker:
+  type: object
+  properties:
+    id: { $ref: 'common.yaml#/UUID' }
+    worker_code: { type: string }
+    full_name: { type: string }
+    full_name_te: { type: string }
+    phone: { type: string }
+    default_rate_per_bag: { $ref: 'common.yaml#/Money' }
+    status: { type: string, enum: [active, inactive] }
+
+HamaliWorkerCreate:
+  type: object
+  required: [full_name]
+  properties:
+    full_name: { type: string }
+    full_name_te: { type: string }
+    phone: { type: string }
+    default_rate_per_bag: { $ref: 'common.yaml#/Money' }
+
+HamaliDailyEntry:
+  type: object
+  properties:
+    id: { $ref: 'common.yaml#/UUID' }
+    hamali_worker_id: { $ref: 'common.yaml#/UUID' }
+    worker_name: { type: string }
+    worker_code: { type: string }
+    entry_date: { type: string, format: date }
+    bags_lifted: { type: integer, minimum: 0 }
+    rate_per_bag: { $ref: 'common.yaml#/Money' }
+    labor_amount: { $ref: 'common.yaml#/Money' }
+    maintenance_amount: { $ref: 'common.yaml#/Money' }
+    tip_amount: { $ref: 'common.yaml#/Money' }
+    total_amount: { $ref: 'common.yaml#/Money' }
+    payment_status: { type: string, enum: [pending, scheduled, paid] }
+    weekly_payment_id: { $ref: 'common.yaml#/UUID' }
+    notes: { type: string }
+
+HamaliDailyEntryCreate:
+  type: object
+  required: [hamali_worker_id, entry_date, bags_lifted]
+  properties:
+    hamali_worker_id: { $ref: 'common.yaml#/UUID' }
+    entry_date: { type: string, format: date }
+    bags_lifted: { type: integer, minimum: 0 }
+    rate_per_bag: { $ref: 'common.yaml#/Money' }
+    maintenance_amount: { $ref: 'common.yaml#/Money' }
+    tip_amount: { $ref: 'common.yaml#/Money' }
+    procurement_id: { $ref: 'common.yaml#/UUID' }
+    procurement_date: { type: string, format: date }
+    notes: { type: string }
+
+HamaliWeeklyPayment:
+  type: object
+  properties:
+    id: { $ref: 'common.yaml#/UUID' }
+    payment_number: { type: string }
+    week_start_date: { type: string, format: date }
+    week_end_date: { type: string, format: date }
+    total_bags: { type: integer }
+    total_labor_amount: { $ref: 'common.yaml#/Money' }
+    total_maintenance_amount: { $ref: 'common.yaml#/Money' }
+    total_tip_amount: { $ref: 'common.yaml#/Money' }
+    total_amount: { $ref: 'common.yaml#/Money' }
+    status: { type: string, enum: [draft, paid] }
+    paid_at: { type: string, format: date-time }
+    payment_reference: { type: string }
+
+HamaliWeeklySummary:
+  type: object
+  properties:
+    week_start_date: { type: string, format: date }
+    week_end_date: { type: string, format: date }
+    pending_entries: { type: integer }
+    total_bags: { type: integer }
+    total_labor_amount: { $ref: 'common.yaml#/Money' }
+    total_maintenance_amount: { $ref: 'common.yaml#/Money' }
+    total_tip_amount: { $ref: 'common.yaml#/Money' }
+    total_amount: { $ref: 'common.yaml#/Money' }

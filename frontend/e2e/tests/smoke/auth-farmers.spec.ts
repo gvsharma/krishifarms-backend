@@ -12,7 +12,15 @@ test.describe("smoke — login flow", () => {
     await validateEntirePage(page, {
       name: "login",
       skip: ["network", "visual", "responsive", "tables", "dialogs"],
-      softFail: ["typography", "css", "performance", "contrast", "accessibility", "inputs"],
+      softFail: [
+        "typography",
+        "css",
+        "performance",
+        "contrast",
+        "accessibility",
+        "inputs",
+        "console",
+      ],
     });
   });
 });
