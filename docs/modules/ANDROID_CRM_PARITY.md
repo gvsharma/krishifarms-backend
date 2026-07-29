@@ -17,8 +17,8 @@ Inventory of create/update/delete (and admin management) capabilities across the
 | Farmers | CRU (+ offline); form sends `village_id` (Room `village_id` col v7) | ✅ Live | ✅ List / detail / create |
 | Procurements | ✅ Create + list/detail; draft extras; **full workflow** submit / weigh / price / confirm / **cancel** / **reverse** on detail | ✅ Full workflow | ✅ List / create / detail + workflow actions |
 | Workers / work orders / attendance | CRU / CR / CU | 📋 Schema + OpenAPI only | ⬜ Placeholder |
-| Expenses | Create + list/detail | 📋 Schema + OpenAPI only | ⬜ Placeholder |
-| Farmer payments | Stub | ✅ Thin list/create/allocate/reverse | ✅ List + create on `/payments` (allocate UI deferred) |
+| Expenses | Create + list/detail | ✅ Live CRUD | ⬜ Placeholder |
+| Farmer payments | List + create | ✅ Thin list/create/allocate/reverse | ✅ List + create on `/payments` (allocate UI deferred) |
 | Vehicles / trips / assets / rentals / farms | Stub | ✅ Thin assets/trips/farms APIs | 🟡 Assets list; farms/trips placeholders |
 | Documents / comments | Create + list | 🟡 Partial (no entity list filter) / ✅ | 🟡 Comments on detail; upload session-local gallery |
 | Devices / FCM | Background register | ✅ Live | N/A |
@@ -33,7 +33,7 @@ Inventory of create/update/delete (and admin management) capabilities across the
 | Districts / Mandals | `AdminApi` list + `LocationCascade` | `/districts`, `/mandals` CRUD | Cascade selects on forms |
 | Villages | Read-only list in Admin; cascade filter on procurement / farmer / field service; **Village 360 backlog** (cards + expandable sections + offline `profile-360` cache) | `/villages` CRUD + search + **profile-360** | `/villages` list + 360 orbit; `/settings/villages` masters |
 | Crop types | Admin list + create/edit | `/crop-types` CRUD | `/settings/master-data/crops` |
-| Crop price rules | — | `/crop-prices` CRUD | `/settings/master-data/crop-prices` |
+| Crop price rules | Admin list + create/edit | `/crop-prices` CRUD | `/settings/master-data/crop-prices` |
 | Buyers | Admin list + create/edit; procurement picker | `/buyers` CRUD | `/settings/master-data/buyers` |
 | Field agents | Admin list + create/edit | `/agents` CRUD | `/settings/master-data/agents` |
 | Vehicle types | Admin list + create/edit | `/vehicle-types` CRUD | `/settings/master-data/vehicle-types` |
@@ -65,15 +65,11 @@ Full matrix (visible / stub / hidden) + field-ops gaps: [docs/qa/ROLE_SCREEN_AUD
 
 | Priority | Item | Target files (Android) | Depends on CRM |
 |----------|------|------------------------|----------------|
-| **P0** | Ops tab landing include `field_services` (DRIVER) | `MainBottomNav.kt` | — |
-| **P0** | Fleet screens for DRIVER (or hide stubs) | vehicles / trips / assets nav | ✅ thin assets/trips |
-| **P1** | Settings → Preferences (Telugu + light/dark theme) | `SettingsScreen`, `LocaleStore`, `ThemeStore` | ✅ web `/settings/preferences`; `PATCH /users/me` |
-| **P1** | Village 360 cards + expandable tabs (farmers/proc/services) + Room cache of `GET /villages/{id}/profile-360` | new `feature/villages/` | ✅ profile-360 + search |
-| **P1** | Procurement photos (reuse expense `BillAttachmentPicker`) | `ProcurementFormScreen` | documents API partial |
-| **P1** | Crop price rules admin catalog | `AdminCatalogType`, `AdminApi` | ✅ `/crop-prices` |
-| **P2** | GPS capture on field forms | CameraX / FusedLocation | optional |
-| **P2** | Workers / expenses live sync when CRM routers land | existing feature packages | 📋 schema only / expenses live |
-| **P2** | Farmer payments Android | stub → thin API | ✅ `/farmer-payments` |
+| **P0** | Ops tab landing include `field_services` (DRIVER) | `MainBottomNav.kt` | — | ✅ |
+| **P0** | Fleet screens for DRIVER (or hide stubs) | vehicles / trips / assets nav | ✅ thin assets/trips | ✅ hidden from More |
+| **P1** | Procurement photos (reuse expense `BillAttachmentPicker`) | `ProcurementFormScreen` | documents API partial | ✅ create form + sync upload |
+| **P1** | Crop price rules admin catalog | `AdminCatalogType`, `AdminApi` | ✅ `/crop-prices` | ✅ |
+| **P2** | Farmer payments Android | stub → thin API | ✅ `/farmer-payments` | ✅ list + create |
 
 ### Done this iteration (Android)
 
