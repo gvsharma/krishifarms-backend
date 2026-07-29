@@ -82,7 +82,7 @@ export const NAV_SECTIONS: NavSection[] = [
         label: "Hamali",
         labelKey: "nav.hamali",
         icon: Inventory2,
-        roles: ["OWNER", "MANAGER", "ACCOUNTANT"],
+        roles: ["OWNER", "MANAGER", "SUPERVISOR", "ACCOUNTANT"],
       },
       {
         href: ROUTES.services,
