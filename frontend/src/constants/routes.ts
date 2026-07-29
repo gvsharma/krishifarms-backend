@@ -12,6 +12,7 @@ export const ROUTES = {
   payments: "/payments",
   expenses: "/expenses",
   vehicles: "/vehicles",
+  hamali: "/hamali",
   workers: "/workers",
   reports: "/reports",
   analytics: "/analytics",

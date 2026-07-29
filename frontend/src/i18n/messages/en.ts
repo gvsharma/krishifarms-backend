@@ -32,6 +32,7 @@ export const enMessages = {
   "nav.farmers": "Farmers",
   "nav.villages": "Villages",
   "nav.procurement": "Procurement",
+  "nav.hamali": "Hamali",
   "nav.fieldServices": "Field services",
   "nav.payments": "Finance",
   "nav.users": "Users",

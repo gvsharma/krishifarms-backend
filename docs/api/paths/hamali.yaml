@@ -1,0 +1,89 @@
+/hamali/workers:
+  get:
+    tags: [Hamali]
+    summary: List hamali workers
+    parameters:
+      - $ref: 'common.yaml#/parameters/Page'
+      - $ref: 'common.yaml#/parameters/PageSize'
+    responses:
+      '200':
+        description: Worker list
+  post:
+    tags: [Hamali]
+    summary: Create hamali worker
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: '../schemas/hamali.yaml#/HamaliWorkerCreate' }
+    responses:
+      '201':
+        description: Created
+
+/hamali/daily-entries:
+  get:
+    tags: [Hamali]
+    summary: List daily hamali entries
+    parameters:
+      - $ref: 'common.yaml#/parameters/Page'
+      - $ref: 'common.yaml#/parameters/PageSize'
+      - name: date_from
+        in: query
+        schema: { type: string, format: date }
+      - name: date_to
+        in: query
+        schema: { type: string, format: date }
+    responses:
+      '200':
+        description: Daily entries with summary totals
+  post:
+    tags: [Hamali]
+    summary: Log daily hamali work
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: '../schemas/hamali.yaml#/HamaliDailyEntryCreate' }
+    responses:
+      '201':
+        description: Created
+
+/hamali/weekly-summary:
+  get:
+    tags: [Hamali]
+    summary: Pending weekly totals for settlement preview
+    parameters:
+      - name: week_start_date
+        in: query
+        required: true
+        schema: { type: string, format: date }
+    responses:
+      '200':
+        description: Weekly summary
+
+/hamali/weekly-payments:
+  get:
+    tags: [Hamali]
+    summary: List weekly payment batches
+    responses:
+      '200':
+        description: Payment batches
+  post:
+    tags: [Hamali]
+    summary: Create weekly payment batch from pending entries
+    responses:
+      '201':
+        description: Batch created
+
+/hamali/weekly-payments/{payment_id}/mark-paid:
+  post:
+    tags: [Hamali]
+    summary: Mark weekly batch as paid
+    parameters:
+      - name: payment_id
+        in: path
+        required: true
+        schema: { $ref: '../schemas/common.yaml#/UUID' }
+    responses:
+      '200':
+        description: Paid
