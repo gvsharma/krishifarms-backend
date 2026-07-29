@@ -6,7 +6,6 @@ name: Wake shared EC2
 on:
   workflow_call:
   workflow_dispatch:
-    description: Start shared EC2 now (i-0426cdc00ff15bfe9)
   schedule:
     # Every 30 min, 05:35–17:35 UTC ≈ 11:05–23:05 IST — restart after 11:00 IST auto-stop
     - cron: "5,35 5-17 * * *"
