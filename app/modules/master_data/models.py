@@ -34,6 +34,7 @@ class Village(Base, UUIDPrimaryKeyMixin, TimestampMixin, AuditActorMixin, SoftDe
 
     org_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), ForeignKey("organizations.id"), nullable=False)
     name: Mapped[str] = mapped_column(String(200), nullable=False)
+    name_te: Mapped[str | None] = mapped_column(Text, nullable=True)
     mandal: Mapped[str | None] = mapped_column(String(100), nullable=True)
     district: Mapped[str | None] = mapped_column(String(100), nullable=True)
     state: Mapped[str | None] = mapped_column(String(100), nullable=True)
@@ -60,6 +61,7 @@ class CropType(Base, UUIDPrimaryKeyMixin, TimestampMixin, AuditActorMixin, SoftD
 
     org_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), ForeignKey("organizations.id"), nullable=False)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
+    name_te: Mapped[str | None] = mapped_column(Text, nullable=True)
     code: Mapped[str] = mapped_column(String(50), nullable=False)
     default_moisture_pct: Mapped[float | None] = mapped_column(nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)

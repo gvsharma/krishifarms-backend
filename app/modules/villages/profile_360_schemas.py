@@ -13,6 +13,7 @@ class Village360Summary(BaseModel):
     id: UUID
     village_code: str | None = None
     name: str
+    name_te: str | None = None
     mandal: str | None = None
     district: str | None = None
     state: str | None = None
@@ -231,6 +232,7 @@ class VillageSearchHit(BaseModel):
     id: UUID
     village_code: str | None = None
     name: str
+    name_te: str | None = None
     mandal: str | None = None
     district: str | None = None
     match_reason: str

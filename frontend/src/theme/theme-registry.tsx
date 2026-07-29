@@ -14,6 +14,7 @@ function MuiColorSchemeSync({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const root = document.documentElement;
+    if (!root) return;
     if (resolvedTheme === "dark") {
       root.classList.add("dark");
       setMode("dark");

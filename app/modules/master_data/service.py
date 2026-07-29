@@ -292,6 +292,7 @@ def list_villages(
         query = query.filter(
             or_(
                 Village.name.ilike(term),
+                Village.name_te.ilike(term),
                 Village.village_code.ilike(term),
                 Village.mandal.ilike(term),
                 Village.district.ilike(term),

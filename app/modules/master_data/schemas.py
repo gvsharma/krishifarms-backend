@@ -57,6 +57,7 @@ class VillageResponse(ORMModel):
     id: UUID
     org_id: UUID
     name: str
+    name_te: str | None = None
     village_code: str | None = None
     mandal: str | None = None
     district: str | None = None
@@ -78,6 +79,7 @@ class VillageResponse(ORMModel):
 
 class VillageCreateRequest(BaseModel):
     name: str = Field(min_length=2, max_length=200)
+    name_te: str | None = None
     mandal: str | None = None
     district: str | None = None
     state: str | None = None
@@ -95,6 +97,7 @@ class VillageCreateRequest(BaseModel):
 
 class VillageUpdateRequest(BaseModel):
     name: str | None = Field(default=None, min_length=2, max_length=200)
+    name_te: str | None = None
     mandal: str | None = None
     district: str | None = None
     state: str | None = None
@@ -118,6 +121,7 @@ class CropTypeResponse(ORMModel):
     id: UUID
     org_id: UUID
     name: str
+    name_te: str | None = None
     code: str
     default_moisture_pct: float | None = None
     is_active: bool
@@ -127,6 +131,7 @@ class CropTypeResponse(ORMModel):
 
 class CropTypeCreateRequest(BaseModel):
     name: str = Field(min_length=2, max_length=100)
+    name_te: str | None = None
     code: str = Field(min_length=2, max_length=50)
     default_moisture_pct: float | None = None
     is_active: bool = True
@@ -134,6 +139,7 @@ class CropTypeCreateRequest(BaseModel):
 
 class CropTypeUpdateRequest(BaseModel):
     name: str | None = Field(default=None, min_length=2, max_length=100)
+    name_te: str | None = None
     code: str | None = Field(default=None, min_length=2, max_length=50)
     default_moisture_pct: float | None = None
     is_active: bool | None = None

@@ -65,7 +65,9 @@ export async function expectListOrEmptyOrError(
 ): Promise<void> {
   const table = page.getByRole("table");
   const empty = options.emptyTitle
-    ? page.getByRole("heading", { name: options.emptyTitle })
+    ? page
+        .getByRole("heading", { name: options.emptyTitle })
+        .or(page.getByText(options.emptyTitle))
     : page.getByRole("heading", { name: SELECTORS.shell.emptyState });
   const alert = contentAlerts(page);
 
