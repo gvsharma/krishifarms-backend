@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **Migration chain (037)** — after merging main (#74), rebase `202506210037` to `down_revision = 202506210036` so hamali follows procurement spot-payment migrations on this branch.
 - **E2E CI login timeout** — Playwright proxied to shared EC2 (`:8082`) while the instance was stopped after the daily cost schedule. CI now runs an inline **Wake shared EC2** job before E2E and waits for `/api/v1/health`. Updated collections/expenses/login E2E copy for i18n placeholder pages.
 
 ### Added
