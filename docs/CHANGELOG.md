@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
-- **E2E CI login timeout** — Playwright proxied to shared EC2 (`:8082`) while the instance was stopped after the daily cost schedule. CI now runs **`wake-ec2`** before E2E and waits for `/api/v1/health` before tests start.
+- **E2E CI login timeout** — Playwright proxied to shared EC2 (`:8082`) while the instance was stopped after the daily cost schedule. CI now runs an inline **Wake shared EC2** job before E2E and waits for `/api/v1/health`. Updated collections/expenses/login E2E copy for i18n placeholder pages.
 
 ### Added
 
