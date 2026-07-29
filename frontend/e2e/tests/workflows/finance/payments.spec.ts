@@ -22,6 +22,9 @@ test.describe("finance — payments", () => {
       page.getByText(/Farmer payments, allocation, and settlement queue/i),
     ).toBeVisible();
 
+    // Wait for list query to settle (spinner hides) before asserting table/empty/alert.
+    await expect(page.getByRole("progressbar")).toHaveCount(0, { timeout: 25_000 });
+
     await expectListOrEmptyOrError(page, {
       emptyTitle: /No farmer payments yet|Payments — coming soon/i,
     });
