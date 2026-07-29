@@ -30,12 +30,25 @@ stateDiagram-v2
 | `cancelled` | Void before confirm | None |
 | `reversed` | Post-confirm correction | **Credit** reversing entry |
 
+## Weighment & net weight
+
+At weighment (`record_weighment`), the payable **net weight** is computed as:
+
+```
+net_weight_kg = gross_weight_kg − tare_weight_kg − (bag_count × per_bag_deduction_kg)
+```
+
+- `per_bag_deduction_kg` — standard per-bag weight deduction (kata), column on `procurements`, **default `2.000` kg** (migration `035`). Configurable at draft create and overridable at weighment; `>= 0` (check constraint).
+- `bag_weight_deduction_kg` — computed response field = `bag_count × per_bag_deduction_kg`.
+- Worked example: 50 bags × 50 kg = 2500 kg gross; 2 kg/bag → 100 kg deducted → **2400 kg** net payable.
+- Helpers: `compute_bag_weight_deduction`, `compute_net_weight` (`service.py`).
+
 ## Pricing snapshot
 
 At confirm time, freeze:
 
 - `crop_type_id`, `rate_per_quintal` from active `crop_price_rules` (village-specific override → org default)
-- `deduction_rules` applied (moisture, impurity, bag weight)
+- `deduction_rules` applied (moisture, impurity, monetary lines) — note the **per-bag weight** deduction is applied earlier at weighment (see above), not as a money line
 - `net_quintals`, `gross_amount`, `deduction_amount`, `net_amount`
 
 Snapshot columns live on `procurements` — never recalculate from live price rules after confirm.
@@ -46,10 +59,10 @@ Snapshot columns live on `procurements` — never recalculate from live price ru
 |------|---------------|--------|
 | Moisture | % over threshold | Reduce net quintals |
 | Impurity | % | Reduce net quintals |
-| Bag tare | count × bag weight | Reduce gross weight |
+| Per-bag weight (kata) | bag_count × `per_bag_deduction_kg` (default 2 kg) | Reduce **net weight** at weighment |
 | Manual adjustment | amount INR | Line item on ticket |
 
-Deduction lines: `procurement_deductions` (child table).
+Deduction lines: `procurement_deductions` (child table). The per-bag weight deduction is not a `procurement_deductions` row — it reduces `net_weight_kg` directly at weighment.
 
 ## Key relations
 
@@ -67,11 +80,11 @@ Deduction lines: `procurement_deductions` (child table).
 - Searchable Autocomplete: farmer, crop; District → Mandal → Village cascade; buyer + **inline Add buyer**
 - First-class `buyer_id` + payment terms (One Week / 10 Days / 2 Weeks / 20 Days / Custom)
 - Optional planned moisture % (defaults from crop) and rate/quintal → `[kf:proc]` notes
-- Bag count + free-text notes
+- Bag count + **per-bag deduction (kg)** (default 2) + free-text notes
 
 ### Web detail workflow (`/procurement/[id]`) — Ralph Loop 2
 
-- Status-driven actions (`workflow-actions.tsx`): **Submit** → **Weighment** (gross/tare/moisture) → **Apply price** → **Confirm** / **Cancel** / **Reverse**
+- Status-driven actions (`workflow-actions.tsx`): **Submit** → **Weighment** (gross/tare/moisture/bags/**per-bag deduction** with live net-weight preview) → **Apply price** → **Confirm** / **Cancel** / **Reverse**
 - Permission guards: `procurements:update` | `confirm` | `cancel` (OWNER also for reverse)
 - Shows buyer, payment terms (API fields with notes fallback), moisture, status chip
 - Photo upload via documents presign → S3 → register → link (`EntityDocumentUpload`); historical gallery awaits entity-filtered list

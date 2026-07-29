@@ -33,8 +33,13 @@ Procurement:
     actual_payment_date: { type: string, format: date }
     procurement_date: { type: string, format: date }
     bag_count: { type: integer, minimum: 0 }
+    # Per-bag weight deduction (kata) in kg; defaults to 2.000.
+    per_bag_deduction_kg: { $ref: 'common.yaml#/Weight' }
+    # Computed: bag_count * per_bag_deduction_kg.
+    bag_weight_deduction_kg: { $ref: 'common.yaml#/Weight' }
     gross_weight_kg: { $ref: 'common.yaml#/Weight' }
     moisture_pct: { type: number }
+    # Payable weight = gross_weight_kg - tare_weight_kg - bag_weight_deduction_kg.
     net_weight_kg: { $ref: 'common.yaml#/Weight' }
     rate_per_quintal: { $ref: 'common.yaml#/Money' }
     gross_amount: { $ref: 'common.yaml#/Money' }
@@ -77,6 +82,8 @@ ProcurementCreate:
     village_id: { $ref: 'common.yaml#/UUID' }
     procurement_date: { type: string, format: date }
     bag_count: { type: integer, minimum: 0, default: 0 }
+    # Per-bag weight deduction (kata) in kg; defaults to 2.000 when omitted.
+    per_bag_deduction_kg: { $ref: 'common.yaml#/Weight' }
     buyer_id: { $ref: 'common.yaml#/UUID' }
     payment_terms:
       type: string
@@ -93,6 +100,8 @@ ProcurementWeighment:
     tare_weight_kg: { $ref: 'common.yaml#/Weight', default: 0 }
     moisture_pct: { type: number, minimum: 0, maximum: 100 }
     bag_count: { type: integer, minimum: 0 }
+    # Per-bag weight deduction (kata) in kg; when omitted the ticket's stored value (default 2.000) is used.
+    per_bag_deduction_kg: { $ref: 'common.yaml#/Weight' }
 
 ProcurementDeductionCreate:
   type: object

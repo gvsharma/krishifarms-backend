@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **Procurement per-bag weight deduction (kata)** — configurable standard weight deducted per bag before pricing. Migration `035` adds `per_bag_deduction_kg` NUMERIC(6,3) NOT NULL DEFAULT `2.000` to `procurements` (with `>= 0` check). Net weight now = `gross − tare − (bag_count × per_bag_deduction_kg)`; e.g. 50 bags @ 2 kg → 100 kg deducted (2500 → 2400 kg). API: `per_bag_deduction_kg` on create/weighment/response + computed `bag_weight_deduction_kg`; helpers `compute_bag_weight_deduction` / `compute_net_weight`. Web: per-bag field on `/procurement/new` and the weighment dialog (live net-weight preview), shown on the detail page. Docs: OpenAPI `procurement.yaml`, `docs/modules/PROCUREMENT.md`; tests in `tests/test_procurements.py`.
+
 ### Fixed
 
 - **E2E CI (PR #70 follow-up)** — farmers create smoke soft-fails a11y contrast; Edit user dialog resolves filled MUI Role select via label regex + combobox wait; payments spec waits for loading spinner before empty/table assertion.

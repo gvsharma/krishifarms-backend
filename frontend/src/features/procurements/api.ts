@@ -44,6 +44,8 @@ export interface ProcurementDetail extends ProcurementListItem {
   payment_terms_custom?: string | null;
   actual_payment_date?: string | null;
   bag_count: number;
+  per_bag_deduction_kg: string;
+  bag_weight_deduction_kg: string;
   gross_weight_kg: string;
   moisture_pct: string | null;
   rate_per_quintal: string;
@@ -122,6 +124,7 @@ export function createProcurement(payload: {
   village_id: string;
   procurement_date: string;
   bag_count?: number;
+  per_bag_deduction_kg?: string | null;
   buyer_id?: string | null;
   payment_terms?: string | null;
   payment_terms_custom?: string | null;
@@ -172,6 +175,7 @@ export function recordWeighment(
     tare_weight_kg?: string;
     moisture_pct?: string | null;
     bag_count?: number | null;
+    per_bag_deduction_kg?: string | null;
   },
 ): Promise<ProcurementDetail> {
   return fetchApi<ProcurementDetail>(

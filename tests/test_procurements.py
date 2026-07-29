@@ -9,6 +9,8 @@ from app.modules.procurements.service import (
     ALLOWED_TRANSITIONS,
     can_transition,
     compute_amounts,
+    compute_bag_weight_deduction,
+    compute_net_weight,
 )
 from app.shared.permissions import ROLE_PERMISSIONS
 
@@ -59,6 +61,41 @@ class TestProcurementPricing:
         with pytest.raises(Exception) as exc:
             compute_amounts(Decimal("100"), Decimal("2000"), Decimal("2500"))
         assert "Deductions exceed gross amount" in str(exc.value)
+
+
+class TestPerBagWeightDeduction:
+    def test_bag_weight_deduction_default_two_kg(self):
+        # 50 bags * 2 kg = 100 kg deducted (kata)
+        assert compute_bag_weight_deduction(50, Decimal("2")) == Decimal("100.000")
+
+    def test_net_weight_matches_worked_example(self):
+        # 50 bags @ 50 kg = 2500 kg gross; 2 kg/bag => 100 kg deducted => 2400 kg net.
+        bag_deduction, net = compute_net_weight(
+            Decimal("2500"), Decimal("0"), 50, Decimal("2")
+        )
+        assert bag_deduction == Decimal("100.000")
+        assert net == Decimal("2400.000")
+
+    def test_net_weight_includes_tare_and_bag_deduction(self):
+        bag_deduction, net = compute_net_weight(
+            Decimal("2560.500"), Decimal("10.500"), 50, Decimal("2")
+        )
+        assert bag_deduction == Decimal("100.000")
+        assert net == Decimal("2450.000")
+
+    def test_zero_per_bag_deduction_only_applies_tare(self):
+        bag_deduction, net = compute_net_weight(
+            Decimal("2500"), Decimal("50"), 50, Decimal("0")
+        )
+        assert bag_deduction == Decimal("0.000")
+        assert net == Decimal("2450.000")
+
+    def test_fractional_per_bag_deduction(self):
+        bag_deduction, net = compute_net_weight(
+            Decimal("1000"), Decimal("0"), 40, Decimal("1.5")
+        )
+        assert bag_deduction == Decimal("60.000")
+        assert net == Decimal("940.000")
 
 
 class TestProcurementRBAC:

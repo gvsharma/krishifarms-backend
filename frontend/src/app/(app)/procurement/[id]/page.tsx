@@ -110,6 +110,12 @@ export default function ProcurementDetailPage() {
                 <Field label="Gross weight (kg)" value={data.gross_weight_kg} />
               </Grid>
               <Grid size={{ xs: 6, sm: 4 }}>
+                <Field
+                  label="Per-bag deduction (kg)"
+                  value={`${data.per_bag_deduction_kg} × ${data.bag_count} = ${data.bag_weight_deduction_kg} kg`}
+                />
+              </Grid>
+              <Grid size={{ xs: 6, sm: 4 }}>
                 <Field label="Net weight (kg)" value={data.net_weight_kg} />
               </Grid>
               <Grid size={{ xs: 6, sm: 4 }}>

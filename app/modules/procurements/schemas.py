@@ -2,10 +2,14 @@ from datetime import date, datetime
 from decimal import Decimal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, computed_field
 
 from app.modules.platform.schemas import CommentResponse
 from app.shared.schemas.audit_meta import AuditMetaMixin
+
+# Standard grain-procurement weight deducted per bag (kata) before pricing.
+DEFAULT_PER_BAG_DEDUCTION_KG = Decimal("2.000")
+_THREEPLACES = Decimal("0.001")
 
 PROCUREMENT_STATUSES = (
     "draft",
@@ -48,6 +52,7 @@ class ProcurementCreateRequest(BaseModel):
     village_id: UUID
     procurement_date: date
     bag_count: int = Field(default=0, ge=0)
+    per_bag_deduction_kg: Decimal | None = Field(default=None, ge=0)
     buyer_id: UUID | None = None
     payment_terms: str | None = Field(default=None, pattern=_PAYMENT_TERMS_PATTERN)
     payment_terms_custom: str | None = None
@@ -60,6 +65,7 @@ class ProcurementUpdateRequest(BaseModel):
     crop_type_id: UUID | None = None
     village_id: UUID | None = None
     bag_count: int | None = Field(default=None, ge=0)
+    per_bag_deduction_kg: Decimal | None = Field(default=None, ge=0)
     buyer_id: UUID | None = None
     payment_terms: str | None = Field(default=None, pattern=_PAYMENT_TERMS_PATTERN)
     payment_terms_custom: str | None = None
@@ -72,6 +78,8 @@ class WeighmentRequest(BaseModel):
     tare_weight_kg: Decimal = Field(default=Decimal("0"), ge=0)
     moisture_pct: Decimal | None = Field(default=None, ge=0, le=100)
     bag_count: int | None = Field(default=None, ge=0)
+    # Per-bag weight deduction (kata) in kg; when omitted the ticket's stored value is used.
+    per_bag_deduction_kg: Decimal | None = Field(default=None, ge=0)
 
 
 class ProcurementCancelRequest(BaseModel):
@@ -102,6 +110,7 @@ class ProcurementResponse(AuditMetaMixin):
     actual_payment_date: date | None = None
     procurement_date: date
     bag_count: int
+    per_bag_deduction_kg: Decimal
     gross_weight_kg: Decimal
     moisture_pct: Decimal | None
     net_weight_kg: Decimal
@@ -119,6 +128,12 @@ class ProcurementResponse(AuditMetaMixin):
     deductions: list[ProcurementDeductionResponse] = []
     tags: list[str] = []
     comments: list[CommentResponse] = []
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def bag_weight_deduction_kg(self) -> Decimal:
+        """Total weight deducted for bags = bag_count * per_bag_deduction_kg."""
+        return (Decimal(self.bag_count) * self.per_bag_deduction_kg).quantize(_THREEPLACES)
 
 
 class ProcurementListItemResponse(AuditMetaMixin):

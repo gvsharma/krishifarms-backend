@@ -55,6 +55,7 @@ export function ProcurementWorkflowActions({
   const [tare, setTare] = useState("0");
   const [moisture, setMoisture] = useState(plannedMoisturePct ?? "");
   const [bagCount, setBagCount] = useState(String(procurement.bag_count || ""));
+  const [perBag, setPerBag] = useState(procurement.per_bag_deduction_kg ?? "2");
   const [cancelReason, setCancelReason] = useState("");
   const [reverseReason, setReverseReason] = useState("");
 
@@ -74,6 +75,7 @@ export function ProcurementWorkflowActions({
         tare_weight_kg: tare || "0",
         moisture_pct: moisture.trim() || null,
         bag_count: bagCount.trim() ? Number(bagCount) : null,
+        per_bag_deduction_kg: perBag.trim() || null,
       }),
     onSuccess: () => {
       setWeighOpen(false);
@@ -118,9 +120,14 @@ export function ProcurementWorkflowActions({
     setTare("0");
     setMoisture(plannedMoisturePct ?? procurement.moisture_pct ?? "");
     setBagCount(String(procurement.bag_count || ""));
+    setPerBag(procurement.per_bag_deduction_kg ?? "2");
     weighMut.reset();
     setWeighOpen(true);
   };
+
+  const bagWeightDeduction = (Number(bagCount) || 0) * (Number(perBag) || 0);
+  const netWeightPreview =
+    (Number(gross) || 0) - (Number(tare) || 0) - bagWeightDeduction;
 
   const isTerminal = (["confirmed", "paid_partial", "paid_full", "cancelled", "reversed"] as ProcurementStatus[]).includes(
     status,
@@ -272,6 +279,28 @@ export function ProcurementWorkflowActions({
               value={bagCount}
               onChange={(e) => setBagCount(e.target.value)}
             />
+            <TextField
+              label="Per-bag deduction (kg)"
+              type="number"
+              sx={TOUCH_FIELD_SX}
+              inputProps={{ min: 0, step: 0.001 }}
+              value={perBag}
+              onChange={(e) => setPerBag(e.target.value)}
+              helperText="Standard weight deducted per bag (kata). Default 2 kg."
+            />
+            <Alert severity="info" icon={false}>
+              <Typography variant="body2">
+                Bag weight deduction: <strong>{bagWeightDeduction.toFixed(3)} kg</strong>{" "}
+                ({bagCount || 0} bags × {perBag || 0} kg)
+              </Typography>
+              <Typography variant="body2">
+                Net payable weight:{" "}
+                <strong>
+                  {netWeightPreview > 0 ? netWeightPreview.toFixed(3) : "0.000"} kg
+                </strong>{" "}
+                (gross − tare − bag deduction)
+              </Typography>
+            </Alert>
             {weighMut.isError && (
               <Alert severity="error">
                 {weighMut.error instanceof Error ? weighMut.error.message : "Weighment failed"}
