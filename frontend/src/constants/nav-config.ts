@@ -8,6 +8,7 @@ import {
   Dataset,
   Handshake,
   HolidayVillage,
+  Inventory2,
   People,
   Settings,
   Spa,
@@ -75,6 +76,13 @@ export const NAV_SECTIONS: NavSection[] = [
         labelKey: "nav.procurement",
         icon: Spa,
         roles: ["OWNER", "MANAGER", "SUPERVISOR"],
+      },
+      {
+        href: ROUTES.hamali,
+        label: "Hamali",
+        labelKey: "nav.hamali",
+        icon: Inventory2,
+        roles: ["OWNER", "MANAGER", "ACCOUNTANT"],
       },
       {
         href: ROUTES.services,

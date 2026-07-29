@@ -34,6 +34,7 @@ export const teMessages: Record<MessageKey, string> = {
   "nav.farmers": "రైతులు",
   "nav.villages": "గ్రామాలు",
   "nav.procurement": "కొనుగోలు",
+  "nav.hamali": "హమాలి",
   "nav.fieldServices": "ఫీల్డ్ సేవలు",
   "nav.payments": "ఫైనాన్స్",
   "nav.users": "వినియోగదారులు",
