@@ -132,3 +132,28 @@ Full list: [AGENT_GUIDE §15](./docs/AGENT_GUIDE.md#15-anti-patterns-and-gotchas
 - Rules auto-load from `.cursor/rules/`
 - OpenAPI: `docs/api/openapi.yaml` (Postman plugin in `.cursor/settings.json`)
 - Bundle spec: `npx @redocly/cli bundle docs/api/openapi.yaml -o docs/api/openapi.bundled.yaml`
+
+---
+
+## Cursor Cloud specific instructions
+
+The cloud VM runs the stack **natively (no Docker)** — Docker is not installed. The startup update script only refreshes deps: it creates `.venv` and runs `pip install -e ".[dev,redis]"`, plus `npm --prefix frontend install`. Everything below (Postgres + services) must be started manually; it is **not** in the update script.
+
+**Services & how to run them (three long-running processes, use tmux):**
+
+| Service | Start command | Port |
+|---------|---------------|------|
+| PostgreSQL 16 | `sudo pg_ctlcluster 16 main start` | 5432 |
+| Backend API | `source .venv/bin/activate && PYTHONPATH=/workspace uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload` | 8000 |
+| Frontend | `npm --prefix frontend run dev` | 3000 |
+
+**Non-obvious caveats:**
+
+- **DB connection:** local Postgres uses role/pw/db `krishi` / `krishi` / `krishifarms`. Set `.env` `DATABASE_URL=postgresql+psycopg2://krishi:krishi@localhost:5432/krishifarms` (the `.env.example` default points at host `postgres`, which only resolves inside Docker Compose). Copy `.env.example` → `.env` and also set a non-placeholder `SECRET_KEY`.
+- **`PYTHONPATH=/workspace` is required** to run `uvicorn`, `scripts/*.py`, and `pytest` (the `scripts` package and top-level imports are not installed on the path).
+- **Migrations:** `alembic upgrade head` (loads `.env` via `alembic/env.py`).
+- **Seeding gotcha:** `python scripts/seed.py` **fails on a fresh DB** with `UniqueViolation: permissions_code_key` — migration `015` (and later) already seed the `permissions` rows (`ON CONFLICT`), but `seed.py` re-inserts them with a plain ORM insert. To seed, create the org/roles/owner while **linking roles to the already-present permissions** instead of inserting them (query existing `Permission` rows into the role map; also `import app.models` first so FK targets like `field_agents` are registered in metadata). Once seeded, the data persists in the VM snapshot, so re-seeding is usually unnecessary.
+- **Frontend → API wiring:** nginx is not needed. `frontend/.env.local` sets `NEXT_PUBLIC_API_BASE_URL=/api/v1` and `API_PROXY_TARGET=http://localhost:8000`, so the browser hits same-origin `:3000/api/v1` which Next rewrites to the API (no CORS).
+- **Login:** `owner@krishifarms.local` / `ChangeMe123!`.
+- **Tests:** `PYTHONPATH=/workspace pytest`. Two tests currently fail independent of setup — `tests/test_farmers_rbac.py::test_farmer_role_is_read_only` and `tests/test_platform_admin.py::test_manager_backend_cannot_create_or_delete_users` — because `app/shared/permissions.py` now grants `comments:create` (FARMER) and `users:create` (MANAGER) while those assertions still expect the old read-only sets.
+- **Lint:** `ruff check app`.
