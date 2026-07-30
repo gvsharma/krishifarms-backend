@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **CI import sanity (run #78)** — remove stale `HamaliWorkEntry` / `Worker` import from `app/models.py` (merge artifact; line 20 already registers `HamaliWorker`, `HamaliDailyEntry`, `HamaliWeeklyPayment`).
 - **CI** — remove duplicate `hamali_router` import in `app/main.py` (ruff F811 after main merge).
 - **Mobile patch artifact** — `patches/hamali-mobile/` documents Android HAMALI viewer branch for manual apply (cloud agent cannot push `krishifarms-mobile`).
 
