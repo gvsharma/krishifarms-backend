@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Header, Query
 from sqlalchemy.orm import Session
 
 from app.core.client_context import ClientContext, get_client_context
-from app.core.dependencies import CurrentUserContext, get_db, require_permission, require_role
+from app.core.dependencies import CurrentUserContext, get_current_user_context, get_db, require_permission, require_role
 from app.modules.procurements import service
 from app.modules.procurements.schemas import (
     PROCUREMENT_STATUSES,
@@ -54,7 +54,7 @@ def _viewer_role_code(ctx: CurrentUserContext) -> str | None:
 
 
 def _response_locale(
-    ctx: CurrentUserContext,
+    ctx: CurrentUserContext = Depends(get_current_user_context),
     accept_language: str | None = Header(default=None, alias="Accept-Language"),
 ) -> str:
     return normalize_locale(accept_language or ctx.user.preferred_locale)
