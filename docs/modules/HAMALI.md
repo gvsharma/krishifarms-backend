@@ -35,7 +35,7 @@ total_amount = labor_amount + maintenance_amount + tip_amount
 | GET/POST | `/hamali/weekly-payments` | read / pay |
 | POST | `/hamali/weekly-payments/{id}/mark-paid` | pay |
 
-### HAMALI viewer (migration `039`)
+### HAMALI viewer (migration `040`)
 
 | Method | Path | Permission | Notes |
 |--------|------|------------|-------|

@@ -13,6 +13,7 @@ from app.modules.farms.models import Farm, FarmActivity  # noqa: F401
 from app.modules.procurements.models import (  # noqa: F401
     FarmerLedgerEntry,
     Procurement,
+    ProcurementBagEntry,
     ProcurementDeduction,
 )
 from app.modules.field_services.models import FieldServiceRecord  # noqa: F401

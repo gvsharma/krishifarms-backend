@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 from datetime import date, datetime
 from decimal import Decimal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, computed_field
+from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator
 
 from app.modules.platform.schemas import CommentResponse
 from app.shared.schemas.audit_meta import AuditMetaMixin
@@ -48,6 +50,14 @@ class ProcurementDeductionResponse(BaseModel):
     notes: str | None
 
 
+class ProcurementBagEntryResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    bag_number: int
+    weight_kg: Decimal
+
+
 class ProcurementCreateRequest(BaseModel):
     farmer_id: UUID
     crop_type_id: UUID
@@ -63,6 +73,12 @@ class ProcurementCreateRequest(BaseModel):
     expected_payment_date: date | None = None
     notes: str | None = None
     weight_per_bag_kg: Decimal | None = Field(default=None, gt=0)
+    # Field intake from mobile — auto-records weighment (and price when rate provided).
+    gross_weight_kg: Decimal | None = Field(default=None, gt=0)
+    tare_weight_kg: Decimal | None = Field(default=None, ge=0)
+    moisture_pct: Decimal | None = Field(default=None, ge=0, le=100)
+    bag_weights_kg: list[Decimal] | None = Field(default=None, min_length=1)
+    rate_per_quintal: Decimal | None = Field(default=None, gt=0)
 
 
 class ProcurementUpdateRequest(BaseModel):
@@ -82,12 +98,25 @@ class ProcurementUpdateRequest(BaseModel):
 
 
 class WeighmentRequest(BaseModel):
-    gross_weight_kg: Decimal = Field(gt=0)
+    gross_weight_kg: Decimal | None = Field(default=None, gt=0)
     tare_weight_kg: Decimal = Field(default=Decimal("0"), ge=0)
     moisture_pct: Decimal | None = Field(default=None, ge=0, le=100)
     bag_count: int | None = Field(default=None, ge=0)
-    # Per-bag weight deduction (kata) in kg; when omitted the ticket's stored value is used.
     per_bag_deduction_kg: Decimal | None = Field(default=None, ge=0)
+    bag_weights_kg: list[Decimal] | None = Field(default=None, min_length=1)
+
+    @model_validator(mode="after")
+    def _require_weight_source(self) -> WeighmentRequest:
+        if not self.bag_weights_kg and self.gross_weight_kg is None:
+            raise ValueError("gross_weight_kg or bag_weights_kg is required")
+        return self
+
+    def resolved_gross_weight_kg(self) -> Decimal:
+        if self.bag_weights_kg:
+            return sum(self.bag_weights_kg, Decimal("0"))
+        if self.gross_weight_kg is None:
+            raise ValueError("gross_weight_kg or bag_weights_kg is required")
+        return self.gross_weight_kg
 
 
 class ApplyPriceRequest(BaseModel):
@@ -192,6 +221,7 @@ class ProcurementResponse(AuditMetaMixin):
     spot_deduction_per_quintal: Decimal
     spot_deduction_amount: Decimal
     gross_weight_kg: Decimal
+    tare_weight_kg: Decimal = Decimal("0")
     moisture_pct: Decimal | None
     net_weight_kg: Decimal
     rate_per_quintal: Decimal
@@ -206,6 +236,7 @@ class ProcurementResponse(AuditMetaMixin):
     cancellation_reason: str | None = None
     notes: str | None
     deductions: list[ProcurementDeductionResponse] = []
+    bag_entries: list[ProcurementBagEntryResponse] = []
     tags: list[str] = []
     comments: list[CommentResponse] = []
     profit_summary: ProcurementProfitSummary | None = None
