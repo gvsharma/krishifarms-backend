@@ -181,6 +181,8 @@ class VehicleTypeCreateRequest(BaseModel):
     code: str = Field(min_length=1, max_length=50)
     capacity_quintals: Decimal | None = Field(default=None, ge=0)
     fuel_type: str | None = Field(default=None, max_length=30)
+    default_rate: Decimal | None = Field(default=None, ge=0)
+    default_rate_unit: str | None = Field(default=None, pattern="^(hour|trip|bale)$")
     notes: str | None = None
     is_active: bool = True
 
@@ -191,6 +193,8 @@ class VehicleTypeUpdateRequest(BaseModel):
     code: str | None = Field(default=None, min_length=1, max_length=50)
     capacity_quintals: Decimal | None = Field(default=None, ge=0)
     fuel_type: str | None = Field(default=None, max_length=30)
+    default_rate: Decimal | None = Field(default=None, ge=0)
+    default_rate_unit: str | None = Field(default=None, pattern="^(hour|trip|bale)$")
     notes: str | None = None
     is_active: bool | None = None
 
@@ -204,6 +208,8 @@ class VehicleTypeResponse(AuditMetaResponse):
     code: str
     capacity_quintals: Decimal | None
     fuel_type: str | None
+    default_rate: Decimal | None = None
+    default_rate_unit: str | None = None
     notes: str | None
     is_active: bool
 

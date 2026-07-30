@@ -109,6 +109,8 @@ export interface VehicleType {
   code: string;
   capacity_quintals: string | null;
   fuel_type: string | null;
+  default_rate: string | null;
+  default_rate_unit: "hour" | "trip" | "bale" | null;
   notes: string | null;
   is_active: boolean;
 }

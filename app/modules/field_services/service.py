@@ -11,6 +11,7 @@ from app.core.client_context import ClientContext
 from app.core.exceptions import NotFoundError
 from app.modules.farmers.models import Farmer
 from app.modules.field_services.models import FieldServiceRecord, SERVICE_CATEGORIES
+from app.modules.field_services.pricing import compute_vehicle_charge
 from app.modules.field_services.schemas import (
     FieldServiceRecordCreateRequest,
     FieldServiceRecordUpdateRequest,
@@ -19,6 +20,7 @@ from app.modules.financial.expense_service import find_expense_by_source, sync_f
 from app.modules.financial.schemas import FIELD_SERVICE_SOURCE
 from app.modules.platform.models import ActivityType, VehicleType
 from app.shared.services.audit import write_activity_feed, write_audit_log
+from app.shared.work_details import parse_work_details_from_comments
 
 _RECORD_PREFIX = "FSR-"
 _ZERO = Decimal("0")
@@ -129,6 +131,47 @@ def _validate_refs(
             raise NotFoundError("Vehicle type not found")
 
 
+def _maybe_apply_vehicle_pricing(
+    db: Session,
+    org_id: UUID,
+    *,
+    service_category: str,
+    vehicle_type_id: UUID | None,
+    hours: Decimal | None,
+    bag_count: int | None,
+    comments: str | None,
+    total_amount: Decimal,
+    rate_per_unit: Decimal | None,
+) -> tuple[Decimal, Decimal | None]:
+    if service_category not in {"tractor_work", "transport"} or vehicle_type_id is None:
+        return total_amount, rate_per_unit
+    if total_amount > _ZERO:
+        return total_amount, rate_per_unit
+
+    vehicle = (
+        db.query(VehicleType)
+        .filter(
+            VehicleType.id == vehicle_type_id,
+            VehicleType.org_id == org_id,
+            VehicleType.deleted_at.is_(None),
+        )
+        .first()
+    )
+    if vehicle is None:
+        return total_amount, rate_per_unit
+
+    work_details, _free = parse_work_details_from_comments(comments)
+    computed_rate, computed_total = compute_vehicle_charge(
+        vehicle,
+        hours=hours,
+        work_details=work_details,
+        bag_count=bag_count,
+    )
+    if computed_total is None:
+        return total_amount, rate_per_unit
+    return computed_total, computed_rate if computed_rate is not None else rate_per_unit
+
+
 def _soft_delete(entity: FieldServiceRecord, actor_user_id: UUID) -> None:
     entity.deleted_at = datetime.now(UTC)
     entity.updated_by = actor_user_id
@@ -214,6 +257,19 @@ def create_field_service_record(
         farmer_id=payload.farmer_id,
         vehicle_type_id=payload.vehicle_type_id,
     )
+    total_amount = _money(payload.total_amount)
+    rate_per_unit = _money(payload.rate_per_unit) if payload.rate_per_unit is not None else None
+    total_amount, rate_per_unit = _maybe_apply_vehicle_pricing(
+        db,
+        org_id,
+        service_category=payload.service_category,
+        vehicle_type_id=payload.vehicle_type_id,
+        hours=payload.hours,
+        bag_count=payload.bag_count,
+        comments=payload.comments,
+        total_amount=total_amount,
+        rate_per_unit=rate_per_unit,
+    )
     row = FieldServiceRecord(
         org_id=org_id,
         record_number=_next_record_number(db, org_id),
@@ -229,11 +285,11 @@ def create_field_service_record(
         bag_count=payload.bag_count,
         quantity=payload.quantity,
         quantity_unit=payload.quantity_unit,
-        rate_per_unit=_money(payload.rate_per_unit) if payload.rate_per_unit is not None else None,
+        rate_per_unit=rate_per_unit,
         diesel_amount=_money(payload.diesel_amount),
         amount_given=_money(payload.amount_given),
         advance_amount=_money(payload.advance_amount),
-        total_amount=_money(payload.total_amount),
+        total_amount=total_amount,
         pending_amount=_money(payload.pending_amount),
         cleaning_status=payload.cleaning_status,
         facility_status=payload.facility_status,
@@ -308,6 +364,22 @@ def update_field_service_record(
             setattr(row, key, _money(value))
         else:
             setattr(row, key, value)
+
+    total_amount, rate_per_unit = _maybe_apply_vehicle_pricing(
+        db,
+        org_id,
+        service_category=row.service_category,
+        vehicle_type_id=row.vehicle_type_id,
+        hours=row.hours,
+        bag_count=row.bag_count,
+        comments=row.comments,
+        total_amount=row.total_amount,
+        rate_per_unit=row.rate_per_unit,
+    )
+    row.total_amount = total_amount
+    if rate_per_unit is not None:
+        row.rate_per_unit = rate_per_unit
+
     row.updated_by = actor_user_id
     db.flush()
     sync_field_service_diesel_expense(

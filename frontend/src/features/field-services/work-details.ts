@@ -47,14 +47,15 @@ export const SPRAY_TYPE_OPTIONS = [
 ] as const;
 
 export interface VehicleWorkDetails {
-  profile: "tractor" | "trolley" | "bolero" | "dcm" | "pump" | "drone";
+  profile: "tractor" | "trolley" | "bolero" | "dcm" | "pump" | "drone" | "baler";
   // Tractor / implements / harvester
   crop_code?: string;
   crop_name?: string;
   area_acres?: string;
   cultivation_stage?: string;
-  // Trolley
+  // Trolley / baler
   trips?: string;
+  bale_count?: string;
   purpose?: string;
   material?: string;
   // Bolero

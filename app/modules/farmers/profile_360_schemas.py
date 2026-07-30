@@ -70,9 +70,11 @@ class ServiceHistoryItem(BaseModel):
     service_category: str
     vehicle_name: str | None = None
     vehicle_type: str | None = None
+    activity_type: str | None = None
     operator: str | None = None
     hours: Decimal | None = None
     trips: int | None = None
+    bales: int | None = None
     area_covered: Decimal | None = None
     diesel_amount: Decimal = Decimal("0")
     amount_charged: Decimal = Decimal("0")

@@ -69,6 +69,8 @@ class VehicleType(Base, UUIDPrimaryKeyMixin, TimestampMixin, AuditActorMixin, So
     code: Mapped[str] = mapped_column(String(50), nullable=False)
     capacity_quintals: Mapped[Decimal | None] = mapped_column(Numeric(10, 2), nullable=True)
     fuel_type: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    default_rate: Mapped[Decimal | None] = mapped_column(Numeric(14, 2), nullable=True)
+    default_rate_unit: Mapped[str | None] = mapped_column(String(20), nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 

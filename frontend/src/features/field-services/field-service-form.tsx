@@ -46,6 +46,11 @@ import {
   parseWorkDetailsFromComments,
   type VehicleWorkDetails,
 } from "./work-details";
+import {
+  computeVehicleCharge,
+  rateUnitLabel,
+  resolveVehicleRate,
+} from "./pricing";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 
 export interface FieldServiceFormValues {
@@ -76,6 +81,7 @@ export interface FieldServiceFormValues {
   work_area_acres: string;
   work_cultivation_stage: string;
   work_trips: string;
+  work_bale_count: string;
   work_purpose: string;
   work_material: string;
   work_locality: string;
@@ -115,6 +121,7 @@ export const EMPTY_FORM: FieldServiceFormValues = {
   work_area_acres: "",
   work_cultivation_stage: "",
   work_trips: "1",
+  work_bale_count: "1",
   work_purpose: "",
   work_material: "",
   work_locality: "local",
@@ -148,6 +155,12 @@ function workDetailsFromForm(
       trips: values.work_trips || undefined,
       purpose: values.work_purpose || undefined,
       material: values.work_material || undefined,
+    };
+  }
+  if (profile === "baler") {
+    return {
+      profile,
+      bale_count: values.work_bale_count || undefined,
     };
   }
   if (profile === "bolero") {
@@ -200,6 +213,7 @@ function applyWorkDetailsToForm(
     work_area_acres: details.area_acres ?? "",
     work_cultivation_stage: details.cultivation_stage ?? "",
     work_trips: details.trips ?? base.work_trips,
+    work_bale_count: details.bale_count ?? base.work_bale_count,
     work_purpose: details.purpose ?? "",
     work_material: details.material ?? "",
     work_locality: details.locality ?? base.work_locality,
@@ -397,6 +411,41 @@ export function FieldServiceForm({
     [fields, values.vehicle_type_code, selectedVehicle?.code, selectedVehicle?.fuel_type],
   );
 
+  const vehicleRate = useMemo(
+    () => resolveVehicleRate(selectedVehicle ?? null),
+    [selectedVehicle],
+  );
+
+  useEffect(() => {
+    if (category !== "tractor_work" || !vehicleRate) return;
+    const computed = computeVehicleCharge(vehicleRate, {
+      hours: values.hours,
+      trips: values.work_trips,
+      baleCount: values.work_bale_count,
+    });
+    if (!computed) return;
+    const nextRate = computed.ratePerUnit;
+    const nextTotal = computed.total;
+    if (values.rate_per_unit === nextRate && values.total_amount === nextTotal) return;
+    onChange({
+      ...values,
+      rate_per_unit: nextRate,
+      total_amount: nextTotal,
+      pending_amount:
+        values.advance_amount && Number(values.advance_amount) > 0
+          ? Math.max(0, Number(nextTotal) - Number(values.advance_amount)).toFixed(2)
+          : nextTotal,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- pricing inputs only
+  }, [
+    category,
+    vehicleRate,
+    values.hours,
+    values.work_trips,
+    values.work_bale_count,
+    values.vehicle_type_id,
+  ]);
+
   const cropOptions = useMemo(
     () => (cropsQuery.data?.items ?? []).filter((c) => c.is_active),
     [cropsQuery.data],
@@ -413,7 +462,10 @@ export function FieldServiceForm({
       vehicle_type_id: vehicleTypeId,
       vehicle_type_code: next?.code ?? "",
       work_trips:
-        profile === "trolley" || profile === "bolero" || profile === "dcm" ? "1" : values.work_trips,
+        profile === "trolley" || profile === "bolero" || profile === "dcm"
+          ? "1"
+          : values.work_trips,
+      work_bale_count: profile === "baler" ? "1" : values.work_bale_count,
       work_locality: profile === "bolero" ? values.work_locality || "local" : values.work_locality,
     });
   };
@@ -520,6 +572,7 @@ export function FieldServiceForm({
           <Grid size={{ xs: 12 }}>
             <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0.5 }}>
               {workProfile === "tractor" && "Work details (tractor / implement / harvester)"}
+              {workProfile === "baler" && "Baler work details"}
               {workProfile === "trolley" && "Trolley trip details"}
               {workProfile === "bolero" && "Bolero trip details"}
               {workProfile === "dcm" && "DCM trip details"}
@@ -632,6 +685,21 @@ export function FieldServiceForm({
               </TextField>
             </Grid>
           </>
+        )}
+
+        {workProfile === "baler" && (
+          <Grid size={{ xs: 12, sm: 4 }}>
+            <TextField
+              fullWidth
+              type="number"
+              label="Bales"
+              sx={TOUCH_FIELD_SX}
+              slotProps={{ htmlInput: { min: 1, step: 1 } }}
+              value={values.work_bale_count}
+              onChange={(e) => set({ work_bale_count: e.target.value })}
+              disabled={disabled}
+            />
+          </Grid>
         )}
 
         {workProfile === "bolero" && (
@@ -965,10 +1033,15 @@ export function FieldServiceForm({
               type="number"
               sx={TOUCH_FIELD_SX}
               slotProps={{ htmlInput: { min: 0, step: 0.01 } }}
-              label="Rate per unit (₹)"
+              label={
+                vehicleRate
+                  ? `Rate (₹ ${rateUnitLabel(vehicleRate.default_rate_unit)})`
+                  : "Rate per unit (₹)"
+              }
               value={values.rate_per_unit}
               onChange={(e) => set({ rate_per_unit: e.target.value })}
               disabled={disabled}
+              helperText={vehicleRate ? "Default rate from equipment master" : undefined}
             />
           </Grid>
         )}
