@@ -87,3 +87,31 @@
     responses:
       '200':
         description: Paid
+
+/hamali/me/daily:
+  get:
+    tags: [Hamali]
+    summary: HAMALI viewer — my daily bags and tips
+    parameters:
+      - name: work_date
+        in: query
+        schema: { type: string, format: date }
+    responses:
+      '200':
+        description: Daily summary for linked hamali worker
+
+/hamali/me/summary:
+  get:
+    tags: [Hamali]
+    summary: HAMALI viewer — week or month summary
+    parameters:
+      - name: period
+        in: query
+        required: true
+        schema: { type: string, enum: [week, month] }
+      - name: anchor_date
+        in: query
+        schema: { type: string, format: date }
+    responses:
+      '200':
+        description: Period summary for linked hamali worker

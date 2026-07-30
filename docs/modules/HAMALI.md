@@ -35,9 +35,18 @@ total_amount = labor_amount + maintenance_amount + tip_amount
 | GET/POST | `/hamali/weekly-payments` | read / pay |
 | POST | `/hamali/weekly-payments/{id}/mark-paid` | pay |
 
+### HAMALI viewer (migration `040`)
+
+| Method | Path | Permission | Notes |
+|--------|------|------------|-------|
+| GET | `/hamali/me/daily?work_date=` | read | Scoped to `users.hamali_worker_id` |
+| GET | `/hamali/me/summary?period=week\|month&anchor_date=` | read | Week/month totals for linked worker |
+
+Admin creates HAMALI users with mobile login; backend auto-creates `hamali_workers` roster row when `hamali_worker_id` is omitted.
+
 ## Web UI
 
-- Nav: **Operations → Hamali** (`/hamali`) — OWNER, MANAGER, ACCOUNTANT
+- Nav: **Operations → Hamali** (`/hamali`) — OWNER, MANAGER, ACCOUNTANT, SUPERVISOR (manage); HAMALI (read-only via `hamali:read`)
 - Tabs: Daily entries · Workers · Weekly payments
 
 ## Related

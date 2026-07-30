@@ -39,6 +39,7 @@ class UserResponse(ORMModel):
     full_name_te: str | None = None
     village_id: UUID | None = None
     farmer_id: UUID | None = None
+    hamali_worker_id: UUID | None = None
     preferred_locale: str
     is_active: bool
     role: RoleResponse
@@ -57,6 +58,7 @@ class UserCreateRequest(BaseModel):
     role_id: UUID
     village_id: UUID | None = None
     farmer_id: UUID | None = None
+    hamali_worker_id: UUID | None = None
     preferred_locale: str = "en"
 
     @field_validator("email")
@@ -89,6 +91,7 @@ class UserUpdateRequest(BaseModel):
     phone: str | None = None
     village_id: UUID | None = None
     farmer_id: UUID | None = None
+    hamali_worker_id: UUID | None = None
     role_id: UUID | None = None
     preferred_locale: str | None = None
     is_active: bool | None = None

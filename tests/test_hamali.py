@@ -29,3 +29,10 @@ class TestHamaliCalculations:
         start, end = week_bounds(date(2026, 7, 27))
         assert start == date(2026, 7, 27)
         assert end == date(2026, 8, 2)
+
+    def test_period_bounds_month(self):
+        from app.modules.hamali.service import _period_bounds
+
+        start, end = _period_bounds("month", date(2026, 7, 15))
+        assert start == date(2026, 7, 1)
+        assert end == date(2026, 7, 31)

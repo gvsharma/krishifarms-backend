@@ -12,6 +12,8 @@ from app.modules.hamali.schemas import (
     HamaliDailyEntryListResponse,
     HamaliDailyEntryResponse,
     HamaliDailyEntryUpdateRequest,
+    HamaliMeDailyResponse,
+    HamaliMeSummaryResponse,
     HamaliWeeklyPaymentCreateRequest,
     HamaliWeeklyPaymentListResponse,
     HamaliWeeklyPaymentMarkPaidRequest,
@@ -29,6 +31,13 @@ router = APIRouter(tags=["Hamali"])
 
 _PAYMENT_STATUS_PATTERN = "^(pending|scheduled|paid)$"
 _WEEKLY_STATUS_PATTERN = "^(draft|paid)$"
+
+
+def _hamali_worker_scope(ctx: CurrentUserContext) -> UUID | None:
+    role_code = ctx.user.role.code if ctx.user.role else None
+    if role_code == "HAMALI":
+        return ctx.user.hamali_worker_id
+    return None
 
 
 def _worker_response(db: Session, row) -> HamaliWorkerResponse:
@@ -65,6 +74,29 @@ def _weekly_response(db: Session, row) -> HamaliWeeklyPaymentResponse:
         paid_by_name = db.query(User.full_name).filter(User.id == row.paid_by).scalar()
     data = HamaliWeeklyPaymentResponse.model_validate(row)
     return data.model_copy(update={"paid_by_name": paid_by_name})
+
+
+@router.get("/hamali/me/daily", response_model=APIResponse[HamaliMeDailyResponse])
+def get_my_hamali_daily(
+    work_date: date | None = Query(default=None, alias="work_date"),
+    ctx: CurrentUserContext = Depends(require_permission("hamali:read")),
+    db: Session = Depends(get_db),
+):
+    data = service.get_my_daily(db, ctx.user.org_id, ctx.user, work_date)
+    return APIResponse(data=data)
+
+
+@router.get("/hamali/me/summary", response_model=APIResponse[HamaliMeSummaryResponse])
+def get_my_hamali_summary(
+    period: str = Query(..., pattern="^(week|month)$"),
+    anchor_date: date | None = Query(default=None, alias="anchor_date"),
+    ctx: CurrentUserContext = Depends(require_permission("hamali:read")),
+    db: Session = Depends(get_db),
+):
+    data = service.get_my_summary(
+        db, ctx.user.org_id, ctx.user, period=period, anchor_date=anchor_date
+    )
+    return APIResponse(data=data)
 
 
 @router.get("/hamali/workers", response_model=APIResponse[HamaliWorkerListResponse])
@@ -134,6 +166,9 @@ def list_hamali_daily_entries(
     ctx: CurrentUserContext = Depends(require_permission("hamali:read")),
     db: Session = Depends(get_db),
 ):
+    scoped_worker = _hamali_worker_scope(ctx)
+    if scoped_worker is not None:
+        hamali_worker_id = scoped_worker
     items, total, summary = service.list_daily_entries(
         db,
         ctx.user.org_id,
