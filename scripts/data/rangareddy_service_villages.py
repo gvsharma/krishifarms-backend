@@ -9,6 +9,7 @@ from __future__ import annotations
 STATE = "Telangana"
 DISTRICT = "Rangareddy"
 KESHAMPETA_PINCODE = "509408"
+KOTHUR_PINCODE = "509228"
 
 # Mandal → list of villages {name, name_te?, pincode?}
 RANGAREDDY_MANDALS: dict[str, list[dict[str, str]]] = {
@@ -61,12 +62,22 @@ RANGAREDDY_MANDALS: dict[str, list[dict[str, str]]] = {
         {"name": "Raviryal", "pincode": "501359"},
     ],
     "Kothur": [
-        {"name": "Kothur", "pincode": "509228"},
-        {"name": "Penjerla", "pincode": "509228"},
-        {"name": "Thimmapur", "pincode": "509228"},
-        {"name": "Edulabad", "pincode": "509228"},
-        {"name": "Nandigama", "pincode": "509228"},
-        {"name": "Pudugur", "pincode": "509228"},
+        {"name": "Chegur", "name_te": "చేగూర్", "pincode": KOTHUR_PINCODE},
+        {"name": "Edulapalle", "name_te": "ఏడులపల్లి", "pincode": KOTHUR_PINCODE},
+        {"name": "Gudur", "name_te": "గూడూరు", "pincode": KOTHUR_PINCODE},
+        {"name": "Inmulnarva", "name_te": "ఇన్ములనర్వ", "pincode": KOTHUR_PINCODE},
+        {"name": "Khajiguda", "name_te": "ఖాజిగూడ", "pincode": KOTHUR_PINCODE},
+        {"name": "Kodicherla", "name_te": "కొడిచెర్ల", "pincode": KOTHUR_PINCODE},
+        {"name": "Kothur", "name_te": "కొత్తూరు", "pincode": KOTHUR_PINCODE},
+        {"name": "Mallapur", "name_te": "మల్లాపూర్", "pincode": KOTHUR_PINCODE},
+        {"name": "Mamidipalle", "name_te": "మామిడిపల్లి", "pincode": KOTHUR_PINCODE},
+        {"name": "Nandigam", "name_te": "నందిగామ", "pincode": KOTHUR_PINCODE},
+        {"name": "Penjerla", "name_te": "పెంజర్ల", "pincode": KOTHUR_PINCODE},
+        {"name": "Seriguda (Bhadrai Palle)", "name_te": "సెరిగూడ (భద్రాయిపల్లి)", "pincode": KOTHUR_PINCODE},
+        {"name": "Siddapur", "name_te": "సిద్ధాపూర్", "pincode": KOTHUR_PINCODE},
+        {"name": "Theegapur", "name_te": "తీగాపూర్", "pincode": KOTHUR_PINCODE},
+        {"name": "Thimmapur", "name_te": "తిమ్మాపూర్", "pincode": KOTHUR_PINCODE},
+        {"name": "Veerlapalle", "name_te": "వీర్లపల్లి", "pincode": KOTHUR_PINCODE},
     ],
     "Farooqnagar": [
         {"name": "Farooqnagar", "pincode": "509216"},
