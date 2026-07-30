@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **Keshampeta mandal village masters** — `scripts/data/rangareddy_service_villages.py` updated to 29 villages/hamlets (EN + `name_te`); **Kothur mandal** updated to 16 villages (EN + `name_te`); `seed_locations` upserts Telugu names; default ops village in `seed_services` is Bhairkhanpalle (Rangareddy).
 - **Procurement API** — joined `farmer_name`, `village_name`, `crop_type_name`, `buyer_name` respect client locale via `Accept-Language` header or user `preferred_locale`
 
 ### Fixed

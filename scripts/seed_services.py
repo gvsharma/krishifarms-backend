@@ -15,9 +15,10 @@ from scripts.data.fleet_inventory import DEFAULT_ACTIVITY_TYPES, DEFAULT_FLEET_A
 
 DEFAULT_VILLAGES = [
     {
-        "name": "Bhairkhanpally",
-        "mandal": "Nizamabad",
-        "district": "Nizamabad",
+        "name": "Bhairkhanpalle",
+        "name_te": "భైర్కాన్‌పల్లి",
+        "mandal": "Keshampeta",
+        "district": "Rangareddy",
         "state": "Telangana",
     },
 ]

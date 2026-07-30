@@ -8,17 +8,41 @@ from __future__ import annotations
 
 STATE = "Telangana"
 DISTRICT = "Rangareddy"
+KESHAMPETA_PINCODE = "509408"
+KOTHUR_PINCODE = "509228"
 
-# Mandal → list of villages {name, pincode?}
+# Mandal → list of villages {name, name_te?, pincode?}
 RANGAREDDY_MANDALS: dict[str, list[dict[str, str]]] = {
     "Keshampeta": [
-        {"name": "Keshampeta", "pincode": "509408"},
-        {"name": "Kakloor", "pincode": "509408"},
-        {"name": "Lingampally", "pincode": "509408"},
-        {"name": "Chowderpally", "pincode": "509408"},
-        {"name": "Ippalapally", "pincode": "509408"},
-        {"name": "Lemoor", "pincode": "509408"},
-        {"name": "Boduppal", "pincode": "509408"},
+        {"name": "Alwal", "name_te": "ఆల్వాల్", "pincode": KESHAMPETA_PINCODE},
+        {"name": "Bhairkhanpalle", "name_te": "భైర్కాన్‌పల్లి", "pincode": KESHAMPETA_PINCODE},
+        {"name": "Bodanampalle", "name_te": "బోదనంపల్లి", "pincode": KESHAMPETA_PINCODE},
+        {"name": "Chintakuntapalle", "name_te": "చింతకుంటపల్లి", "pincode": KESHAMPETA_PINCODE},
+        {"name": "Chowlapalle (East)", "name_te": "చౌలపల్లి (తూర్పు)", "pincode": KESHAMPETA_PINCODE},
+        {"name": "Dattaipalle", "name_te": "దత్తాయిపల్లి", "pincode": KESHAMPETA_PINCODE},
+        {"name": "Eklaskhanpeta", "name_te": "ఏక్లాస్ఖాన్‌పేట", "pincode": KESHAMPETA_PINCODE},
+        {"name": "Ippalapalle", "name_te": "ఇప్పలపల్లి", "pincode": KESHAMPETA_PINCODE},
+        {"name": "Kakunoor", "name_te": "కాకునూర్", "pincode": KESHAMPETA_PINCODE},
+        {"name": "Keshampet", "name_te": "కేశంపేట్", "pincode": KESHAMPETA_PINCODE},
+        {"name": "Kondareddipalle", "name_te": "కొండారెడ్డిపల్లి", "pincode": KESHAMPETA_PINCODE},
+        {"name": "Kothapeta", "name_te": "కొత్తపేట", "pincode": KESHAMPETA_PINCODE},
+        {"name": "Lemamidi", "name_te": "లేమామిడి", "pincode": KESHAMPETA_PINCODE},
+        {"name": "Lingamdana", "name_te": "లింగందాన", "pincode": KESHAMPETA_PINCODE},
+        {"name": "Nirdavelly", "name_te": "నిర్దవెల్లి", "pincode": KESHAMPETA_PINCODE},
+        {"name": "Papireddiguda", "name_te": "పాపిరెడ్డిగూడ", "pincode": KESHAMPETA_PINCODE},
+        {"name": "Pomalpalle", "name_te": "పొమాల్‌పల్లి", "pincode": KESHAMPETA_PINCODE},
+        {"name": "Sangam", "name_te": "సంగం", "pincode": KESHAMPETA_PINCODE},
+        {"name": "Santhapur", "name_te": "శాంతాపూర్", "pincode": KESHAMPETA_PINCODE},
+        {"name": "Thommidirekula", "name_te": "తొమ్మిదిరేకుల", "pincode": KESHAMPETA_PINCODE},
+        {"name": "Vemulanarva", "name_te": "వేములనర్వ", "pincode": KESHAMPETA_PINCODE},
+        {"name": "Devunigudi Tanda", "name_te": "దేవునిగూడి తండా", "pincode": KESHAMPETA_PINCODE},
+        {"name": "Polkongutta Tanda", "name_te": "పోల్కొంగుట్ట తండా", "pincode": KESHAMPETA_PINCODE},
+        {"name": "Thurpugadda Tanda", "name_te": "తూర్పుగడ్డ తండా", "pincode": KESHAMPETA_PINCODE},
+        {"name": "Sundarapur", "name_te": "సుందరాపూర్", "pincode": KESHAMPETA_PINCODE},
+        {"name": "Patigadda", "name_te": "పాటిగడ్డ", "pincode": KESHAMPETA_PINCODE},
+        {"name": "Puttavaniguda", "name_te": "పుట్టవాణిగూడ", "pincode": KESHAMPETA_PINCODE},
+        {"name": "Mangaliguda", "name_te": "మంగలిగూడ", "pincode": KESHAMPETA_PINCODE},
+        {"name": "Konaipalle", "name_te": "కొనాయిపల్లి", "pincode": KESHAMPETA_PINCODE},
     ],
     "Talakondapally": [
         {"name": "Talakondapally", "pincode": "509320"},
@@ -38,12 +62,22 @@ RANGAREDDY_MANDALS: dict[str, list[dict[str, str]]] = {
         {"name": "Raviryal", "pincode": "501359"},
     ],
     "Kothur": [
-        {"name": "Kothur", "pincode": "509228"},
-        {"name": "Penjerla", "pincode": "509228"},
-        {"name": "Thimmapur", "pincode": "509228"},
-        {"name": "Edulabad", "pincode": "509228"},
-        {"name": "Nandigama", "pincode": "509228"},
-        {"name": "Pudugur", "pincode": "509228"},
+        {"name": "Chegur", "name_te": "చేగూర్", "pincode": KOTHUR_PINCODE},
+        {"name": "Edulapalle", "name_te": "ఏడులపల్లి", "pincode": KOTHUR_PINCODE},
+        {"name": "Gudur", "name_te": "గూడూరు", "pincode": KOTHUR_PINCODE},
+        {"name": "Inmulnarva", "name_te": "ఇన్ములనర్వ", "pincode": KOTHUR_PINCODE},
+        {"name": "Khajiguda", "name_te": "ఖాజిగూడ", "pincode": KOTHUR_PINCODE},
+        {"name": "Kodicherla", "name_te": "కొడిచెర్ల", "pincode": KOTHUR_PINCODE},
+        {"name": "Kothur", "name_te": "కొత్తూరు", "pincode": KOTHUR_PINCODE},
+        {"name": "Mallapur", "name_te": "మల్లాపూర్", "pincode": KOTHUR_PINCODE},
+        {"name": "Mamidipalle", "name_te": "మామిడిపల్లి", "pincode": KOTHUR_PINCODE},
+        {"name": "Nandigam", "name_te": "నందిగామ", "pincode": KOTHUR_PINCODE},
+        {"name": "Penjerla", "name_te": "పెంజర్ల", "pincode": KOTHUR_PINCODE},
+        {"name": "Seriguda (Bhadrai Palle)", "name_te": "సెరిగూడ (భద్రాయిపల్లి)", "pincode": KOTHUR_PINCODE},
+        {"name": "Siddapur", "name_te": "సిద్ధాపూర్", "pincode": KOTHUR_PINCODE},
+        {"name": "Theegapur", "name_te": "తీగాపూర్", "pincode": KOTHUR_PINCODE},
+        {"name": "Thimmapur", "name_te": "తిమ్మాపూర్", "pincode": KOTHUR_PINCODE},
+        {"name": "Veerlapalle", "name_te": "వీర్లపల్లి", "pincode": KOTHUR_PINCODE},
     ],
     "Farooqnagar": [
         {"name": "Farooqnagar", "pincode": "509216"},
@@ -58,13 +92,14 @@ RANGAREDDY_MANDALS: dict[str, list[dict[str, str]]] = {
 
 
 def iter_village_rows() -> list[dict[str, str]]:
-    """Flat village rows suitable for Village upsert (name, mandal, district, state, pincode)."""
+    """Flat village rows suitable for Village upsert (name, name_te, mandal, district, state, pincode)."""
     rows: list[dict[str, str]] = []
     for mandal, villages in RANGAREDDY_MANDALS.items():
         for village in villages:
             rows.append(
                 {
                     "name": village["name"],
+                    "name_te": village.get("name_te", ""),
                     "mandal": mandal,
                     "district": DISTRICT,
                     "state": STATE,

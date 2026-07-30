@@ -87,6 +87,7 @@ def _upsert_village(
     owner_id,
     *,
     name: str,
+    name_te: str | None,
     mandal_name: str,
     district_name: str,
     state: str,
@@ -108,6 +109,7 @@ def _upsert_village(
             "district_id": district.id,
             "mandal_id": mandal.id,
             "mandal": mandal_name,
+            "name_te": name_te or None,
         }.items():
             if getattr(existing, key) != value:
                 setattr(existing, key, value)
@@ -122,6 +124,7 @@ def _upsert_village(
         Village(
             org_id=org_id,
             name=name,
+            name_te=name_te or None,
             mandal=mandal_name,
             district=district_name,
             state=state,
@@ -156,6 +159,7 @@ def seed_locations_for_org(db: Session, org: Organization, owner: User) -> dict[
             org.id,
             owner.id,
             name=row["name"],
+            name_te=row.get("name_te") or None,
             mandal_name=row["mandal"],
             district_name=row["district"],
             state=row["state"],
