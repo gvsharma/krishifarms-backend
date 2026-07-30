@@ -8,6 +8,7 @@ import {
   Chip,
   CircularProgress,
   MenuItem,
+  Stack,
   Table,
   TableBody,
   TableCell,
@@ -58,9 +59,14 @@ export default function ProcurementPage() {
       title="Procurement"
       description="Intake tickets from draft through confirmation."
       actions={
-        <Button component={Link} href="/procurement/new" variant="contained" startIcon={<Add />}>
-          New procurement
-        </Button>
+        <Stack direction="row" spacing={1}>
+          <Button component={Link} href="/procurement/sales" variant="outlined">
+            Sales
+          </Button>
+          <Button component={Link} href="/procurement/new" variant="contained" startIcon={<Add />}>
+            New procurement
+          </Button>
+        </Stack>
       }
     >
       <Card sx={{ mb: 2, p: 2 }}>

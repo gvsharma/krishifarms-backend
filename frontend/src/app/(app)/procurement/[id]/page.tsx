@@ -109,9 +109,17 @@ export default function ProcurementDetailPage() {
               <Grid size={{ xs: 6, sm: 4 }}>
                 <Field label="Village" value={data.village_name ?? "—"} />
               </Grid>
-              {display.buyerName && (
+              {(data.buyer_name || display.buyerName) && (
                 <Grid size={{ xs: 6, sm: 4 }}>
-                  <Field label="Buyer" value={display.buyerName} />
+                  <Field label="Buyer" value={data.buyer_name ?? display.buyerName ?? "—"} />
+                </Grid>
+              )}
+              {data.sale_rate_per_quintal && Number(data.sale_rate_per_quintal) > 0 && (
+                <Grid size={{ xs: 6, sm: 4 }}>
+                  <Field
+                    label="Sale rate / quintal"
+                    value={`${formatInr(data.sale_rate_per_quintal)}${data.sale_date ? ` · ${data.sale_date}` : ""}`}
+                  />
                 </Grid>
               )}
               {display.paymentTerms && (
@@ -225,6 +233,18 @@ export default function ProcurementDetailPage() {
                     <Field
                       label="Spot payment deduction"
                       value={formatInr(data.profit_summary.spot_deduction_amount)}
+                    />
+                  </Grid>
+                )}
+                {data.profit_summary.sale_margin_amount != null && (
+                  <Grid size={{ xs: 6, sm: 4 }}>
+                    <Field
+                      label="Buyer sale margin"
+                      value={`${formatInr(data.profit_summary.sale_margin_amount)}${
+                        data.profit_summary.sale_amount
+                          ? ` (sale ${formatInr(data.profit_summary.sale_amount)})`
+                          : ""
+                      }`}
                     />
                   </Grid>
                 )}
