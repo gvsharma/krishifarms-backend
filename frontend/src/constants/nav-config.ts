@@ -24,6 +24,7 @@ export type NavRole =
   | "AGENT"
   | "DRIVER"
   | "WORKER"
+  | "HAMALI"
   | "ACCOUNTANT"
   | "FARMER";
 
@@ -97,7 +98,7 @@ export const NAV_SECTIONS: NavSection[] = [
         label: "Hamali",
         labelKey: "nav.hamali",
         icon: Inventory2,
-        roles: ["OWNER", "MANAGER", "SUPERVISOR", "ACCOUNTANT"],
+        roles: ["OWNER", "MANAGER", "SUPERVISOR", "ACCOUNTANT", "HAMALI"],
       },
       {
         href: ROUTES.services,

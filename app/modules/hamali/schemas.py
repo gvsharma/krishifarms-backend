@@ -163,3 +163,38 @@ class HamaliWeeklyPaymentListResponse(BaseModel):
     total: int
     page: int
     page_size: int
+
+
+_UNSPECIFIED_FARMER_ID = UUID("00000000-0000-0000-0000-000000000000")
+
+
+class HamaliMeDailyLine(BaseModel):
+    farmer_id: UUID
+    farmer_name: str
+    bag_count: int
+    tip_amount: Decimal
+
+
+class HamaliMeDailyResponse(BaseModel):
+    work_date: date
+    total_bags: int
+    total_tips: Decimal
+    lines: list[HamaliMeDailyLine]
+
+
+class HamaliMeFarmerSummary(BaseModel):
+    farmer_id: UUID
+    farmer_name: str
+    bag_count: int
+    tip_amount: Decimal
+
+
+class HamaliMeSummaryResponse(BaseModel):
+    period: str
+    date_from: date
+    date_to: date
+    total_bags: int
+    total_tips: Decimal
+    days_worked: int
+    by_farmer: list[HamaliMeFarmerSummary]
+    by_day: list[HamaliMeDailyResponse]

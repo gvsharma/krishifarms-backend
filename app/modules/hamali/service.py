@@ -10,19 +10,27 @@ from sqlalchemy.orm import Session
 
 from app.core.client_context import ClientContext
 from app.core.exceptions import ConflictError, NotFoundError
+from app.modules.farmers.models import Farmer
 from app.modules.hamali.models import HamaliDailyEntry, HamaliWeeklyPayment, HamaliWorker
 from app.modules.hamali.schemas import (
     DEFAULT_RATE_PER_BAG,
     HamaliDailyEntryCreateRequest,
     HamaliDailyEntryUpdateRequest,
     HamaliDailySummary,
+    HamaliMeDailyLine,
+    HamaliMeDailyResponse,
+    HamaliMeFarmerSummary,
+    HamaliMeSummaryResponse,
     HamaliWeeklyPaymentCreateRequest,
     HamaliWeeklyPaymentMarkPaidRequest,
     HamaliWorkerCreateRequest,
     HamaliWorkerUpdateRequest,
     HamaliWorkerWeekSummary,
     HamaliWeeklySummaryResponse,
+    _UNSPECIFIED_FARMER_ID,
 )
+from app.modules.procurements.models import Procurement
+from app.modules.users.models import User
 from app.shared.services.audit import write_activity_feed, write_audit_log
 
 _WORKER_CODE_PREFIX = "HML-"
@@ -731,3 +739,169 @@ def mark_weekly_payment_paid(
     db.commit()
     db.refresh(row)
     return row
+
+
+def _require_linked_worker(user: User) -> UUID:
+    if user.hamali_worker_id is None:
+        raise NotFoundError("Hamali worker profile not linked to this user")
+    return user.hamali_worker_id
+
+
+def _farmer_lookup(
+    db: Session,
+    org_id: UUID,
+    procurement_ids: set[UUID],
+) -> dict[UUID, tuple[UUID, str]]:
+    if not procurement_ids:
+        return {}
+    rows = (
+        db.query(Procurement.id, Procurement.farmer_id, Farmer.full_name)
+        .join(Farmer, Farmer.id == Procurement.farmer_id)
+        .filter(
+            Procurement.org_id == org_id,
+            Procurement.id.in_(procurement_ids),
+            Farmer.org_id == org_id,
+        )
+        .all()
+    )
+    return {proc_id: (farmer_id, name) for proc_id, farmer_id, name in rows}
+
+
+def _entry_to_lines(
+    db: Session,
+    org_id: UUID,
+    entry: HamaliDailyEntry | None,
+) -> list[HamaliMeDailyLine]:
+    if entry is None:
+        return []
+    if entry.procurement_id:
+        farmers = _farmer_lookup(db, org_id, {entry.procurement_id})
+        if entry.procurement_id in farmers:
+            farmer_id, farmer_name = farmers[entry.procurement_id]
+            return [
+                HamaliMeDailyLine(
+                    farmer_id=farmer_id,
+                    farmer_name=farmer_name,
+                    bag_count=entry.bags_lifted,
+                    tip_amount=entry.tip_amount,
+                )
+            ]
+    return [
+        HamaliMeDailyLine(
+            farmer_id=_UNSPECIFIED_FARMER_ID,
+            farmer_name="—",
+            bag_count=entry.bags_lifted,
+            tip_amount=entry.tip_amount,
+        )
+    ]
+
+
+def _daily_response(
+    db: Session,
+    org_id: UUID,
+    work_date: date,
+    entry: HamaliDailyEntry | None,
+) -> HamaliMeDailyResponse:
+    lines = _entry_to_lines(db, org_id, entry)
+    total_bags = entry.bags_lifted if entry else 0
+    total_tips = entry.tip_amount if entry else _ZERO
+    return HamaliMeDailyResponse(
+        work_date=work_date,
+        total_bags=total_bags,
+        total_tips=_money(total_tips),
+        lines=lines,
+    )
+
+
+def get_my_daily(
+    db: Session,
+    org_id: UUID,
+    user: User,
+    work_date: date | None = None,
+) -> HamaliMeDailyResponse:
+    worker_id = _require_linked_worker(user)
+    target = work_date or date.today()
+    entry = (
+        db.query(HamaliDailyEntry)
+        .filter(
+            HamaliDailyEntry.org_id == org_id,
+            HamaliDailyEntry.hamali_worker_id == worker_id,
+            HamaliDailyEntry.entry_date == target,
+            HamaliDailyEntry.deleted_at.is_(None),
+        )
+        .first()
+    )
+    return _daily_response(db, org_id, target, entry)
+
+
+def _period_bounds(period: str, anchor: date) -> tuple[date, date]:
+    if period == "week":
+        start = monday_of(anchor)
+        return week_bounds(start)
+    if period == "month":
+        start = anchor.replace(day=1)
+        if start.month == 12:
+            end = start.replace(year=start.year + 1, month=1, day=1) - timedelta(days=1)
+        else:
+            end = start.replace(month=start.month + 1, day=1) - timedelta(days=1)
+        return start, end
+    raise ConflictError("period must be week or month")
+
+
+def get_my_summary(
+    db: Session,
+    org_id: UUID,
+    user: User,
+    *,
+    period: str,
+    anchor_date: date | None = None,
+) -> HamaliMeSummaryResponse:
+    worker_id = _require_linked_worker(user)
+    anchor = anchor_date or date.today()
+    date_from, date_to = _period_bounds(period, anchor)
+    entries = (
+        db.query(HamaliDailyEntry)
+        .filter(
+            HamaliDailyEntry.org_id == org_id,
+            HamaliDailyEntry.hamali_worker_id == worker_id,
+            HamaliDailyEntry.entry_date >= date_from,
+            HamaliDailyEntry.entry_date <= date_to,
+            HamaliDailyEntry.deleted_at.is_(None),
+        )
+        .order_by(HamaliDailyEntry.entry_date.asc())
+        .all()
+    )
+    by_farmer_map: dict[UUID, HamaliMeFarmerSummary] = {}
+    by_day: list[HamaliMeDailyResponse] = []
+    total_bags = 0
+    total_tips = _ZERO
+    for entry in entries:
+        total_bags += entry.bags_lifted
+        total_tips += entry.tip_amount
+        by_day.append(_daily_response(db, org_id, entry.entry_date, entry))
+        for line in _entry_to_lines(db, org_id, entry):
+            existing = by_farmer_map.get(line.farmer_id)
+            if existing:
+                by_farmer_map[line.farmer_id] = HamaliMeFarmerSummary(
+                    farmer_id=line.farmer_id,
+                    farmer_name=line.farmer_name,
+                    bag_count=existing.bag_count + line.bag_count,
+                    tip_amount=_money(existing.tip_amount + line.tip_amount),
+                )
+            else:
+                by_farmer_map[line.farmer_id] = HamaliMeFarmerSummary(
+                    farmer_id=line.farmer_id,
+                    farmer_name=line.farmer_name,
+                    bag_count=line.bag_count,
+                    tip_amount=line.tip_amount,
+                )
+    return HamaliMeSummaryResponse(
+        period=period,
+        date_from=date_from,
+        date_to=date_to,
+        total_bags=total_bags,
+        total_tips=_money(total_tips),
+        days_worked=len(entries),
+        by_farmer=sorted(by_farmer_map.values(), key=lambda x: x.farmer_name),
+        by_day=by_day,
+    )

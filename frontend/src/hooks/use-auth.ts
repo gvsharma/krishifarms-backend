@@ -58,6 +58,7 @@ const NAV_ROLES = [
   "AGENT",
   "DRIVER",
   "WORKER",
+  "HAMALI",
   "ACCOUNTANT",
 ] as const;
 

@@ -72,6 +72,7 @@ api_v1.include_router(devices_router)
 api_v1.include_router(audit_router)
 api_v1.include_router(dashboard_router)
 api_v1.include_router(analytics_router)
+api_v1.include_router(hamali_router)
 
 
 @api_v1.exception_handler(AppError)

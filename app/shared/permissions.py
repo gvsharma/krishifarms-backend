@@ -277,6 +277,10 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
         "documents:read",
         "documents:create",
     ],
+    "HAMALI": [
+        "hamali:read",
+        "dashboard:read",
+    ],
     "FARMER": [
         *_LOCATION_READ,
         "crop_types:read",
@@ -299,5 +303,6 @@ ROLE_DEFINITIONS: list[tuple[str, str]] = [
     ("AGENT", "Agent"),
     ("DRIVER", "Vehicle Supervisor"),
     ("WORKER", "Worker"),
+    ("HAMALI", "Hamali / Porter"),
     ("FARMER", "Farmer"),
 ]

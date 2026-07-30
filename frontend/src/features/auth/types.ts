@@ -14,10 +14,20 @@ export interface AuthMe {
   accessibleModules: string[];
 }
 
-export type AppRole = "OWNER" | "MANAGER" | "SUPERVISOR" | "AGENT" | "DRIVER" | "WORKER" | "ACCOUNTANT";
+export type AppRole = "OWNER" | "MANAGER" | "SUPERVISOR" | "AGENT" | "DRIVER" | "WORKER" | "HAMALI" | "FARMER" | "ACCOUNTANT";
 
 export function primaryRole(roles: string[]): AppRole | null {
-  const order: AppRole[] = ["OWNER", "MANAGER", "SUPERVISOR", "ACCOUNTANT", "AGENT", "DRIVER", "WORKER"];
+  const order: AppRole[] = [
+    "OWNER",
+    "MANAGER",
+    "SUPERVISOR",
+    "ACCOUNTANT",
+    "AGENT",
+    "DRIVER",
+    "WORKER",
+    "HAMALI",
+    "FARMER",
+  ];
   return order.find((r) => roles.includes(r)) ?? null;
 }
 

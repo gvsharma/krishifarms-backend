@@ -89,6 +89,7 @@ docs/deploy/           → CI/CD details
 | Analytics Hub | ✅ Phase 1 | ✅ catalog/summary/series/tables/export | `/analytics` + 4 live + 11 scaffold | `033` facts | `paths/analytics.yaml` | Live exec/ops/procurement/finance; scaffolds honest empty |
 | Farmers | ✅ | ✅ + profile-360, crop-history, ledger | ✅ | `004`, `030` | `paths/farmers.yaml` | 2a/2b + Farmer 360° |
 | Field services | ✅ | ✅ + diesel→expense | Detail + receipts/comments | `021`, `022` | `paths/field-services.yaml` | `diesel_amount` → Fuel expense (`field_service`) |
+| Hamali (porter) | ✅ | ✅ viewer APIs + work log | `/hamali`, `/settings/hamali` | `035` | — | Read-only bags/tips; admin logs work |
 | Farms | 🟡 | ✅ thin CRUD + activities | Placeholder | `006` | `paths/farms.yaml` | Own-farming UI remaining |
 | Procurements | ✅ | ✅ | ✅ | `008`, `019`, `026` | `paths/procurement.yaml` | 2b (+ buyer/terms) |
 | Hamali (porter labor) | ✅ | ✅ daily/weekly | ✅ `/hamali` | `037` | `paths/hamali.yaml` | Procurement godown — ₹20/bag default |

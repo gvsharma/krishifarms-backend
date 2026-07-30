@@ -12,6 +12,7 @@ def test_role_definitions_match_erp_display_names():
     assert by_code["AGENT"] == "Agent"
     assert by_code["FARMER"] == "Farmer"
     assert by_code["WORKER"] == "Worker"
+    assert by_code["HAMALI"] == "Hamali / Porter"
 
 
 def test_role_permissions_keys_match_definitions():
@@ -57,6 +58,14 @@ def test_agent_field_services_not_procurement_create():
     assert "farmers:read" in agent
     assert "procurements:create" not in agent
     assert "documents:create" in agent
+
+
+def test_hamali_role_is_read_only_hamali_module():
+    hamali = set(ROLE_PERMISSIONS["HAMALI"])
+    assert hamali == {"hamali:read", "dashboard:read"}
+    assert "hamali:create" not in hamali
+    assert "hamali:update" not in hamali
+    assert "hamali:pay" not in hamali
 
 
 def test_farmer_can_comment_on_posted_field_work():
