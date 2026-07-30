@@ -1,0 +1,1350 @@
+From a14de6845e17b028a6e8524edb90e123deb8dd08 Mon Sep 17 00:00:00 2001
+From: Cursor Agent <cursoragent@cursor.com>
+Date: Thu, 30 Jul 2026 04:12:28 +0000
+Subject: [PATCH] feat(hamali): add HAMALI viewer role with read-only work home
+ screen
+
+- Add HAMALI_VIEW and HAMALI_WORK_MANAGE permissions with backend aliases
+- Register hamali module in menu, navigation guard, and bottom nav
+- HAMALI role lands on hamali home (Home + More tabs only)
+- New feature/hamali package: API, repository, HamaliHomeScreen with daily/week/month tabs
+- Dashboard quick action, EN/TE strings, RoleLabels, unit tests
+---
+ .../mobile/core/navigation/MainBottomNav.kt   |  12 +-
+ .../mobile/core/navigation/MainNavGraph.kt    |  18 +-
+ .../mobile/core/navigation/Routes.kt          |   1 +
+ .../mobile/core/security/rbac/MenuRegistry.kt |   2 +
+ .../core/security/rbac/NavigationGuard.kt     |   1 +
+ .../mobile/core/security/rbac/Permission.kt   |   7 +
+ .../mobile/core/security/rbac/RoleLabels.kt   |   2 +
+ .../dashboard/presentation/DashboardScreen.kt |   3 +
+ .../feature/hamali/data/remote/HamaliApi.kt   |  30 ++
+ .../hamali/data/remote/dto/HamaliDtos.kt      |  62 +++
+ .../data/repository/HamaliRepositoryImpl.kt   | 107 +++++
+ .../mobile/feature/hamali/di/HamaliModule.kt  |  31 ++
+ .../hamali/domain/model/HamaliModels.kt       |  42 ++
+ .../domain/repository/HamaliRepository.kt     |  15 +
+ .../hamali/navigation/HamaliNavigation.kt     |  29 ++
+ .../presentation/home/HamaliHomeScreen.kt     | 412 ++++++++++++++++++
+ .../presentation/home/HamaliHomeViewModel.kt  | 173 ++++++++
+ app/src/main/res/values-te/strings.xml        |  18 +
+ app/src/main/res/values/strings.xml           |  18 +
+ .../core/security/rbac/MenuRegistryTest.kt    |   5 +
+ .../core/security/rbac/NavigationGuardTest.kt |  12 +
+ .../core/security/rbac/RoleLabelsTest.kt      |   1 +
+ docs/CHANGELOG.md                             |   1 +
+ 23 files changed, 1000 insertions(+), 2 deletions(-)
+ create mode 100644 app/src/main/java/com/krishifarms/mobile/feature/hamali/data/remote/HamaliApi.kt
+ create mode 100644 app/src/main/java/com/krishifarms/mobile/feature/hamali/data/remote/dto/HamaliDtos.kt
+ create mode 100644 app/src/main/java/com/krishifarms/mobile/feature/hamali/data/repository/HamaliRepositoryImpl.kt
+ create mode 100644 app/src/main/java/com/krishifarms/mobile/feature/hamali/di/HamaliModule.kt
+ create mode 100644 app/src/main/java/com/krishifarms/mobile/feature/hamali/domain/model/HamaliModels.kt
+ create mode 100644 app/src/main/java/com/krishifarms/mobile/feature/hamali/domain/repository/HamaliRepository.kt
+ create mode 100644 app/src/main/java/com/krishifarms/mobile/feature/hamali/navigation/HamaliNavigation.kt
+ create mode 100644 app/src/main/java/com/krishifarms/mobile/feature/hamali/presentation/home/HamaliHomeScreen.kt
+ create mode 100644 app/src/main/java/com/krishifarms/mobile/feature/hamali/presentation/home/HamaliHomeViewModel.kt
+
+diff --git a/app/src/main/java/com/krishifarms/mobile/core/navigation/MainBottomNav.kt b/app/src/main/java/com/krishifarms/mobile/core/navigation/MainBottomNav.kt
+index 8739831..5d20d1d 100644
+--- a/app/src/main/java/com/krishifarms/mobile/core/navigation/MainBottomNav.kt
++++ b/app/src/main/java/com/krishifarms/mobile/core/navigation/MainBottomNav.kt
+@@ -28,7 +28,7 @@ enum class BottomNavTab(
+     val icon: ImageVector,
+     val moduleIds: Set<String>,
+ ) {
+-    HOME(Routes.DASHBOARD, R.string.bottom_nav_home, Icons.Default.Dashboard, setOf("dashboard")),
++    HOME(Routes.DASHBOARD, R.string.bottom_nav_home, Icons.Default.Dashboard, setOf("dashboard", "hamali")),
+     OPERATIONS(Routes.FARMERS, R.string.bottom_nav_operations, Icons.Default.Work, setOf("farmers", "farms", "procurement", "field_services", "workers", "work_orders", "attendance")),
+     COLLECT(Routes.COLLECTIONS, R.string.bottom_nav_collect, Icons.Default.AttachMoney, setOf("collections", "farmer_payments")),
+     FINANCE(Routes.EXPENSES, R.string.bottom_nav_finance, Icons.Default.AttachMoney, setOf("expenses", "payments")),
+@@ -46,6 +46,7 @@ fun MainBottomNav(
+     val backStackEntry by navController.currentBackStackEntryAsState()
+     val currentRoute = backStackEntry?.destination?.route
+     val modules = userContext?.accessibleModules ?: emptySet()
++    val roles = userContext?.roles ?: emptySet()
+ 
+     val visibleTabs = BottomNavTab.entries.filter { tab ->
+         tab == BottomNavTab.HOME ||
+@@ -68,6 +69,7 @@ fun MainBottomNav(
+                             }
+                     else ->
+                         currentRoute == tab.route ||
++                            currentRoute == homeLandingRoute(modules, roles) ||
+                             tab.moduleIds.any { module ->
+                                 currentRoute?.contains(module.replace('_', '/')) == true
+                             }
+@@ -87,6 +89,7 @@ fun MainBottomNav(
+                             listOf(Routes.EXPENSES, Routes.PAYMENTS),
+                         )
+                         BottomNavTab.MORE -> Routes.MORE
++                        BottomNavTab.HOME -> homeLandingRoute(modules, roles)
+                         else -> tab.route
+                     }
+                     navController.guardedNavigate(targetRoute, navigationGuard, onForbidden) {
+@@ -119,3 +122,10 @@ private fun firstAccessibleRoute(modules: Set<String>, candidates: List<String>)
+         moduleToRoute.entries.any { (module, mappedRoute) -> mappedRoute == route && modules.contains(module) }
+     } ?: candidates.first()
+ }
++
++private fun homeLandingRoute(modules: Set<String>, roles: Set<String>): String {
++    if (modules.contains("hamali") && roles.contains("HAMALI")) {
++        return Routes.HAMALI
++    }
++    return Routes.DASHBOARD
++}
+diff --git a/app/src/main/java/com/krishifarms/mobile/core/navigation/MainNavGraph.kt b/app/src/main/java/com/krishifarms/mobile/core/navigation/MainNavGraph.kt
+index cb807fb..d770a7d 100644
+--- a/app/src/main/java/com/krishifarms/mobile/core/navigation/MainNavGraph.kt
++++ b/app/src/main/java/com/krishifarms/mobile/core/navigation/MainNavGraph.kt
+@@ -44,6 +44,7 @@ import com.krishifarms.mobile.feature.expense.presentation.form.ExpenseFormScree
+ import com.krishifarms.mobile.feature.expense.presentation.list.ExpenseListScreen
+ import com.krishifarms.mobile.feature.farmer.navigation.farmerGraph
+ import com.krishifarms.mobile.feature.fieldservices.navigation.fieldServiceRoutes
++import com.krishifarms.mobile.feature.hamali.navigation.hamaliRoutes
+ import com.krishifarms.mobile.feature.procurement.presentation.detail.ProcurementDetailScreen
+ import com.krishifarms.mobile.feature.procurement.presentation.form.ProcurementFormScreen
+ import com.krishifarms.mobile.feature.procurement.presentation.list.ProcurementListScreen
+@@ -82,9 +83,18 @@ fun MainNavGraph(
+         currentRoute == entry.route || currentRoute?.startsWith("${entry.route}/") == true
+     } ?: menuEntries.firstOrNull()
+     val moreHubEntries = menuEntries.filter { it.moduleId != "dashboard" }
++    val startDestination = remember(session?.roles, session?.accessibleModules) {
++        val ctx = session
++        if (ctx?.roles?.contains("HAMALI") == true && ctx.accessibleModules.contains("hamali")) {
++            Routes.HAMALI
++        } else {
++            Routes.DASHBOARD
++        }
++    }
+     val topBarTitle = when (currentRoute) {
+         Routes.MORE -> stringResource(R.string.more_title)
+         Routes.DASHBOARD -> stringResource(R.string.bottom_nav_home)
++        Routes.HAMALI -> stringResource(R.string.hamali_title)
+         else -> currentMenuEntry?.titleRes?.let { stringResource(it) }
+             ?: stringResource(R.string.app_name)
+     }
+@@ -165,7 +175,7 @@ fun MainNavGraph(
+         ) { innerPadding ->
+             NavHost(
+                 navController = navController,
+-                startDestination = Routes.DASHBOARD,
++                startDestination = startDestination,
+                 modifier = Modifier.padding(innerPadding),
+             ) {
+                 composable(Routes.DASHBOARD) {
+@@ -387,6 +397,12 @@ fun MainNavGraph(
+                     guardedNavigate = ::guardedNavigate,
+                 )
+ 
++                hamaliRoutes(
++                    navController = navController,
++                    permissionManager = permissionManager,
++                    onNavigateToDashboard = ::goDashboard,
++                )
++
+                 composable(Routes.SETTINGS) {
+                     GuardedRoute(Routes.SETTINGS, permissionManager, ::goDashboard) {
+                         SettingsScreen(
+diff --git a/app/src/main/java/com/krishifarms/mobile/core/navigation/Routes.kt b/app/src/main/java/com/krishifarms/mobile/core/navigation/Routes.kt
+index 6e9c7fe..2a18034 100644
+--- a/app/src/main/java/com/krishifarms/mobile/core/navigation/Routes.kt
++++ b/app/src/main/java/com/krishifarms/mobile/core/navigation/Routes.kt
+@@ -67,6 +67,7 @@ object Routes {
+     const val ASSETS = "assets"
+     const val RENTALS = "rentals"
+     const val FIELD_SERVICES = "field_services"
++    const val HAMALI = "hamali"
+     const val DOCUMENTS = "documents"
+     const val MORE = "more"
+     const val ADMIN = "admin"
+diff --git a/app/src/main/java/com/krishifarms/mobile/core/security/rbac/MenuRegistry.kt b/app/src/main/java/com/krishifarms/mobile/core/security/rbac/MenuRegistry.kt
+index 633b639..1b988b0 100644
+--- a/app/src/main/java/com/krishifarms/mobile/core/security/rbac/MenuRegistry.kt
++++ b/app/src/main/java/com/krishifarms/mobile/core/security/rbac/MenuRegistry.kt
+@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.Grass
+ import androidx.compose.material.icons.filled.Groups
+ import androidx.compose.material.icons.filled.Inventory2
+ import androidx.compose.material.icons.filled.LocalShipping
++import androidx.compose.material.icons.filled.Work
+ import androidx.compose.material.icons.filled.Payments
+ import androidx.compose.material.icons.filled.People
+ import androidx.compose.material.icons.filled.Schedule
+@@ -44,6 +45,7 @@ object MenuRegistry {
+         MenuEntry("procurement", Routes.PROCUREMENT, R.string.nav_procurement, Icons.Default.ShoppingCart, 30, Permission.PROCUREMENT_VIEW),
+         MenuEntry("farmer_payments", Routes.FARMER_PAYMENTS, R.string.nav_farmer_payments, Icons.Default.Payments, 40, Permission.PAYMENT_VIEW),
+         MenuEntry("field_services", Routes.FIELD_SERVICES, R.string.nav_field_services, Icons.Default.Build, 45, Permission.FIELD_SERVICE_VIEW),
++        MenuEntry("hamali", Routes.HAMALI, R.string.nav_hamali, Icons.Default.Work, 47, Permission.HAMALI_VIEW),
+         MenuEntry("workers", Routes.WORKERS, R.string.nav_workers, Icons.Default.Groups, 50, Permission.WORKER_VIEW),
+         MenuEntry("work_orders", Routes.WORK_ORDERS, R.string.nav_work_orders, Icons.AutoMirrored.Filled.Assignment, 60, Permission.WORK_ORDER_VIEW),
+         MenuEntry("attendance", Routes.ATTENDANCE, R.string.nav_attendance, Icons.Default.Schedule, 70, Permission.ATTENDANCE_VIEW),
+diff --git a/app/src/main/java/com/krishifarms/mobile/core/security/rbac/NavigationGuard.kt b/app/src/main/java/com/krishifarms/mobile/core/security/rbac/NavigationGuard.kt
+index 441036a..9287725 100644
+--- a/app/src/main/java/com/krishifarms/mobile/core/security/rbac/NavigationGuard.kt
++++ b/app/src/main/java/com/krishifarms/mobile/core/security/rbac/NavigationGuard.kt
+@@ -40,6 +40,7 @@ object ScreenAccess {
+         Routes.RENTALS to setOf(Permission.RENTAL_VIEW),
+         Routes.FIELD_SERVICES to setOf(Permission.FIELD_SERVICE_VIEW),
+         FieldServiceRoutes.FORM to setOf(Permission.FIELD_SERVICE_CREATE),
++        Routes.HAMALI to setOf(Permission.HAMALI_VIEW),
+         Routes.DOCUMENTS to setOf(Permission.DOCUMENT_VIEW),
+         DocumentRoutes.LIST to setOf(Permission.DOCUMENT_VIEW),
+         DocumentRoutes.UPLOAD to setOf(Permission.DOCUMENT_CREATE),
+diff --git a/app/src/main/java/com/krishifarms/mobile/core/security/rbac/Permission.kt b/app/src/main/java/com/krishifarms/mobile/core/security/rbac/Permission.kt
+index 2876be0..ca42ebb 100644
+--- a/app/src/main/java/com/krishifarms/mobile/core/security/rbac/Permission.kt
++++ b/app/src/main/java/com/krishifarms/mobile/core/security/rbac/Permission.kt
+@@ -73,6 +73,9 @@ enum class Permission(val code: String) {
+     FIELD_SERVICE_VIEW("FIELD_SERVICE_VIEW"),
+     FIELD_SERVICE_CREATE("FIELD_SERVICE_CREATE"),
+     FIELD_SERVICE_UPDATE("FIELD_SERVICE_UPDATE"),
++
++    HAMALI_VIEW("HAMALI_VIEW"),
++    HAMALI_WORK_MANAGE("HAMALI_WORK_MANAGE"),
+     ;
+ 
+     companion object {
+@@ -81,6 +84,10 @@ enum class Permission(val code: String) {
+             "comments:create" to COMMENT_CREATE,
+             "tags:read" to TAG_VIEW,
+             "tags:manage" to TAG_MANAGE,
++            "hamali_work:read" to HAMALI_VIEW,
++            "hamali_work:create" to HAMALI_WORK_MANAGE,
++            "hamali_work:update" to HAMALI_WORK_MANAGE,
++            "hamali_work:delete" to HAMALI_WORK_MANAGE,
+         )
+ 
+         fun fromCode(code: String): Permission? {
+diff --git a/app/src/main/java/com/krishifarms/mobile/core/security/rbac/RoleLabels.kt b/app/src/main/java/com/krishifarms/mobile/core/security/rbac/RoleLabels.kt
+index a637d4f..b950d54 100644
+--- a/app/src/main/java/com/krishifarms/mobile/core/security/rbac/RoleLabels.kt
++++ b/app/src/main/java/com/krishifarms/mobile/core/security/rbac/RoleLabels.kt
+@@ -20,6 +20,7 @@ object RoleLabels {
+         "WORKER" to "Worker",
+         "FARMER" to "Farmer",
+         "ACCOUNTANT" to "Accountant",
++        "HAMALI" to "Hamali / Porter",
+     )
+ 
+     @StringRes
+@@ -33,6 +34,7 @@ object RoleLabels {
+             "WORKER" -> R.string.role_worker
+             "FARMER" -> R.string.role_farmer
+             "ACCOUNTANT" -> R.string.role_accountant
++            "HAMALI" -> R.string.role_hamali
+             else -> null
+         }
+ 
+diff --git a/app/src/main/java/com/krishifarms/mobile/feature/dashboard/presentation/DashboardScreen.kt b/app/src/main/java/com/krishifarms/mobile/feature/dashboard/presentation/DashboardScreen.kt
+index cde9b8c..627cc01 100644
+--- a/app/src/main/java/com/krishifarms/mobile/feature/dashboard/presentation/DashboardScreen.kt
++++ b/app/src/main/java/com/krishifarms/mobile/feature/dashboard/presentation/DashboardScreen.kt
+@@ -26,6 +26,7 @@ import androidx.compose.material.icons.outlined.HomeWork
+ import androidx.compose.material.icons.outlined.Payments
+ import androidx.compose.material.icons.outlined.People
+ import androidx.compose.material.icons.outlined.ShoppingCart
++import androidx.compose.material.icons.outlined.Work
+ import androidx.compose.material3.AssistChip
+ import androidx.compose.material3.AssistChipDefaults
+ import androidx.compose.material3.Button
+@@ -400,6 +401,8 @@ private fun UserContext?.quickActions(): List<DashboardQuickAction> {
+             to (accessibleModules.contains("farmers") || permissions.contains(Permission.FARMER_VIEW)),
+         DashboardQuickAction(Routes.PROCUREMENT, R.string.nav_procurement, Icons.Outlined.ShoppingCart)
+             to (accessibleModules.contains("procurement") || permissions.contains(Permission.PROCUREMENT_VIEW)),
++        DashboardQuickAction(Routes.HAMALI, R.string.nav_hamali, Icons.Outlined.Work)
++            to (accessibleModules.contains("hamali") || permissions.contains(Permission.HAMALI_VIEW)),
+         DashboardQuickAction(Routes.DOCUMENTS, R.string.nav_documents, Icons.Outlined.Description)
+             to (accessibleModules.contains("documents") || permissions.contains(Permission.DOCUMENT_VIEW)),
+         DashboardQuickAction(AdminRoutes.HUB, R.string.nav_admin, Icons.Outlined.AdminPanelSettings)
+diff --git a/app/src/main/java/com/krishifarms/mobile/feature/hamali/data/remote/HamaliApi.kt b/app/src/main/java/com/krishifarms/mobile/feature/hamali/data/remote/HamaliApi.kt
+new file mode 100644
+index 0000000..c914636
+--- /dev/null
++++ b/app/src/main/java/com/krishifarms/mobile/feature/hamali/data/remote/HamaliApi.kt
+@@ -0,0 +1,30 @@
++package com.krishifarms.mobile.feature.hamali.data.remote
++
++import com.krishifarms.mobile.core.network.ApiResponse
++import com.krishifarms.mobile.feature.hamali.data.remote.dto.HamaliDailyDto
++import com.krishifarms.mobile.feature.hamali.data.remote.dto.HamaliSummaryPeriodDto
++import com.krishifarms.mobile.feature.hamali.data.remote.dto.HamaliWorkEntryListData
++import retrofit2.http.GET
++import retrofit2.http.Query
++
++interface HamaliApi {
++    @GET("hamali/me/daily")
++    suspend fun getMyDaily(
++        @Query("work_date") workDate: String? = null,
++    ): ApiResponse<HamaliDailyDto>
++
++    @GET("hamali/me/summary")
++    suspend fun getMySummary(
++        @Query("period") period: String,
++        @Query("anchor_date") anchorDate: String? = null,
++    ): ApiResponse<HamaliSummaryPeriodDto>
++
++    @GET("hamali/work-entries")
++    suspend fun listWorkEntries(
++        @Query("page") page: Int = 1,
++        @Query("page_size") pageSize: Int = 50,
++        @Query("work_date") workDate: String? = null,
++        @Query("date_from") dateFrom: String? = null,
++        @Query("date_to") dateTo: String? = null,
++    ): ApiResponse<HamaliWorkEntryListData>
++}
+diff --git a/app/src/main/java/com/krishifarms/mobile/feature/hamali/data/remote/dto/HamaliDtos.kt b/app/src/main/java/com/krishifarms/mobile/feature/hamali/data/remote/dto/HamaliDtos.kt
+new file mode 100644
+index 0000000..6d826c4
+--- /dev/null
++++ b/app/src/main/java/com/krishifarms/mobile/feature/hamali/data/remote/dto/HamaliDtos.kt
+@@ -0,0 +1,62 @@
++package com.krishifarms.mobile.feature.hamali.data.remote.dto
++
++import kotlinx.serialization.SerialName
++import kotlinx.serialization.Serializable
++
++@Serializable
++data class HamaliDailyLineDto(
++    @SerialName("farmer_id") val farmerId: String,
++    @SerialName("farmer_name") val farmerName: String,
++    @SerialName("bag_count") val bagCount: Int,
++    @SerialName("tip_amount") val tipAmount: String,
++)
++
++@Serializable
++data class HamaliDailyDto(
++    @SerialName("work_date") val workDate: String,
++    @SerialName("total_bags") val totalBags: Int,
++    @SerialName("total_tips") val totalTips: String,
++    val lines: List<HamaliDailyLineDto> = emptyList(),
++)
++
++@Serializable
++data class HamaliTipByFarmerDto(
++    @SerialName("farmer_id") val farmerId: String,
++    @SerialName("farmer_name") val farmerName: String,
++    @SerialName("bag_count") val bagCount: Int,
++    @SerialName("tip_amount") val tipAmount: String,
++)
++
++@Serializable
++data class HamaliSummaryPeriodDto(
++    val period: String,
++    @SerialName("date_from") val dateFrom: String,
++    @SerialName("date_to") val dateTo: String,
++    @SerialName("total_bags") val totalBags: Int,
++    @SerialName("total_tips") val totalTips: String,
++    @SerialName("days_worked") val daysWorked: Int,
++    @SerialName("by_farmer") val byFarmer: List<HamaliTipByFarmerDto> = emptyList(),
++    @SerialName("by_day") val byDay: List<HamaliDailyDto> = emptyList(),
++)
++
++@Serializable
++data class HamaliWorkEntryDto(
++    val id: String,
++    @SerialName("worker_id") val workerId: String,
++    @SerialName("farmer_id") val farmerId: String,
++    @SerialName("work_date") val workDate: String,
++    @SerialName("bag_count") val bagCount: Int,
++    @SerialName("tip_amount") val tipAmount: String,
++    @SerialName("procurement_id") val procurementId: String? = null,
++    val notes: String? = null,
++    @SerialName("worker_name") val workerName: String? = null,
++    @SerialName("farmer_name") val farmerName: String? = null,
++)
++
++@Serializable
++data class HamaliWorkEntryListData(
++    val items: List<HamaliWorkEntryDto>,
++    val total: Int,
++    val page: Int,
++    @SerialName("page_size") val pageSize: Int,
++)
+diff --git a/app/src/main/java/com/krishifarms/mobile/feature/hamali/data/repository/HamaliRepositoryImpl.kt b/app/src/main/java/com/krishifarms/mobile/feature/hamali/data/repository/HamaliRepositoryImpl.kt
+new file mode 100644
+index 0000000..27a58d2
+--- /dev/null
++++ b/app/src/main/java/com/krishifarms/mobile/feature/hamali/data/repository/HamaliRepositoryImpl.kt
+@@ -0,0 +1,107 @@
++package com.krishifarms.mobile.feature.hamali.data.repository
++
++import com.krishifarms.mobile.core.common.DispatcherProvider
++import com.krishifarms.mobile.core.network.NetworkResult
++import com.krishifarms.mobile.core.network.safeApiCall
++import com.krishifarms.mobile.feature.hamali.data.remote.HamaliApi
++import com.krishifarms.mobile.feature.hamali.data.remote.dto.HamaliDailyDto
++import com.krishifarms.mobile.feature.hamali.data.remote.dto.HamaliDailyLineDto
++import com.krishifarms.mobile.feature.hamali.data.remote.dto.HamaliSummaryPeriodDto
++import com.krishifarms.mobile.feature.hamali.data.remote.dto.HamaliTipByFarmerDto
++import com.krishifarms.mobile.feature.hamali.data.remote.dto.HamaliWorkEntryDto
++import com.krishifarms.mobile.feature.hamali.domain.model.HamaliDailyLine
++import com.krishifarms.mobile.feature.hamali.domain.model.HamaliDailySummary
++import com.krishifarms.mobile.feature.hamali.domain.model.HamaliFarmerSummary
++import com.krishifarms.mobile.feature.hamali.domain.model.HamaliPeriodSummary
++import com.krishifarms.mobile.feature.hamali.domain.model.HamaliWorkEntry
++import com.krishifarms.mobile.feature.hamali.domain.repository.HamaliRepository
++import kotlinx.coroutines.withContext
++import javax.inject.Inject
++import javax.inject.Singleton
++
++@Singleton
++class HamaliRepositoryImpl @Inject constructor(
++    private val api: HamaliApi,
++    private val dispatchers: DispatcherProvider,
++) : HamaliRepository {
++
++    override suspend fun getMyDaily(workDate: String?): Result<HamaliDailySummary> =
++        withContext(dispatchers.io) {
++            when (val result = safeApiCall { api.getMyDaily(workDate) }) {
++                is NetworkResult.Success -> Result.success(result.data.data.toDomain())
++                is NetworkResult.Error -> Result.failure(IllegalStateException(result.message))
++            }
++        }
++
++    override suspend fun getMySummary(period: String, anchorDate: String?): Result<HamaliPeriodSummary> =
++        withContext(dispatchers.io) {
++            when (val result = safeApiCall { api.getMySummary(period, anchorDate) }) {
++                is NetworkResult.Success -> Result.success(result.data.data.toDomain())
++                is NetworkResult.Error -> Result.failure(IllegalStateException(result.message))
++            }
++        }
++
++    override suspend fun listWorkEntries(
++        workDate: String?,
++        dateFrom: String?,
++        dateTo: String?,
++    ): Result<List<HamaliWorkEntry>> = withContext(dispatchers.io) {
++        when (
++            val result = safeApiCall {
++                api.listWorkEntries(
++                    page = 1,
++                    pageSize = 100,
++                    workDate = workDate,
++                    dateFrom = dateFrom,
++                    dateTo = dateTo,
++                )
++            }
++        ) {
++            is NetworkResult.Success ->
++                Result.success(result.data.data.items.map { it.toDomain() })
++            is NetworkResult.Error ->
++                Result.failure(IllegalStateException(result.message))
++        }
++    }
++}
++
++private fun HamaliDailyDto.toDomain() = HamaliDailySummary(
++    workDate = workDate,
++    totalBags = totalBags,
++    totalTips = totalTips,
++    lines = lines.map { it.toDomain() },
++)
++
++private fun HamaliDailyLineDto.toDomain() = HamaliDailyLine(
++    farmerId = farmerId,
++    farmerName = farmerName,
++    bagCount = bagCount,
++    tipAmount = tipAmount,
++)
++
++private fun HamaliSummaryPeriodDto.toDomain() = HamaliPeriodSummary(
++    period = period,
++    dateFrom = dateFrom,
++    dateTo = dateTo,
++    totalBags = totalBags,
++    totalTips = totalTips,
++    daysWorked = daysWorked,
++    byFarmer = byFarmer.map { it.toDomain() },
++    byDay = byDay.map { it.toDomain() },
++)
++
++private fun HamaliTipByFarmerDto.toDomain() = HamaliFarmerSummary(
++    farmerId = farmerId,
++    farmerName = farmerName,
++    bagCount = bagCount,
++    tipAmount = tipAmount,
++)
++
++private fun HamaliWorkEntryDto.toDomain() = HamaliWorkEntry(
++    id = id,
++    workDate = workDate,
++    farmerName = farmerName.orEmpty(),
++    bagCount = bagCount,
++    tipAmount = tipAmount,
++    notes = notes,
++)
+diff --git a/app/src/main/java/com/krishifarms/mobile/feature/hamali/di/HamaliModule.kt b/app/src/main/java/com/krishifarms/mobile/feature/hamali/di/HamaliModule.kt
+new file mode 100644
+index 0000000..eb18e2b
+--- /dev/null
++++ b/app/src/main/java/com/krishifarms/mobile/feature/hamali/di/HamaliModule.kt
+@@ -0,0 +1,31 @@
++package com.krishifarms.mobile.feature.hamali.di
++
++import com.krishifarms.mobile.feature.hamali.data.remote.HamaliApi
++import com.krishifarms.mobile.feature.hamali.data.repository.HamaliRepositoryImpl
++import com.krishifarms.mobile.feature.hamali.domain.repository.HamaliRepository
++import dagger.Binds
++import dagger.Module
++import dagger.Provides
++import dagger.hilt.InstallIn
++import dagger.hilt.components.SingletonComponent
++import retrofit2.Retrofit
++import javax.inject.Named
++import javax.inject.Singleton
++
++@Module
++@InstallIn(SingletonComponent::class)
++abstract class HamaliRepositoryModule {
++    @Binds
++    @Singleton
++    abstract fun bindHamaliRepository(impl: HamaliRepositoryImpl): HamaliRepository
++}
++
++@Module
++@InstallIn(SingletonComponent::class)
++object HamaliApiModule {
++    @Provides
++    @Singleton
++    fun provideHamaliApi(
++        @Named("authenticated_retrofit") retrofit: Retrofit,
++    ): HamaliApi = retrofit.create(HamaliApi::class.java)
++}
+diff --git a/app/src/main/java/com/krishifarms/mobile/feature/hamali/domain/model/HamaliModels.kt b/app/src/main/java/com/krishifarms/mobile/feature/hamali/domain/model/HamaliModels.kt
+new file mode 100644
+index 0000000..7b61860
+--- /dev/null
++++ b/app/src/main/java/com/krishifarms/mobile/feature/hamali/domain/model/HamaliModels.kt
+@@ -0,0 +1,42 @@
++package com.krishifarms.mobile.feature.hamali.domain.model
++
++data class HamaliDailyLine(
++    val farmerId: String,
++    val farmerName: String,
++    val bagCount: Int,
++    val tipAmount: String,
++)
++
++data class HamaliDailySummary(
++    val workDate: String,
++    val totalBags: Int,
++    val totalTips: String,
++    val lines: List<HamaliDailyLine>,
++)
++
++data class HamaliFarmerSummary(
++    val farmerId: String,
++    val farmerName: String,
++    val bagCount: Int,
++    val tipAmount: String,
++)
++
++data class HamaliPeriodSummary(
++    val period: String,
++    val dateFrom: String,
++    val dateTo: String,
++    val totalBags: Int,
++    val totalTips: String,
++    val daysWorked: Int,
++    val byFarmer: List<HamaliFarmerSummary>,
++    val byDay: List<HamaliDailySummary>,
++)
++
++data class HamaliWorkEntry(
++    val id: String,
++    val workDate: String,
++    val farmerName: String,
++    val bagCount: Int,
++    val tipAmount: String,
++    val notes: String?,
++)
+diff --git a/app/src/main/java/com/krishifarms/mobile/feature/hamali/domain/repository/HamaliRepository.kt b/app/src/main/java/com/krishifarms/mobile/feature/hamali/domain/repository/HamaliRepository.kt
+new file mode 100644
+index 0000000..36f56cb
+--- /dev/null
++++ b/app/src/main/java/com/krishifarms/mobile/feature/hamali/domain/repository/HamaliRepository.kt
+@@ -0,0 +1,15 @@
++package com.krishifarms.mobile.feature.hamali.domain.repository
++
++import com.krishifarms.mobile.feature.hamali.domain.model.HamaliDailySummary
++import com.krishifarms.mobile.feature.hamali.domain.model.HamaliPeriodSummary
++import com.krishifarms.mobile.feature.hamali.domain.model.HamaliWorkEntry
++
++interface HamaliRepository {
++    suspend fun getMyDaily(workDate: String?): Result<HamaliDailySummary>
++    suspend fun getMySummary(period: String, anchorDate: String?): Result<HamaliPeriodSummary>
++    suspend fun listWorkEntries(
++        workDate: String? = null,
++        dateFrom: String? = null,
++        dateTo: String? = null,
++    ): Result<List<HamaliWorkEntry>>
++}
+diff --git a/app/src/main/java/com/krishifarms/mobile/feature/hamali/navigation/HamaliNavigation.kt b/app/src/main/java/com/krishifarms/mobile/feature/hamali/navigation/HamaliNavigation.kt
+new file mode 100644
+index 0000000..ebbe2f8
+--- /dev/null
++++ b/app/src/main/java/com/krishifarms/mobile/feature/hamali/navigation/HamaliNavigation.kt
+@@ -0,0 +1,29 @@
++package com.krishifarms.mobile.feature.hamali.navigation
++
++import androidx.navigation.NavGraphBuilder
++import androidx.navigation.NavHostController
++import androidx.navigation.compose.composable
++import com.krishifarms.mobile.core.navigation.Routes
++import com.krishifarms.mobile.core.security.rbac.GuardedRoute
++import com.krishifarms.mobile.core.security.rbac.PermissionManager
++import com.krishifarms.mobile.feature.hamali.presentation.home.HamaliHomeScreen
++
++object HamaliRoutes {
++    const val HOME = Routes.HAMALI
++}
++
++fun NavGraphBuilder.hamaliRoutes(
++    navController: NavHostController,
++    permissionManager: PermissionManager,
++    onNavigateToDashboard: () -> Unit,
++) {
++    composable(Routes.HAMALI) {
++        val showBack = navController.previousBackStackEntry != null
++        GuardedRoute(Routes.HAMALI, permissionManager, onNavigateToDashboard) {
++            HamaliHomeScreen(
++                onBack = { navController.popBackStack() },
++                showBack = showBack,
++            )
++        }
++    }
++}
+diff --git a/app/src/main/java/com/krishifarms/mobile/feature/hamali/presentation/home/HamaliHomeScreen.kt b/app/src/main/java/com/krishifarms/mobile/feature/hamali/presentation/home/HamaliHomeScreen.kt
+new file mode 100644
+index 0000000..d8eedc5
+--- /dev/null
++++ b/app/src/main/java/com/krishifarms/mobile/feature/hamali/presentation/home/HamaliHomeScreen.kt
+@@ -0,0 +1,412 @@
++package com.krishifarms.mobile.feature.hamali.presentation.home
++
++import androidx.compose.foundation.layout.Arrangement
++import androidx.compose.foundation.layout.Box
++import androidx.compose.foundation.layout.Column
++import androidx.compose.foundation.layout.PaddingValues
++import androidx.compose.foundation.layout.Row
++import androidx.compose.foundation.layout.fillMaxSize
++import androidx.compose.foundation.layout.fillMaxWidth
++import androidx.compose.foundation.layout.padding
++import androidx.compose.foundation.lazy.LazyColumn
++import androidx.compose.foundation.lazy.items
++import androidx.compose.material.icons.Icons
++import androidx.compose.material.icons.automirrored.filled.ArrowBack
++import androidx.compose.material.icons.filled.ChevronLeft
++import androidx.compose.material.icons.filled.ChevronRight
++import androidx.compose.material3.Card
++import androidx.compose.material3.CircularProgressIndicator
++import androidx.compose.material3.ExperimentalMaterial3Api
++import androidx.compose.material3.Icon
++import androidx.compose.material3.IconButton
++import androidx.compose.material3.MaterialTheme
++import androidx.compose.material3.Scaffold
++import androidx.compose.material3.Tab
++import androidx.compose.material3.TabRow
++import androidx.compose.material3.Text
++import androidx.compose.material3.TopAppBar
++import androidx.compose.material3.pulltorefresh.PullToRefreshBox
++import androidx.compose.runtime.Composable
++import androidx.compose.runtime.getValue
++import androidx.compose.ui.Alignment
++import androidx.compose.ui.Modifier
++import androidx.compose.ui.res.stringResource
++import androidx.compose.ui.text.font.FontWeight
++import androidx.compose.ui.unit.dp
++import androidx.hilt.navigation.compose.hiltViewModel
++import androidx.lifecycle.compose.collectAsStateWithLifecycle
++import com.krishifarms.mobile.R
++import com.krishifarms.mobile.feature.hamali.domain.model.HamaliDailyLine
++import com.krishifarms.mobile.feature.hamali.domain.model.HamaliDailySummary
++import com.krishifarms.mobile.feature.hamali.domain.model.HamaliFarmerSummary
++import com.krishifarms.mobile.feature.hamali.domain.model.HamaliPeriodSummary
++import java.text.NumberFormat
++import java.util.Locale
++
++@OptIn(ExperimentalMaterial3Api::class)
++@Composable
++fun HamaliHomeScreen(
++    onBack: () -> Unit,
++    showBack: Boolean = true,
++    viewModel: HamaliHomeViewModel = hiltViewModel(),
++) {
++    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
++    val currencyFormat = NumberFormat.getCurrencyInstance(Locale("en", "IN"))
++
++    Scaffold(
++        topBar = {
++            TopAppBar(
++                title = { Text(stringResource(R.string.hamali_title)) },
++                navigationIcon = {
++                    if (showBack) {
++                        IconButton(onClick = onBack) {
++                            Icon(
++                                Icons.AutoMirrored.Filled.ArrowBack,
++                                contentDescription = stringResource(R.string.common_back),
++                            )
++                        }
++                    }
++                },
++            )
++        },
++    ) { padding ->
++        Column(
++            modifier = Modifier
++                .fillMaxSize()
++                .padding(padding),
++        ) {
++            TabRow(selectedTabIndex = uiState.selectedTab.ordinal) {
++                Tab(
++                    selected = uiState.selectedTab == HamaliHomeTab.DAILY,
++                    onClick = { viewModel.onTabSelected(HamaliHomeTab.DAILY) },
++                    text = { Text(stringResource(R.string.hamali_tab_daily)) },
++                )
++                Tab(
++                    selected = uiState.selectedTab == HamaliHomeTab.WEEK,
++                    onClick = { viewModel.onTabSelected(HamaliHomeTab.WEEK) },
++                    text = { Text(stringResource(R.string.hamali_tab_week)) },
++                )
++                Tab(
++                    selected = uiState.selectedTab == HamaliHomeTab.MONTH,
++                    onClick = { viewModel.onTabSelected(HamaliHomeTab.MONTH) },
++                    text = { Text(stringResource(R.string.hamali_tab_month)) },
++                )
++            }
++
++            DateNavigator(
++                label = when (uiState.selectedTab) {
++                    HamaliHomeTab.DAILY -> viewModel.formatWorkDateLabel()
++                    HamaliHomeTab.WEEK, HamaliHomeTab.MONTH -> viewModel.periodLabel()
++                },
++                onPrevious = {
++                    when (uiState.selectedTab) {
++                        HamaliHomeTab.DAILY -> viewModel.onPreviousDay()
++                        else -> viewModel.onPreviousPeriod()
++                    }
++                },
++                onNext = {
++                    when (uiState.selectedTab) {
++                        HamaliHomeTab.DAILY -> viewModel.onNextDay()
++                        else -> viewModel.onNextPeriod()
++                    }
++                },
++            )
++
++            PullToRefreshBox(
++                isRefreshing = uiState.isRefreshing,
++                onRefresh = viewModel::refresh,
++                modifier = Modifier.fillMaxSize(),
++            ) {
++                when {
++                    uiState.isLoading -> {
++                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
++                            CircularProgressIndicator()
++                        }
++                    }
++                    uiState.errorMessage != null -> {
++                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
++                            Text(
++                                text = uiState.errorMessage ?: stringResource(R.string.common_error),
++                                color = MaterialTheme.colorScheme.error,
++                            )
++                        }
++                    }
++                    else -> {
++                        when (uiState.selectedTab) {
++                            HamaliHomeTab.DAILY -> DailyContent(
++                                daily = uiState.daily,
++                                currencyFormat = currencyFormat,
++                            )
++                            HamaliHomeTab.WEEK -> PeriodContent(
++                                summary = uiState.weekSummary,
++                                currencyFormat = currencyFormat,
++                            )
++                            HamaliHomeTab.MONTH -> PeriodContent(
++                                summary = uiState.monthSummary,
++                                currencyFormat = currencyFormat,
++                            )
++                        }
++                    }
++                }
++            }
++        }
++    }
++}
++
++@Composable
++private fun DateNavigator(
++    label: String,
++    onPrevious: () -> Unit,
++    onNext: () -> Unit,
++    modifier: Modifier = Modifier,
++) {
++    Row(
++        modifier = modifier
++            .fillMaxWidth()
++            .padding(horizontal = 8.dp, vertical = 4.dp),
++        horizontalArrangement = Arrangement.SpaceBetween,
++        verticalAlignment = Alignment.CenterVertically,
++    ) {
++        IconButton(onClick = onPrevious) {
++            Icon(Icons.Default.ChevronLeft, contentDescription = stringResource(R.string.hamali_previous))
++        }
++        Text(
++            text = label,
++            style = MaterialTheme.typography.titleMedium,
++            fontWeight = FontWeight.SemiBold,
++        )
++        IconButton(onClick = onNext) {
++            Icon(Icons.Default.ChevronRight, contentDescription = stringResource(R.string.hamali_next))
++        }
++    }
++}
++
++@Composable
++private fun DailyContent(
++    daily: HamaliDailySummary?,
++    currencyFormat: NumberFormat,
++) {
++    if (daily == null) {
++        EmptyHamaliState()
++        return
++    }
++    LazyColumn(
++        contentPadding = PaddingValues(16.dp),
++        verticalArrangement = Arrangement.spacedBy(12.dp),
++    ) {
++        item {
++            SummaryStatsRow(
++                totalBags = daily.totalBags,
++                totalTips = daily.totalTips,
++                currencyFormat = currencyFormat,
++            )
++        }
++        if (daily.lines.isEmpty()) {
++            item { EmptyHamaliState() }
++        } else {
++            item {
++                Text(
++                    text = stringResource(R.string.hamali_tips_by_farmer),
++                    style = MaterialTheme.typography.titleSmall,
++                    fontWeight = FontWeight.SemiBold,
++                )
++            }
++            items(daily.lines, key = { it.farmerId }) { line ->
++                FarmerLineCard(line = line, currencyFormat = currencyFormat)
++            }
++        }
++    }
++}
++
++@Composable
++private fun PeriodContent(
++    summary: HamaliPeriodSummary?,
++    currencyFormat: NumberFormat,
++) {
++    if (summary == null) {
++        EmptyHamaliState()
++        return
++    }
++    LazyColumn(
++        contentPadding = PaddingValues(16.dp),
++        verticalArrangement = Arrangement.spacedBy(12.dp),
++    ) {
++        item {
++            SummaryStatsRow(
++                totalBags = summary.totalBags,
++                totalTips = summary.totalTips,
++                currencyFormat = currencyFormat,
++                daysWorked = summary.daysWorked,
++            )
++        }
++        if (summary.byFarmer.isEmpty()) {
++            item { EmptyHamaliState() }
++        } else {
++            item {
++                Text(
++                    text = stringResource(R.string.hamali_tips_by_farmer),
++                    style = MaterialTheme.typography.titleSmall,
++                    fontWeight = FontWeight.SemiBold,
++                )
++            }
++            items(summary.byFarmer, key = { it.farmerId }) { farmer ->
++                FarmerSummaryCard(farmer = farmer, currencyFormat = currencyFormat)
++            }
++        }
++        if (summary.byDay.isNotEmpty()) {
++            item {
++                Text(
++                    text = stringResource(R.string.hamali_daily_breakdown),
++                    style = MaterialTheme.typography.titleSmall,
++                    fontWeight = FontWeight.SemiBold,
++                    modifier = Modifier.padding(top = 8.dp),
++                )
++            }
++            items(summary.byDay, key = { it.workDate }) { day ->
++                DaySummaryCard(day = day, currencyFormat = currencyFormat)
++            }
++        }
++    }
++}
++
++@Composable
++private fun SummaryStatsRow(
++    totalBags: Int,
++    totalTips: String,
++    currencyFormat: NumberFormat,
++    daysWorked: Int? = null,
++) {
++    Row(
++        modifier = Modifier.fillMaxWidth(),
++        horizontalArrangement = Arrangement.spacedBy(12.dp),
++    ) {
++        StatCard(
++            label = stringResource(R.string.hamali_total_bags),
++            value = totalBags.toString(),
++            modifier = Modifier.weight(1f),
++        )
++        StatCard(
++            label = stringResource(R.string.hamali_total_tips),
++            value = formatTipAmount(totalTips, currencyFormat),
++            modifier = Modifier.weight(1f),
++        )
++        if (daysWorked != null) {
++            StatCard(
++                label = stringResource(R.string.hamali_days_worked),
++                value = daysWorked.toString(),
++                modifier = Modifier.weight(1f),
++            )
++        }
++    }
++}
++
++@Composable
++private fun StatCard(
++    label: String,
++    value: String,
++    modifier: Modifier = Modifier,
++) {
++    Card(modifier = modifier) {
++        Column(
++            modifier = Modifier.padding(12.dp),
++            verticalArrangement = Arrangement.spacedBy(4.dp),
++        ) {
++            Text(text = label, style = MaterialTheme.typography.labelMedium)
++            Text(
++                text = value,
++                style = MaterialTheme.typography.titleMedium,
++                fontWeight = FontWeight.Bold,
++            )
++        }
++    }
++}
++
++@Composable
++private fun FarmerLineCard(
++    line: HamaliDailyLine,
++    currencyFormat: NumberFormat,
++) {
++    Card(modifier = Modifier.fillMaxWidth()) {
++        Row(
++            modifier = Modifier
++                .fillMaxWidth()
++                .padding(16.dp),
++            horizontalArrangement = Arrangement.SpaceBetween,
++            verticalAlignment = Alignment.CenterVertically,
++        ) {
++            Column(modifier = Modifier.weight(1f)) {
++                Text(text = line.farmerName, style = MaterialTheme.typography.titleSmall)
++                Text(
++                    text = stringResource(R.string.hamali_bags_count, line.bagCount),
++                    style = MaterialTheme.typography.bodyMedium,
++                    color = MaterialTheme.colorScheme.onSurfaceVariant,
++                )
++            }
++            Text(
++                text = formatTipAmount(line.tipAmount, currencyFormat),
++                style = MaterialTheme.typography.titleSmall,
++                fontWeight = FontWeight.SemiBold,
++            )
++        }
++    }
++}
++
++@Composable
++private fun FarmerSummaryCard(
++    farmer: HamaliFarmerSummary,
++    currencyFormat: NumberFormat,
++) {
++    FarmerLineCard(
++        line = HamaliDailyLine(
++            farmerId = farmer.farmerId,
++            farmerName = farmer.farmerName,
++            bagCount = farmer.bagCount,
++            tipAmount = farmer.tipAmount,
++        ),
++        currencyFormat = currencyFormat,
++    )
++}
++
++@Composable
++private fun DaySummaryCard(
++    day: HamaliDailySummary,
++    currencyFormat: NumberFormat,
++) {
++    Card(modifier = Modifier.fillMaxWidth()) {
++        Column(
++            modifier = Modifier.padding(16.dp),
++            verticalArrangement = Arrangement.spacedBy(4.dp),
++        ) {
++            Text(text = day.workDate, style = MaterialTheme.typography.titleSmall)
++            Text(
++                text = stringResource(
++                    R.string.hamali_day_summary,
++                    day.totalBags,
++                    formatTipAmount(day.totalTips, currencyFormat),
++                ),
++                style = MaterialTheme.typography.bodyMedium,
++                color = MaterialTheme.colorScheme.onSurfaceVariant,
++            )
++        }
++    }
++}
++
++@Composable
++private fun EmptyHamaliState() {
++    Box(
++        modifier = Modifier
++            .fillMaxWidth()
++            .padding(32.dp),
++        contentAlignment = Alignment.Center,
++    ) {
++        Text(
++            text = stringResource(R.string.hamali_empty),
++            style = MaterialTheme.typography.bodyLarge,
++            color = MaterialTheme.colorScheme.onSurfaceVariant,
++        )
++    }
++}
++
++private fun formatTipAmount(amount: String, currencyFormat: NumberFormat): String =
++    runCatching { currencyFormat.format(amount.toBigDecimal()) }
++        .getOrDefault("₹$amount")
+diff --git a/app/src/main/java/com/krishifarms/mobile/feature/hamali/presentation/home/HamaliHomeViewModel.kt b/app/src/main/java/com/krishifarms/mobile/feature/hamali/presentation/home/HamaliHomeViewModel.kt
+new file mode 100644
+index 0000000..0fa2625
+--- /dev/null
++++ b/app/src/main/java/com/krishifarms/mobile/feature/hamali/presentation/home/HamaliHomeViewModel.kt
+@@ -0,0 +1,173 @@
++package com.krishifarms.mobile.feature.hamali.presentation.home
++
++import androidx.lifecycle.ViewModel
++import androidx.lifecycle.viewModelScope
++import com.krishifarms.mobile.feature.hamali.domain.model.HamaliDailySummary
++import com.krishifarms.mobile.feature.hamali.domain.model.HamaliPeriodSummary
++import com.krishifarms.mobile.feature.hamali.domain.repository.HamaliRepository
++import dagger.hilt.android.lifecycle.HiltViewModel
++import kotlinx.coroutines.flow.MutableStateFlow
++import kotlinx.coroutines.flow.StateFlow
++import kotlinx.coroutines.flow.asStateFlow
++import kotlinx.coroutines.flow.update
++import kotlinx.coroutines.launch
++import java.time.LocalDate
++import java.time.format.DateTimeFormatter
++import javax.inject.Inject
++
++enum class HamaliHomeTab {
++    DAILY,
++    WEEK,
++    MONTH,
++}
++
++data class HamaliHomeUiState(
++    val selectedTab: HamaliHomeTab = HamaliHomeTab.DAILY,
++    val workDate: String = LocalDate.now().toString(),
++    val anchorDate: String = LocalDate.now().toString(),
++    val isLoading: Boolean = true,
++    val isRefreshing: Boolean = false,
++    val daily: HamaliDailySummary? = null,
++    val weekSummary: HamaliPeriodSummary? = null,
++    val monthSummary: HamaliPeriodSummary? = null,
++    val errorMessage: String? = null,
++)
++
++@HiltViewModel
++class HamaliHomeViewModel @Inject constructor(
++    private val repository: HamaliRepository,
++) : ViewModel() {
++
++    private val _uiState = MutableStateFlow(HamaliHomeUiState())
++    val uiState: StateFlow<HamaliHomeUiState> = _uiState.asStateFlow()
++
++    private val displayDateFormatter = DateTimeFormatter.ofPattern("d MMM yyyy")
++
++    init {
++        refresh()
++    }
++
++    fun onTabSelected(tab: HamaliHomeTab) {
++        _uiState.update { it.copy(selectedTab = tab) }
++        refresh()
++    }
++
++    fun onPreviousDay() {
++        adjustWorkDate(days = -1)
++    }
++
++    fun onNextDay() {
++        adjustWorkDate(days = 1)
++    }
++
++    fun onPreviousPeriod() {
++        adjustAnchorDate(
++            when (_uiState.value.selectedTab) {
++                HamaliHomeTab.WEEK -> -7
++                HamaliHomeTab.MONTH -> -1
++                HamaliHomeTab.DAILY -> 0
++            },
++        )
++    }
++
++    fun onNextPeriod() {
++        adjustAnchorDate(
++            when (_uiState.value.selectedTab) {
++                HamaliHomeTab.WEEK -> 7
++                HamaliHomeTab.MONTH -> 1
++                HamaliHomeTab.DAILY -> 0
++            },
++        )
++    }
++
++    fun refresh() {
++        viewModelScope.launch {
++            val state = _uiState.value
++            val refreshing = state.daily != null || state.weekSummary != null || state.monthSummary != null
++            _uiState.update {
++                it.copy(
++                    isLoading = !refreshing,
++                    isRefreshing = refreshing,
++                    errorMessage = null,
++                )
++            }
++            when (state.selectedTab) {
++                HamaliHomeTab.DAILY -> loadDaily(state.workDate)
++                HamaliHomeTab.WEEK -> loadSummary("week", state.anchorDate, isWeek = true)
++                HamaliHomeTab.MONTH -> loadSummary("month", state.anchorDate, isWeek = false)
++            }
++        }
++    }
++
++    fun formatWorkDateLabel(): String =
++        runCatching { LocalDate.parse(_uiState.value.workDate).format(displayDateFormatter) }
++            .getOrDefault(_uiState.value.workDate)
++
++    fun periodLabel(): String {
++        val summary = when (_uiState.value.selectedTab) {
++            HamaliHomeTab.WEEK -> _uiState.value.weekSummary
++            HamaliHomeTab.MONTH -> _uiState.value.monthSummary
++            HamaliHomeTab.DAILY -> null
++        } ?: return ""
++        val from = runCatching { LocalDate.parse(summary.dateFrom).format(displayDateFormatter) }
++            .getOrDefault(summary.dateFrom)
++        val to = runCatching { LocalDate.parse(summary.dateTo).format(displayDateFormatter) }
++            .getOrDefault(summary.dateTo)
++        return "$from – $to"
++    }
++
++    private fun adjustWorkDate(days: Long) {
++        val next = runCatching {
++            LocalDate.parse(_uiState.value.workDate).plusDays(days).toString()
++        }.getOrNull() ?: return
++        _uiState.update { it.copy(workDate = next) }
++        refresh()
++    }
++
++    private fun adjustAnchorDate(amount: Int) {
++        if (amount == 0) return
++        val next = runCatching {
++            val current = LocalDate.parse(_uiState.value.anchorDate)
++            when (_uiState.value.selectedTab) {
++                HamaliHomeTab.MONTH -> current.plusMonths(amount.toLong()).toString()
++                else -> current.plusDays(amount.toLong()).toString()
++            }
++        }.getOrNull() ?: return
++        _uiState.update { it.copy(anchorDate = next) }
++        refresh()
++    }
++
++    private suspend fun loadDaily(workDate: String) {
++        repository.getMyDaily(workDate).fold(
++            onSuccess = { daily ->
++                _uiState.update {
++                    it.copy(isLoading = false, isRefreshing = false, daily = daily, errorMessage = null)
++                }
++            },
++            onFailure = { error ->
++                _uiState.update {
++                    it.copy(isLoading = false, isRefreshing = false, errorMessage = error.message)
++                }
++            },
++        )
++    }
++
++    private suspend fun loadSummary(period: String, anchorDate: String, isWeek: Boolean) {
++        repository.getMySummary(period, anchorDate).fold(
++            onSuccess = { summary ->
++                _uiState.update {
++                    if (isWeek) {
++                        it.copy(isLoading = false, isRefreshing = false, weekSummary = summary, errorMessage = null)
++                    } else {
++                        it.copy(isLoading = false, isRefreshing = false, monthSummary = summary, errorMessage = null)
++                    }
++                }
++            },
++            onFailure = { error ->
++                _uiState.update {
++                    it.copy(isLoading = false, isRefreshing = false, errorMessage = error.message)
++                }
++            },
++        )
++    }
++}
+diff --git a/app/src/main/res/values-te/strings.xml b/app/src/main/res/values-te/strings.xml
+index 76a1de4..bb8ac2c 100644
+--- a/app/src/main/res/values-te/strings.xml
++++ b/app/src/main/res/values-te/strings.xml
+@@ -49,6 +49,7 @@
+     <string name="nav_payments">చెల్లింపులు</string>
+     <string name="nav_vehicles">వాహనాలు</string>
+     <string name="nav_field_services">ఫీల్డ్ సేవలు</string>
++    <string name="nav_hamali">హమాలి పని</string>
+     <string name="location_district">జిల్లా</string>
+     <string name="location_mandal">మండలం</string>
+     <string name="location_village">గ్రామం</string>
+@@ -437,6 +438,23 @@
+     <string name="role_worker">కార్మికుడు</string>
+     <string name="role_farmer">రైతు</string>
+     <string name="role_accountant">అకౌంటెంట్</string>
++    <string name="role_hamali">హమాలి / పోర్టర్</string>
++
++    <!-- Hamali -->
++    <string name="hamali_title">నా పని</string>
++    <string name="hamali_tab_daily">ఈరోజు</string>
++    <string name="hamali_tab_week">వారం</string>
++    <string name="hamali_tab_month">నెల</string>
++    <string name="hamali_total_bags">మొత్తం సంచులు</string>
++    <string name="hamali_total_tips">మొత్తం టిప్పులు</string>
++    <string name="hamali_days_worked">పని చేసిన రోజులు</string>
++    <string name="hamali_tips_by_farmer">రైతు వారీగా టిప్పులు</string>
++    <string name="hamali_daily_breakdown">రోజు వారీ వివరాలు</string>
++    <string name="hamali_bags_count">%1$d సంచులు</string>
++    <string name="hamali_day_summary">%1$d సంచులు · %2$s టిప్పులు</string>
++    <string name="hamali_empty">ఈ కాలంలో పని నమోదు లేదు</string>
++    <string name="hamali_previous">మునుపటి</string>
++    <string name="hamali_next">తదుపరి</string>
+ 
+     <!-- Domain statuses -->
+     <string name="status_draft">డ్రాఫ్ట్</string>
+diff --git a/app/src/main/res/values/strings.xml b/app/src/main/res/values/strings.xml
+index 1cf1ef7..0efca90 100644
+--- a/app/src/main/res/values/strings.xml
++++ b/app/src/main/res/values/strings.xml
+@@ -49,6 +49,7 @@
+     <string name="nav_payments">Payments</string>
+     <string name="nav_vehicles">Vehicles</string>
+     <string name="nav_field_services">Field services</string>
++    <string name="nav_hamali">Hamali work</string>
+     <string name="location_district">District</string>
+     <string name="location_mandal">Mandal</string>
+     <string name="location_village">Village</string>
+@@ -436,6 +437,23 @@
+     <string name="role_worker">Worker</string>
+     <string name="role_farmer">Farmer</string>
+     <string name="role_accountant">Accountant</string>
++    <string name="role_hamali">Hamali / Porter</string>
++
++    <!-- Hamali -->
++    <string name="hamali_title">My work</string>
++    <string name="hamali_tab_daily">Today</string>
++    <string name="hamali_tab_week">Week</string>
++    <string name="hamali_tab_month">Month</string>
++    <string name="hamali_total_bags">Total bags</string>
++    <string name="hamali_total_tips">Total tips</string>
++    <string name="hamali_days_worked">Days worked</string>
++    <string name="hamali_tips_by_farmer">Tips by farmer</string>
++    <string name="hamali_daily_breakdown">Daily breakdown</string>
++    <string name="hamali_bags_count">%1$d bags</string>
++    <string name="hamali_day_summary">%1$d bags · %2$s tips</string>
++    <string name="hamali_empty">No work recorded for this period</string>
++    <string name="hamali_previous">Previous</string>
++    <string name="hamali_next">Next</string>
+ 
+     <!-- Domain statuses -->
+     <string name="status_draft">Draft</string>
+diff --git a/app/src/test/java/com/krishifarms/mobile/core/security/rbac/MenuRegistryTest.kt b/app/src/test/java/com/krishifarms/mobile/core/security/rbac/MenuRegistryTest.kt
+index 05ca6a0..e4c6aca 100644
+--- a/app/src/test/java/com/krishifarms/mobile/core/security/rbac/MenuRegistryTest.kt
++++ b/app/src/test/java/com/krishifarms/mobile/core/security/rbac/MenuRegistryTest.kt
+@@ -18,6 +18,11 @@ class MenuRegistryTest {
+         assertEquals(listOf(Permission.FARMER_VIEW.code), MenuRegistry.viewPermissionsForModule("farmers"))
+     }
+ 
++    @Test
++    fun viewPermissionsForModule_returnsHamaliViewForHamali() {
++        assertEquals(listOf(Permission.HAMALI_VIEW.code), MenuRegistry.viewPermissionsForModule("hamali"))
++    }
++
+     @Test
+     fun entryForRoute_matchesNestedRoutes() {
+         val entry = MenuRegistry.entryForRoute("farmers/abc-123")
+diff --git a/app/src/test/java/com/krishifarms/mobile/core/security/rbac/NavigationGuardTest.kt b/app/src/test/java/com/krishifarms/mobile/core/security/rbac/NavigationGuardTest.kt
+index 92938f3..1da1519 100644
+--- a/app/src/test/java/com/krishifarms/mobile/core/security/rbac/NavigationGuardTest.kt
++++ b/app/src/test/java/com/krishifarms/mobile/core/security/rbac/NavigationGuardTest.kt
+@@ -44,6 +44,18 @@ class NavigationGuardTest {
+         assertTrue(navigationGuard.canAccess(Routes.MORE))
+     }
+ 
++    @Test
++    fun canAccess_allowsHamaliWithViewPermission() {
++        permissionManager.updateContext(userContext(setOf(Permission.HAMALI_VIEW)))
++        assertTrue(navigationGuard.canAccess(Routes.HAMALI))
++    }
++
++    @Test
++    fun canAccess_blocksHamaliWithoutViewPermission() {
++        permissionManager.updateContext(userContext(emptySet()))
++        assertFalse(navigationGuard.canAccess(Routes.HAMALI))
++    }
++
+     @Test
+     fun fallbackRoute_isDashboard() {
+         assertEquals(Routes.DASHBOARD, navigationGuard.fallbackRoute())
+diff --git a/app/src/test/java/com/krishifarms/mobile/core/security/rbac/RoleLabelsTest.kt b/app/src/test/java/com/krishifarms/mobile/core/security/rbac/RoleLabelsTest.kt
+index a94f525..df1ee9e 100644
+--- a/app/src/test/java/com/krishifarms/mobile/core/security/rbac/RoleLabelsTest.kt
++++ b/app/src/test/java/com/krishifarms/mobile/core/security/rbac/RoleLabelsTest.kt
+@@ -14,6 +14,7 @@ class RoleLabelsTest {
+         assertEquals("Agent", RoleLabels.displayName("AGENT"))
+         assertEquals("Farmer", RoleLabels.displayName("FARMER"))
+         assertEquals("Accountant", RoleLabels.displayName("ACCOUNTANT"))
++        assertEquals("Hamali / Porter", RoleLabels.displayName("HAMALI"))
+     }
+ 
+     @Test
+diff --git a/docs/CHANGELOG.md b/docs/CHANGELOG.md
+index f642ce7..255748b 100644
+--- a/docs/CHANGELOG.md
++++ b/docs/CHANGELOG.md
+@@ -4,6 +4,7 @@
+ 
+ ### Added
+ 
++- **HAMALI viewer role** — `HAMALI_VIEW` / `HAMALI_WORK_MANAGE` permissions; `RoleLabels` + EN/TE strings; `hamali` module in menu/drawer; read-only `HamaliHomeScreen` (daily bags + tips by farmer, week/month summary tabs) via `GET /hamali/me/daily|summary`; HAMALI role lands on Home (hamali) + More only; dashboard quick action; login remains admin-provisioned (no signup UI)
+ - **Full Telugu locale coverage** — `Accept-Language` on API calls; catalog/location `name_te` via `LocalizedNames`; Telugu role/status/category labels; filled missing TE keys (sync + procurement wizard)
+ - **Admin user delete + Play Store legal UX** — `LegalApi` (`GET legal/privacy|account-deletion|legal`) + DTOs on authenticated Retrofit; `UsersApi.deleteMyAccount` (`DELETE users/me`); `AdminApi.deleteUser` + repository; OWNER-only user list delete (not self) with confirm dialog; Settings privacy policy link (API URL with vercel fallback) + Delete account dialog that clears session and logs out; EN + TE strings
+ - **Role × screen QA (CRM doc)** — audit matrix for OWNER/MANAGER/SUPERVISOR/DRIVER/AGENT/FARMER in CRM `docs/qa/ROLE_SCREEN_AUDIT.md`; notes P0 DRIVER Ops landing bug (`firstAccessibleRoute` omits `field_services`) and fleet stubs
+-- 
+2.43.0
+
