@@ -35,9 +35,15 @@ from app.modules.farmers.profile_360_schemas import (
 from app.modules.farmers.service import farmer_outstanding, get_farmer, list_bank_accounts
 from app.modules.field_services.models import FieldServiceRecord
 from app.modules.master_data.models import CropType, Village
-from app.modules.platform.models import Buyer, EntityComment, PaymentMode, VehicleType
+from app.modules.platform.models import ActivityType, Buyer, EntityComment, PaymentMode, VehicleType
 from app.modules.procurements.models import FarmerLedgerEntry, Procurement
 from app.modules.users.models import User
+from app.shared.work_details import (
+    bale_count_from_work_details,
+    parse_work_details_from_comments,
+    strip_work_details_marker,
+    trips_from_work_details,
+)
 
 _ZERO = Decimal("0")
 _CONFIRMED_PROC = frozenset({"confirmed", "paid_partial", "paid_full"})
@@ -115,9 +121,10 @@ def _build_summary(db: Session, farmer: Farmer, tags: list[str]) -> Farmer360Sum
 
 def _services(db: Session, org_id: UUID, farmer_id: UUID) -> list[ServiceHistoryItem]:
     rows = (
-        db.query(FieldServiceRecord, Asset.name, VehicleType.name)
+        db.query(FieldServiceRecord, Asset.name, VehicleType.name, ActivityType.name)
         .outerjoin(Asset, Asset.id == FieldServiceRecord.asset_id)
         .outerjoin(VehicleType, VehicleType.id == FieldServiceRecord.vehicle_type_id)
+        .outerjoin(ActivityType, ActivityType.id == FieldServiceRecord.activity_type_id)
         .filter(
             FieldServiceRecord.org_id == org_id,
             FieldServiceRecord.farmer_id == farmer_id,
@@ -128,9 +135,13 @@ def _services(db: Session, org_id: UUID, farmer_id: UUID) -> list[ServiceHistory
         .all()
     )
     items: list[ServiceHistoryItem] = []
-    for row, asset_name, vt_name in rows:
+    for row, asset_name, vt_name, activity_name in rows:
         pending = row.pending_amount or _ZERO
         payment_status = "paid" if pending == 0 else ("partial" if (row.advance_amount or _ZERO) > 0 else "pending")
+        work_details, _free = parse_work_details_from_comments(row.comments)
+        trips = row.bag_count if row.service_category == "transport" else trips_from_work_details(work_details)
+        bales = bale_count_from_work_details(work_details)
+        remarks = strip_work_details_marker(row.comments)
         items.append(
             ServiceHistoryItem(
                 id=row.id,
@@ -139,16 +150,18 @@ def _services(db: Session, org_id: UUID, farmer_id: UUID) -> list[ServiceHistory
                 service_category=row.service_category,
                 vehicle_name=asset_name,
                 vehicle_type=vt_name,
+                activity_type=activity_name,
                 operator=None,
                 hours=row.hours,
-                trips=row.bag_count if row.service_category == "transport" else None,
+                trips=trips,
+                bales=bales,
                 area_covered=row.quantity if row.quantity_unit in (None, "acres", "acre") else None,
                 diesel_amount=_money(row.diesel_amount),
                 amount_charged=_money(row.total_amount),
                 pending_amount=_money(pending),
                 payment_status=payment_status,
                 status=row.status,
-                remarks=row.comments,
+                remarks=remarks,
             )
         )
     return items
@@ -462,7 +475,8 @@ def _analytics(
     confirmed = [p for p in procurements if p.status in _CONFIRMED_PROC]
     revenue = sum((p.net_amount for p in confirmed), _ZERO)
     diesel = sum((s.diesel_amount for s in services), _ZERO)
-    hours = sum((s.hours or _ZERO for s in services), _ZERO)
+    tractor_services = [s for s in services if s.service_category == "tractor_work"]
+    hours = sum((s.hours or _ZERO for s in tractor_services), _ZERO)
     trips = sum((s.trips or 0 for s in services), 0)
 
     delays: list[int] = []
@@ -702,15 +716,21 @@ def _timeline(
     ]
 
     for s in services:
+        title_bits = [s.service_category.replace("_", " ").title()]
+        if s.vehicle_type:
+            title_bits.append(s.vehicle_type)
+        elif s.activity_type:
+            title_bits.append(s.activity_type)
         events.append(
             TimelineEvent(
                 event_type="service",
-                title=f"Service: {s.service_category}",
+                title=f"Service: {' · '.join(title_bits)}",
                 description=s.record_number,
                 occurred_at=datetime.combine(s.service_date, datetime.min.time(), tzinfo=UTC),
                 entity_type="field_service",
                 entity_id=s.id,
                 amount=s.amount_charged,
+                meta={"status": s.status, "category": s.service_category},
             )
         )
         if s.diesel_amount > 0:
@@ -743,7 +763,7 @@ def _timeline(
             TimelineEvent(
                 event_type="procurement",
                 title=f"Procurement {p.procurement_number}",
-                description=f"{p.crop_name or 'Crop'} · {p.quantity_kg} kg",
+                description=f"{p.crop_name or 'Crop'} · {p.quantity_kg} kg · {p.status}",
                 occurred_at=datetime.combine(p.procurement_date, datetime.min.time(), tzinfo=UTC),
                 entity_type="procurement",
                 entity_id=p.id,

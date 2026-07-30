@@ -67,6 +67,7 @@ export const CATEGORY_FIELDS: Record<ServiceCategory, FieldKey[]> = {
     "vehicle_type_id",
     "location",
     "hours",
+    "rate_per_unit",
     "diesel_amount",
     "advance_amount",
     "total_amount",

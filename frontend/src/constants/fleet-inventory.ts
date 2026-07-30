@@ -107,6 +107,7 @@ export type VehicleWorkProfile =
   | "dcm"
   | "pump"
   | "drone"
+  | "baler"
   | null;
 
 /** Farming implements share tractor-style crop/area/stage questions. */
@@ -116,10 +117,10 @@ const TRACTOR_PROFILE_CODES = new Set([
   "JD_TRACTOR_4W",
   "CULTIVATOR",
   "ROTAVATOR",
-  "BALER",
   "WEEDER",
   "HARVESTER",
 ]);
+const BALER_PROFILE_CODES = new Set(["BALER"]);
 const TROLLEY_PROFILE_CODES = new Set(["TROLLEY"]);
 const BOLERO_PROFILE_CODES = new Set(["BOLERO", "MAHINDRA_BOLERO"]);
 const DCM_PROFILE_CODES = new Set(["DCM", "EICHER_DCM"]);
@@ -132,6 +133,7 @@ export function resolveVehicleWorkProfile(
 ): VehicleWorkProfile {
   if (!code) return null;
   const c = code.toUpperCase();
+  if (BALER_PROFILE_CODES.has(c)) return "baler";
   if (TRACTOR_PROFILE_CODES.has(c)) return "tractor";
   if (TROLLEY_PROFILE_CODES.has(c)) return "trolley";
   if (BOLERO_PROFILE_CODES.has(c)) return "bolero";
@@ -145,11 +147,11 @@ export function resolveVehicleWorkProfile(
   if (c.includes("DCM")) return "dcm";
   if (c.includes("DRONE")) return "drone";
   if (c.includes("PUMP")) return "pump";
+  if (c.includes("BALER")) return "baler";
   if (
     c.includes("TRACTOR") ||
     c.includes("CULTIVATOR") ||
     c.includes("ROTAVATOR") ||
-    c.includes("BALER") ||
     c.includes("WEEDER") ||
     c.includes("HARVESTER") ||
     /[24]W/.test(c)

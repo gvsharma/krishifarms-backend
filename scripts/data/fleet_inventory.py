@@ -5,20 +5,40 @@ Canonical catalog for field services, vehicle types master data, and fleet place
 
 from __future__ import annotations
 
+# Default billing rates for tractor implements (INR)
+IMPLEMENT_DEFAULT_RATES: dict[str, dict[str, object]] = {
+    "CULTIVATOR": {"default_rate": "1200.00", "default_rate_unit": "hour"},
+    "ROTAVATOR": {"default_rate": "1440.00", "default_rate_unit": "hour"},
+    "TROLLEY": {"default_rate": "250.00", "default_rate_unit": "trip"},
+    "BALER": {"default_rate": "40.00", "default_rate_unit": "bale"},
+    "WEEDER": {"default_rate": "1000.00", "default_rate_unit": "hour"},
+    "FERTILIZER_PUMP": {"default_rate": "500.00", "default_rate_unit": "hour"},
+    "PUMP": {"default_rate": "500.00", "default_rate_unit": "hour"},
+}
+
+
+def _vehicle_row(base: dict) -> dict:
+    code = base["code"]
+    rates = IMPLEMENT_DEFAULT_RATES.get(code, {})
+    return {**base, **rates}
+
+
 # Dropdown / ops vehicle types (Tractor … Drone)
 FLEET_SERVICE_TYPES: list[dict] = [
-    {"code": "TRACTOR", "name": "Tractor", "name_te": "ట్రాక్టర్", "fuel_type": "tractor"},
-    {"code": "CULTIVATOR", "name": "Cultivator", "name_te": "కల్టివేటర్", "fuel_type": "implement"},
-    {"code": "ROTAVATOR", "name": "Rotavator", "name_te": "రోటవేటర్", "fuel_type": "implement"},
-    {"code": "BALER", "name": "Baler", "name_te": "బేలర్", "fuel_type": "implement"},
-    {"code": "TROLLEY", "name": "Trolley", "name_te": "ట్రాలీ", "fuel_type": "implement"},
-    {"code": "WEEDER", "name": "Weeder", "name_te": "వీడర్", "fuel_type": "implement"},
-    {
-        "code": "FERTILIZER_PUMP",
-        "name": "Fertilizer Pump",
-        "name_te": "ఎరువు పంపు",
-        "fuel_type": "implement",
-    },
+    _vehicle_row({"code": "TRACTOR", "name": "Tractor", "name_te": "ట్రాక్టర్", "fuel_type": "tractor"}),
+    _vehicle_row({"code": "CULTIVATOR", "name": "Cultivator", "name_te": "కల్టివేటర్", "fuel_type": "implement"}),
+    _vehicle_row({"code": "ROTAVATOR", "name": "Rotavator", "name_te": "రోటవేటర్", "fuel_type": "implement"}),
+    _vehicle_row({"code": "BALER", "name": "Baler", "name_te": "బేలర్", "fuel_type": "implement"}),
+    _vehicle_row({"code": "TROLLEY", "name": "Trolley", "name_te": "ట్రాలీ", "fuel_type": "implement"}),
+    _vehicle_row({"code": "WEEDER", "name": "Weeder", "name_te": "వీడర్", "fuel_type": "implement"}),
+    _vehicle_row(
+        {
+            "code": "FERTILIZER_PUMP",
+            "name": "Fertilizer Pump",
+            "name_te": "ఎరువు పంపు",
+            "fuel_type": "implement",
+        }
+    ),
     {"code": "BOLERO", "name": "Bolero", "name_te": "బోలేరో", "fuel_type": "diesel"},
     {"code": "DCM", "name": "DCM", "name_te": "డీసీఎం", "fuel_type": "diesel"},
     {"code": "HARVESTER", "name": "Harvester", "name_te": "హార్వెస్టర్", "fuel_type": "diesel"},
@@ -102,12 +122,14 @@ FLEET_IMPLEMENTS: list[dict] = [
 
 # Legacy codes kept for idempotent upsert on existing orgs (name refresh only).
 LEGACY_VEHICLE_ALIASES: list[dict] = [
-    {
-        "code": "PUMP",
-        "name": "Fertilizer Pump",
-        "name_te": "ఎరువు పంపు",
-        "fuel_type": "implement",
-    },
+    _vehicle_row(
+        {
+            "code": "PUMP",
+            "name": "Fertilizer Pump",
+            "name_te": "ఎరువు పంపు",
+            "fuel_type": "implement",
+        }
+    ),
 ]
 
 DEFAULT_VEHICLE_TYPES: list[dict] = [

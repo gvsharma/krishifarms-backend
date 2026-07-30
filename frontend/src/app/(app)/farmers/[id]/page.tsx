@@ -148,6 +148,20 @@ function EmptyNote({ text }: { text: string }) {
   );
 }
 
+function entityDetailHref(
+  entityType: string | null | undefined,
+  entityId: string | null | undefined,
+): string | null {
+  if (!entityType || !entityId) return null;
+  if (entityType === "procurement") return `/procurement/${entityId}`;
+  if (entityType === "field_service") return `/field-services/${entityId}`;
+  return null;
+}
+
+function categoryLabel(value: string): string {
+  return value.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 function renderSection(section: Farmer360Section, profile: Farmer360Profile, farmerId: string) {
   const s = profile.statistics;
   const a = profile.analytics;
@@ -251,6 +265,56 @@ function renderSection(section: Farmer360Section, profile: Farmer360Profile, far
               </Stack>
             </>
           )}
+
+          {profile.timeline.length > 0 && (
+            <>
+              <Typography variant="subtitle2" sx={{ mt: 3, mb: 1 }}>
+                Recent activity
+              </Typography>
+              <Stack spacing={1}>
+                {profile.timeline.slice(0, 8).map((ev, idx) => {
+                  const href = entityDetailHref(ev.entity_type, ev.entity_id);
+                  return (
+                    <Box
+                      key={`recent-${ev.event_type}-${ev.occurred_at}-${idx}`}
+                      sx={{
+                        p: 1.25,
+                        borderRadius: 2,
+                        border: "1px solid",
+                        borderColor: "divider",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        gap: 2,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <Box>
+                        <Typography fontWeight={600}>{ev.title}</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {new Date(ev.occurred_at).toLocaleString()}
+                        </Typography>
+                        {ev.description && (
+                          <Typography variant="body2" color="text.secondary">
+                            {ev.description}
+                          </Typography>
+                        )}
+                      </Box>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        {ev.amount != null && (
+                          <Typography variant="body2">{formatInr(String(ev.amount))}</Typography>
+                        )}
+                        {href && (
+                          <Button component={Link} href={href} size="small">
+                            View
+                          </Button>
+                        )}
+                      </Stack>
+                    </Box>
+                  );
+                })}
+              </Stack>
+            </>
+          )}
         </SectionPanel>
       );
 
@@ -261,7 +325,9 @@ function renderSection(section: Farmer360Section, profile: Farmer360Profile, far
             <EmptyNote text="No timeline events yet" />
           ) : (
             <Stack spacing={1.5}>
-              {profile.timeline.map((ev, idx) => (
+              {profile.timeline.map((ev, idx) => {
+                const href = entityDetailHref(ev.entity_type, ev.entity_id);
+                return (
                 <Box
                   key={`${ev.event_type}-${ev.occurred_at}-${idx}`}
                   sx={{
@@ -292,9 +358,15 @@ function renderSection(section: Farmer360Section, profile: Farmer360Profile, far
                     {ev.amount != null && (
                       <Typography variant="body2">{formatInr(String(ev.amount))}</Typography>
                     )}
+                    {href && (
+                      <Button component={Link} href={href} size="small" sx={{ mt: 0.5, px: 0 }}>
+                        Open record
+                      </Button>
+                    )}
                   </Box>
                 </Box>
-              ))}
+              );
+              })}
             </Stack>
           )}
         </SectionPanel>
@@ -311,25 +383,43 @@ function renderSection(section: Farmer360Section, profile: Farmer360Profile, far
                 <TableRow>
                   <TableCell>Date</TableCell>
                   <TableCell>Category</TableCell>
-                  <TableCell>Vehicle</TableCell>
+                  <TableCell>Equipment</TableCell>
+                  <TableCell>Activity</TableCell>
                   <TableCell>Hours</TableCell>
-                  <TableCell>Diesel</TableCell>
+                  <TableCell>Trips/Bales</TableCell>
                   <TableCell>Amount</TableCell>
-                  <TableCell>Payment</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell />
                 </TableRow>
               </TableHead>
               <TableBody>
                 {profile.services.map((row) => (
                   <TableRow key={String(row.id)}>
                     <TableCell>{String(row.service_date)}</TableCell>
-                    <TableCell>{String(row.service_category)}</TableCell>
+                    <TableCell>{categoryLabel(String(row.service_category))}</TableCell>
                     <TableCell>
-                      {String(row.vehicle_name ?? row.vehicle_type ?? "—")}
+                      {String(row.vehicle_type ?? row.vehicle_name ?? "—")}
                     </TableCell>
+                    <TableCell>{String(row.activity_type ?? "—")}</TableCell>
                     <TableCell>{String(row.hours ?? "—")}</TableCell>
-                    <TableCell>{formatInr(String(row.diesel_amount ?? "0"))}</TableCell>
+                    <TableCell>
+                      {row.bales != null
+                        ? `${row.bales} bales`
+                        : row.trips != null
+                          ? `${row.trips} trips`
+                          : "—"}
+                    </TableCell>
                     <TableCell>{formatInr(String(row.amount_charged ?? "0"))}</TableCell>
-                    <TableCell>{String(row.payment_status)}</TableCell>
+                    <TableCell>{String(row.status)}</TableCell>
+                    <TableCell>
+                      <Button
+                        component={Link}
+                        href={`/field-services/${String(row.id)}`}
+                        size="small"
+                      >
+                        View
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -384,22 +474,36 @@ function renderSection(section: Farmer360Section, profile: Farmer360Profile, far
               <TableHead>
                 <TableRow>
                   <TableCell>Date</TableCell>
+                  <TableCell>Ref</TableCell>
                   <TableCell>Crop</TableCell>
                   <TableCell>Qty</TableCell>
                   <TableCell>Rate</TableCell>
+                  <TableCell>Amount</TableCell>
                   <TableCell>Buyer</TableCell>
                   <TableCell>Status</TableCell>
+                  <TableCell />
                 </TableRow>
               </TableHead>
               <TableBody>
                 {profile.procurements.map((row) => (
                   <TableRow key={String(row.id)}>
                     <TableCell>{String(row.procurement_date)}</TableCell>
+                    <TableCell>{String(row.procurement_number ?? "—")}</TableCell>
                     <TableCell>{String(row.crop_name ?? "—")}</TableCell>
                     <TableCell>{String(row.quantity_kg)} kg</TableCell>
                     <TableCell>{formatInr(String(row.rate_per_quintal ?? "0"))}</TableCell>
+                    <TableCell>{formatInr(String(row.net_amount ?? "0"))}</TableCell>
                     <TableCell>{String(row.buyer_name ?? "—")}</TableCell>
                     <TableCell>{String(row.status)}</TableCell>
+                    <TableCell>
+                      <Button
+                        component={Link}
+                        href={`/procurement/${String(row.id)}`}
+                        size="small"
+                      >
+                        View
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
