@@ -47,6 +47,12 @@ export interface ProcurementListItem {
   tags: string[];
 }
 
+export interface ProcurementBagEntry {
+  id: string;
+  bag_number: number;
+  weight_kg: string;
+}
+
 export interface ProcurementDetail extends ProcurementListItem {
   org_id: string;
   village_name: string | null;
@@ -55,10 +61,12 @@ export interface ProcurementDetail extends ProcurementListItem {
   bag_count: number;
   per_bag_deduction_kg: string;
   bag_weight_deduction_kg: string;
+  weight_per_bag_kg: string | null;
   is_spot_payment: boolean;
   spot_deduction_per_quintal: string;
   spot_deduction_amount: string;
   gross_weight_kg: string;
+  tare_weight_kg: string;
   moisture_pct: string | null;
   rate_per_quintal: string;
   gross_amount: string;
@@ -69,6 +77,7 @@ export interface ProcurementDetail extends ProcurementListItem {
   cancelled_at: string | null;
   cancellation_reason: string | null;
   deductions: ProcurementDeduction[];
+  bag_entries: ProcurementBagEntry[];
   comments: { id: string; body: string; author_name: string | null; created_at: string }[];
   /** Present for staff roles only; omitted for FARMER. */
   profit_summary?: ProcurementProfitSummary | null;
@@ -138,6 +147,7 @@ export function createProcurement(payload: {
   village_id: string;
   procurement_date: string;
   bag_count?: number;
+  weight_per_bag_kg?: string | null;
   per_bag_deduction_kg?: string | null;
   is_spot_payment?: boolean;
   spot_deduction_per_quintal?: string | null;
@@ -195,6 +205,7 @@ export function recordWeighment(
     moisture_pct?: string | null;
     bag_count?: number | null;
     per_bag_deduction_kg?: string | null;
+    bag_weights_kg?: string[] | null;
   },
 ): Promise<ProcurementDetail> {
   return fetchApi<ProcurementDetail>(
@@ -275,6 +286,66 @@ export function fetchCropTypes(): Promise<CropTypeListData> {
   return fetchApi<CropTypeListData>("/crop-types?page=1&page_size=50", {
     method: "GET",
     clientHeaders: false,
+  });
+}
+
+export interface ProcurementCalculatePayload {
+  bag_count: number;
+  weight_per_bag_kg: string;
+  per_bag_deduction_kg?: string | null;
+  tare_weight_kg?: string;
+  moisture_pct?: string | null;
+  rate_per_quintal: string;
+  is_spot_payment?: boolean;
+  spot_deduction_per_quintal?: string | null;
+  line_deduction_amount?: string;
+}
+
+export interface ProcurementCalculateResult {
+  gross_weight_kg: string;
+  bag_weight_deduction_kg: string;
+  net_weight_kg: string;
+  net_quintals: string;
+  gross_amount: string;
+  line_deduction_amount: string;
+  spot_deduction_amount: string;
+  net_amount: string;
+  moisture_pct: string | null;
+}
+
+export function calculateProcurement(
+  payload: ProcurementCalculatePayload,
+): Promise<ProcurementCalculateResult> {
+  return fetchApi<ProcurementCalculateResult>("/procurements/calculate", {
+    method: "POST",
+    body: payload,
+    clientHeaders: false,
+  });
+}
+
+export function createFieldEntry(payload: {
+  farmer_id: string;
+  crop_type_id: string;
+  village_id: string;
+  procurement_date: string;
+  bag_count: number;
+  weight_per_bag_kg: string;
+  per_bag_deduction_kg?: string | null;
+  tare_weight_kg?: string;
+  moisture_pct?: string | null;
+  rate_per_quintal: string;
+  is_spot_payment?: boolean;
+  spot_deduction_per_quintal?: string | null;
+  buyer_id?: string | null;
+  payment_terms?: string | null;
+  auto_confirm?: boolean;
+  notify_farmer?: boolean;
+  notes?: string | null;
+}): Promise<ProcurementDetail> {
+  return fetchApi<ProcurementDetail>("/procurements/field-entry", {
+    method: "POST",
+    body: payload,
+    clientHeaders: true,
   });
 }
 
