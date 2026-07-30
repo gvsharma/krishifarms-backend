@@ -1,0 +1,165 @@
+From d787c6494a3673a6c38285ef489e3d182aa37f93 Mon Sep 17 00:00:00 2001
+From: Cursor Agent <cursoragent@cursor.com>
+Date: Thu, 30 Jul 2026 04:27:59 +0000
+Subject: [PATCH] =?UTF-8?q?release:=20v1.0.3=20(versionCode=204)=20?=
+ =?UTF-8?q?=E2=80=94=20photo=20picker=20compliance=20for=20Play=20Store?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ app/build.gradle.kts                          |  4 +--
+ app/src/main/AndroidManifest.xml              |  4 ---
+ .../presentation/components/DocumentPicker.kt |  7 +----
+ .../permissions/DocumentPermissions.kt        | 26 +++----------------
+ .../components/BillAttachmentPicker.kt        |  9 +++++--
+ 5 files changed, 13 insertions(+), 37 deletions(-)
+
+diff --git a/app/build.gradle.kts b/app/build.gradle.kts
+index a052a93..655a711 100644
+--- a/app/build.gradle.kts
++++ b/app/build.gradle.kts
+@@ -24,8 +24,8 @@ android {
+         applicationId = "com.krishifarms.mobile"
+         minSdk = 26
+         targetSdk = 35
+-        versionCode = 1
+-        versionName = "1.0.0"
++        versionCode = 4
++        versionName = "1.0.3"
+ 
+         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+ 
+diff --git a/app/src/main/AndroidManifest.xml b/app/src/main/AndroidManifest.xml
+index 4f40986..5602c1a 100644
+--- a/app/src/main/AndroidManifest.xml
++++ b/app/src/main/AndroidManifest.xml
+@@ -6,10 +6,6 @@
+     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+     <uses-permission android:name="android.permission.CAMERA" />
+     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+-    <uses-permission
+-        android:name="android.permission.READ_EXTERNAL_STORAGE"
+-        android:maxSdkVersion="32" />
+ 
+     <uses-feature android:name="android.hardware.camera" android:required="false" />
+ 
+diff --git a/app/src/main/java/com/krishifarms/mobile/feature/document/presentation/components/DocumentPicker.kt b/app/src/main/java/com/krishifarms/mobile/feature/document/presentation/components/DocumentPicker.kt
+index 5f5636f..9a3224a 100644
+--- a/app/src/main/java/com/krishifarms/mobile/feature/document/presentation/components/DocumentPicker.kt
++++ b/app/src/main/java/com/krishifarms/mobile/feature/document/presentation/components/DocumentPicker.kt
+@@ -125,12 +125,7 @@ fun DocumentPicker(
+             }
+         },
+         onGallerySelected = {
+-            if (permissionState.needsGalleryPermission()) {
+-                permissionState.markPending(DocumentPermissionRequest.GALLERY)
+-                permissionLauncher.launch(permissionState.permissionFor(DocumentPermissionRequest.GALLERY))
+-            } else {
+-                pendingGalleryPick = true
+-            }
++            pendingGalleryPick = true
+         },
+     )
+ }
+diff --git a/app/src/main/java/com/krishifarms/mobile/feature/document/presentation/permissions/DocumentPermissions.kt b/app/src/main/java/com/krishifarms/mobile/feature/document/presentation/permissions/DocumentPermissions.kt
+index a437fa6..3a39603 100644
+--- a/app/src/main/java/com/krishifarms/mobile/feature/document/presentation/permissions/DocumentPermissions.kt
++++ b/app/src/main/java/com/krishifarms/mobile/feature/document/presentation/permissions/DocumentPermissions.kt
+@@ -1,7 +1,6 @@
+ package com.krishifarms.mobile.feature.document.presentation.permissions
+ 
+ import android.Manifest
+-import android.os.Build
+ import androidx.compose.runtime.Composable
+ import androidx.compose.runtime.getValue
+ import androidx.compose.runtime.mutableStateOf
+@@ -26,33 +25,20 @@ fun rememberDocumentPermissionState(): DocumentPermissionState {
+                     Manifest.permission.CAMERA,
+                 ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+             },
+-            hasGalleryPermission = {
+-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+-                    ContextCompat.checkSelfPermission(
+-                        context,
+-                        Manifest.permission.READ_MEDIA_IMAGES,
+-                    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+-                } else {
+-                    ContextCompat.checkSelfPermission(
+-                        context,
+-                        Manifest.permission.READ_EXTERNAL_STORAGE,
+-                    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+-                }
+-            },
+         )
+     }
+ }
+ 
+ class DocumentPermissionState(
+     private val hasCameraPermission: () -> Boolean,
+-    private val hasGalleryPermission: () -> Boolean,
+ ) {
+     var pendingRequest by mutableStateOf<DocumentPermissionRequest?>(null)
+         private set
+ 
+     fun needsCameraPermission(): Boolean = !hasCameraPermission()
+ 
+-    fun needsGalleryPermission(): Boolean = !hasGalleryPermission()
++    /** Gallery uses the system photo picker — no storage permission required. */
++    fun needsGalleryPermission(): Boolean = false
+ 
+     fun markPending(request: DocumentPermissionRequest) {
+         pendingRequest = request
+@@ -65,13 +51,7 @@ class DocumentPermissionState(
+     fun permissionFor(request: DocumentPermissionRequest): String {
+         return when (request) {
+             DocumentPermissionRequest.CAMERA -> Manifest.permission.CAMERA
+-            DocumentPermissionRequest.GALLERY -> {
+-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+-                    Manifest.permission.READ_MEDIA_IMAGES
+-                } else {
+-                    Manifest.permission.READ_EXTERNAL_STORAGE
+-                }
+-            }
++            DocumentPermissionRequest.GALLERY -> Manifest.permission.CAMERA
+         }
+     }
+ }
+diff --git a/app/src/main/java/com/krishifarms/mobile/feature/expense/presentation/components/BillAttachmentPicker.kt b/app/src/main/java/com/krishifarms/mobile/feature/expense/presentation/components/BillAttachmentPicker.kt
+index 14b58e6..205ea1d 100644
+--- a/app/src/main/java/com/krishifarms/mobile/feature/expense/presentation/components/BillAttachmentPicker.kt
++++ b/app/src/main/java/com/krishifarms/mobile/feature/expense/presentation/components/BillAttachmentPicker.kt
+@@ -3,6 +3,7 @@ package com.krishifarms.mobile.feature.expense.presentation.components
+ import android.Manifest
+ import android.content.pm.PackageManager
+ import androidx.activity.compose.rememberLauncherForActivityResult
++import androidx.activity.result.PickVisualMediaRequest
+ import androidx.activity.result.contract.ActivityResultContracts
+ import androidx.compose.foundation.layout.Arrangement
+ import androidx.compose.foundation.layout.Column
+@@ -49,7 +50,7 @@ fun BillAttachmentPicker(
+     var cameraFile by remember { mutableStateOf<File?>(null) }
+ 
+     val galleryLauncher = rememberLauncherForActivityResult(
+-        contract = ActivityResultContracts.GetContent(),
++        contract = ActivityResultContracts.PickVisualMedia(),
+     ) { uri ->
+         uri?.let {
+             val path = attachmentStorage.saveFromUri(it, "expense_bill")
+@@ -123,7 +124,11 @@ fun BillAttachmentPicker(
+                 horizontalArrangement = Arrangement.spacedBy(8.dp),
+             ) {
+                 OutlinedButton(
+-                    onClick = { galleryLauncher.launch("image/*") },
++                    onClick = {
++                        galleryLauncher.launch(
++                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
++                        )
++                    },
+                     modifier = Modifier.weight(1f),
+                 ) {
+                     Icon(Icons.Default.PhotoLibrary, contentDescription = null)
+-- 
+2.43.0
+
