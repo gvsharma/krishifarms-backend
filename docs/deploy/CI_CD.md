@@ -221,6 +221,7 @@ Locally generated copy: [`.github/DEPLOY_CONFIG.md`](../../.github/DEPLOY_CONFIG
 | `application.env not found. Run ec2-bootstrap.sh first` in `deploy.latest.log` | Bootstrap never run; workflow only created empty dirs | Run `ec2-bootstrap.sh` once, or let deploy auto-create env from S3 template (needs real `SECRET_KEY` / `POSTGRES_PASSWORD` via SSM or manual edit) |
 | `docker_ok=no` in preflight | Docker not installed on shared host | `sudo APP_PATH=/opt/krishifarms bash deploy/scripts/ec2-bootstrap.sh` via Session Manager |
 | Public health check timeout | Bootstrap incomplete, placeholder secrets, or nginx/API not up | Check `/opt/krishifarms/logs/deploy.latest.log` via Session Manager; set SSM params `/krishifarms/dev/app/secret_key` and `/krishifarms/dev/db/password` or edit `application.env` |
+| `No space left on device` during `pip install` / Docker build | EC2 root volume full (Docker build cache + old images on shared host) | Session Manager: `df -h`; `docker builder prune -af && docker system prune -af` (omit `--volumes` — Postgres data is in named volumes). Re-run deploy. `remote-deploy.sh` now prunes before each build; consider enlarging EBS if it recurs |
 
 ### Required vs optional (quick reference)
 

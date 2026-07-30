@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **EC2 deploy disk full** — `remote-deploy.sh` prunes Docker builder cache and unused images before `docker compose up --build` (avoids `[Errno 28] No space left on device` during pip install on small shared EC2 volumes). Ops: manual `docker builder prune -af && docker system prune -af` if deploy still fails.
 - **CI** — remove duplicate `hamali_router` import in `app/main.py` (ruff F811 after main merge).
 - **Mobile patch artifact** — `patches/hamali-mobile/` documents Android HAMALI viewer branch for manual apply (cloud agent cannot push `krishifarms-mobile`).
 
