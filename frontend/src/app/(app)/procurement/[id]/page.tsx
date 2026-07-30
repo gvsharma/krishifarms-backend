@@ -11,7 +11,7 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import { ArrowBack } from "@mui/icons-material";
+import { ArrowBack, Edit } from "@mui/icons-material";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { useParams, useSearchParams } from "next/navigation";
@@ -57,9 +57,21 @@ export default function ProcurementDetailPage() {
       title={data?.procurement_number ?? "Procurement detail"}
       description={data ? `${data.procurement_date} · ${data.farmer_name ?? "—"}` : "Loading…"}
       actions={
-        <Button component={Link} href="/procurement" startIcon={<ArrowBack />} variant="outlined">
-          Back to board
-        </Button>
+        <Stack direction="row" spacing={1}>
+          {data && !isFarmerViewer && !["cancelled", "reversed"].includes(data.status) && (
+            <Button
+              component={Link}
+              href={`/procurement/${data.id}/edit?date=${data.procurement_date}`}
+              startIcon={<Edit />}
+              variant="contained"
+            >
+              Edit
+            </Button>
+          )}
+          <Button component={Link} href="/procurement" startIcon={<ArrowBack />} variant="outlined">
+            Back to board
+          </Button>
+        </Stack>
       }
     >
       {isLoading && (

@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session, joinedload
 from app.core.client_context import ClientContext
 from app.core.exceptions import ConflictError, ForbiddenError, NotFoundError
 from app.modules.farmers.models import Farmer
+from app.modules.farmer_payments.models import FarmerPaymentAllocation
 from app.modules.master_data.models import CropType, Village
 from app.modules.platform.models import Buyer, CropPriceRule
 from app.shared.locale import pick_display
@@ -836,8 +837,8 @@ def update_procurement(
     client: ClientContext | None,
 ) -> Procurement:
     row = _get_procurement(db, org_id, procurement_id, procurement_date)
-    if row.status != "draft":
-        raise ConflictError("Only draft procurements can be updated")
+    if row.status in {"cancelled", "reversed"}:
+        raise ConflictError(f"Cannot edit a {row.status} procurement")
 
     data = payload.model_dump(exclude_unset=True)
     # per_bag_deduction_kg is NOT NULL; ignore an explicit null so it keeps its value.
@@ -852,12 +853,37 @@ def update_procurement(
     if "buyer_id" in data and data["buyer_id"] is not None:
         _validate_buyer(db, org_id, data["buyer_id"])
 
+    # A confirmed ticket has posted to the farmer ledger. Guard its financial integrity.
+    if row.status == "confirmed":
+        allocated = (
+            db.query(FarmerPaymentAllocation)
+            .filter(
+                FarmerPaymentAllocation.org_id == org_id,
+                FarmerPaymentAllocation.procurement_id == row.id,
+            )
+            .first()
+        )
+        if allocated is not None:
+            raise ConflictError(
+                "Cannot edit: a farmer payment is already allocated to this procurement. "
+                "Reverse the payment first."
+            )
+        if (
+            "farmer_id" in data
+            and data["farmer_id"] is not None
+            and data["farmer_id"] != row.farmer_id
+        ):
+            raise ConflictError(
+                "Cannot change the farmer on a confirmed procurement; cancel and re-enter instead."
+            )
+
     payment_terms = data.get("payment_terms", row.payment_terms)
     payment_terms_custom = data.get("payment_terms_custom", row.payment_terms_custom)
     if payment_terms == "custom" and not (payment_terms_custom or "").strip():
         raise ConflictError("payment_terms_custom is required when payment_terms is custom")
 
-    before = {"status": row.status, "farmer_id": str(row.farmer_id)}
+    old_net_amount = row.net_amount
+    before = {"status": row.status, "farmer_id": str(row.farmer_id), "net_amount": str(old_net_amount)}
     for field, value in data.items():
         setattr(row, field, value)
 
@@ -868,6 +894,24 @@ def update_procurement(
             None,
         )
 
+    # Recompute weights + payable for weighed/priced/confirmed tickets whose intake changed.
+    if row.status in {"weighed", "priced", "confirmed"} and row.weight_per_bag_kg and row.weight_per_bag_kg > _ZERO:
+        gross = _weight(Decimal(row.bag_count) * row.weight_per_bag_kg)
+        _bag_ded, net = compute_net_weight(
+            gross, row.tare_weight_kg or _ZERO, row.bag_count, row.per_bag_deduction_kg
+        )
+        if net <= _ZERO:
+            raise ConflictError("Net weight must be positive after per-bag weight deductions")
+        row.gross_weight_kg = gross
+        row.net_weight_kg = net
+        _sync_amounts(row)
+
+    # Keep the immutable farmer ledger correct: reverse the old payable, post the new one.
+    if row.status == "confirmed" and row.net_amount != old_net_amount:
+        _readjust_ledger_on_edit(
+            db, org_id=org_id, row=row, old_net_amount=old_net_amount, actor_user_id=actor_user_id
+        )
+
     row.updated_by = actor_user_id
     _audit(
         db,
@@ -876,13 +920,75 @@ def update_procurement(
         action="UPDATE",
         entity_id=row.id,
         before=before,
-        after=data,
+        after=_audit_safe({**data, "net_amount": str(row.net_amount)}),
         client=client,
         summary=f"Procurement updated: {row.procurement_number}",
     )
     db.commit()
     db.refresh(row)
     return row
+
+
+def _audit_safe(data: dict) -> dict:
+    """Coerce audit payload values (Decimal/UUID/date) to JSON-serializable strings."""
+    return {
+        key: (str(value) if isinstance(value, (Decimal, UUID, date, datetime)) else value)
+        for key, value in data.items()
+    }
+
+
+def _readjust_ledger_on_edit(
+    db: Session,
+    *,
+    org_id: UUID,
+    row: Procurement,
+    old_net_amount: Decimal,
+    actor_user_id: UUID,
+) -> None:
+    """Confirmed ticket edited: reverse the previously-owed amount and post the corrected one.
+
+    The farmer ledger is append-only, so a value change is expressed as a reversing
+    credit (old payable) plus a fresh debit (new payable); the running balance nets to
+    the new payable.
+    """
+    original = (
+        db.query(FarmerLedgerEntry)
+        .filter(
+            FarmerLedgerEntry.org_id == org_id,
+            FarmerLedgerEntry.reference_type == "procurement",
+            FarmerLedgerEntry.reference_id == row.id,
+            FarmerLedgerEntry.debit > _ZERO,
+        )
+        .order_by(FarmerLedgerEntry.posted_at.desc())
+        .first()
+    )
+    if old_net_amount > _ZERO:
+        _post_ledger_entry(
+            db,
+            org_id=org_id,
+            farmer_id=row.farmer_id,
+            entry_date=row.procurement_date,
+            entry_type="procurement_adjustment",
+            reference_id=row.id,
+            debit=_ZERO,
+            credit=old_net_amount,
+            description=f"Edit reversal of {row.procurement_number}",
+            posted_by=actor_user_id,
+            reversal_of_id=original.id if original else None,
+        )
+    if row.net_amount > _ZERO:
+        _post_ledger_entry(
+            db,
+            org_id=org_id,
+            farmer_id=row.farmer_id,
+            entry_date=row.procurement_date,
+            entry_type="procurement_adjustment",
+            reference_id=row.id,
+            debit=row.net_amount,
+            credit=_ZERO,
+            description=f"Edit adjustment of {row.procurement_number}",
+            posted_by=actor_user_id,
+        )
 
 
 def submit_procurement(

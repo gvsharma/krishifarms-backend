@@ -25,6 +25,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **Procurement entry is now a single final record (no draft) with buyer assigned separately** — web `/procurement/new` no longer collects a buyer; it saves in one step via `POST /procurements/field-entry` (`auto_confirm`), so the ticket is recorded as **confirmed** with weights/rate/amounts populated immediately (no `draft → submit → weigh → price → confirm`). Buyer is assigned later (Part B, upcoming). Finalized tickets are now editable: `PATCH /procurements/{id}` accepts `weight_per_bag_kg`, `moisture_pct`, `rate_per_quintal` and recomputes weights/amounts; when a **confirmed** ticket's payable changes it posts reversing + corrected farmer-ledger entries (immutable ledger), and edits are blocked once a farmer payment is allocated. Web: new `/procurement/[id]/edit` page + **Edit** action on the detail page.
+
 - **Keshampeta mandal village masters** — `scripts/data/rangareddy_service_villages.py` updated to 29 villages/hamlets (EN + `name_te`); **Kothur mandal** updated to 16 villages (EN + `name_te`); `seed_locations` upserts Telugu names; default ops village in `seed_services` is Bhairkhanpalle (Rangareddy).
 - **Procurement API** — joined `farmer_name`, `village_name`, `crop_type_name`, `buyer_name` respect client locale via `Accept-Language` header or user `preferred_locale`
 

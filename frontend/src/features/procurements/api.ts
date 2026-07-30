@@ -172,9 +172,12 @@ export function updateProcurement(
     crop_type_id?: string;
     village_id?: string;
     bag_count?: number;
+    weight_per_bag_kg?: string | null;
     per_bag_deduction_kg?: string | null;
     is_spot_payment?: boolean;
     spot_deduction_per_quintal?: string | null;
+    moisture_pct?: string | null;
+    rate_per_quintal?: string | null;
     buyer_id?: string | null;
     payment_terms?: string | null;
     payment_terms_custom?: string | null;
