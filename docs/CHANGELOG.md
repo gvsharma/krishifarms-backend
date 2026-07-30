@@ -8,8 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Procurement list locale-aware joined names** — `related_names()` honors `Accept-Language` / `preferred_locale` and returns Telugu display names when `name_te` / `full_name_te` exist (`app/shared/locale.py`)
 - **Procurement spot payment + buyer profit** — checkbox **100% payment on spot** at create (`is_spot_payment`); when true deducts **₹100 per net quintal** (configurable `spot_deduction_per_quintal`) from farmer net payment. Migration `036`. Amount math: `net_amount = gross_amount − line_deductions − spot_deduction_amount`. Staff-only `profit_summary` on procurement detail (weight kata margin + spot retention); hidden for `FARMER` role. Web: checkbox on `/procurement/new`, spot line + profit card on detail. Docs: OpenAPI `procurement.yaml`, `docs/modules/PROCUREMENT.md`; tests in `tests/test_procurements.py`.
 - **Procurement per-bag weight deduction (kata)** — configurable standard weight deducted per bag before pricing. Migration `035` adds `per_bag_deduction_kg` NUMERIC(6,3) NOT NULL DEFAULT `2.000` to `procurements` (with `>= 0` check). Net weight now = `gross − tare − (bag_count × per_bag_deduction_kg)`; e.g. 50 bags @ 2 kg → 100 kg deducted (2500 → 2400 kg). API: `per_bag_deduction_kg` on create/weighment/response + computed `bag_weight_deduction_kg`; helpers `compute_bag_weight_deduction` / `compute_net_weight`. Web: per-bag field on `/procurement/new` and the weighment dialog (live net-weight preview), shown on the detail page. Docs: OpenAPI `procurement.yaml`, `docs/modules/PROCUREMENT.md`; tests in `tests/test_procurements.py`.
+
+### Changed
+
+- **Procurement API** — joined `farmer_name`, `village_name`, `crop_type_name`, `buyer_name` respect client locale via `Accept-Language` header or user `preferred_locale`
 
 ### Fixed
 
