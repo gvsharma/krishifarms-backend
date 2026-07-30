@@ -95,6 +95,9 @@ class ProcurementUpdateRequest(BaseModel):
     expected_payment_date: date | None = None
     notes: str | None = None
     weight_per_bag_kg: Decimal | None = Field(default=None, gt=0)
+    # Editable financials on finalized tickets (recomputed + ledger-adjusted on save).
+    moisture_pct: Decimal | None = Field(default=None, ge=0, le=100)
+    rate_per_quintal: Decimal | None = Field(default=None, gt=0)
 
 
 class WeighmentRequest(BaseModel):
