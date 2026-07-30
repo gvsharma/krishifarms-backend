@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Header, Query
 from sqlalchemy.orm import Session
 
 from app.core.client_context import ClientContext, get_client_context
-from app.core.dependencies import CurrentUserContext, get_db, require_permission, require_role
+from app.core.dependencies import CurrentUserContext, get_current_user_context, get_db, require_permission, require_role
 from app.modules.procurements import service
 from app.modules.procurements.schemas import (
     PROCUREMENT_STATUSES,
@@ -20,6 +20,7 @@ from app.modules.procurements.schemas import (
     WeighmentRequest,
 )
 from app.modules.users.models import User
+from app.shared.locale import normalize_locale
 from app.shared.schemas.common import APIResponse
 from app.shared.services.entity_notes import attach_entity_notes, attach_tags_only
 
@@ -52,14 +53,22 @@ def _viewer_role_code(ctx: CurrentUserContext) -> str | None:
     return role.code if role is not None else None
 
 
+def _response_locale(
+    ctx: CurrentUserContext = Depends(get_current_user_context),
+    accept_language: str | None = Header(default=None, alias="Accept-Language"),
+) -> str:
+    return normalize_locale(accept_language or ctx.user.preferred_locale)
+
+
 def _enrich_response(
     db: Session,
     row,
     *,
     include_deductions: bool = True,
     viewer_role_code: str | None = None,
+    locale: str = "en",
 ) -> ProcurementResponse:
-    farmers, villages, crops, buyers = service.related_names(db, [row])
+    farmers, villages, crops, buyers = service.related_names(db, [row], locale=locale)
     profit_summary = None
     if viewer_role_code and viewer_role_code.upper() != "FARMER":
         profit_summary = service.compute_profit_summary(row)
@@ -99,6 +108,7 @@ def list_procurements(
     date_to: date | None = Query(default=None),
     ctx: CurrentUserContext = Depends(require_permission("procurements:read")),
     db: Session = Depends(get_db),
+    locale: str = Depends(_response_locale),
 ):
     items, total = service.list_procurements(
         db,
@@ -112,7 +122,7 @@ def list_procurements(
         date_from=date_from,
         date_to=date_to,
     )
-    farmers, villages, crops, buyers = service.related_names(db, items)
+    farmers, villages, crops, buyers = service.related_names(db, items, locale=locale)
     tag_map = attach_tags_only(db, ctx.user.org_id, "procurement", [p.id for p in items])
     return APIResponse(
         data=ProcurementListResponse(
@@ -131,11 +141,12 @@ def create_procurement(
     client: ClientContext = Depends(get_client_context),
     db: Session = Depends(get_db),
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+    locale: str = Depends(_response_locale),
 ):
     row = service.create_procurement(
         db, ctx.user.org_id, payload, ctx.user.id, client, idempotency_key=idempotency_key
     )
-    return APIResponse(data=_enrich_response(db, row, viewer_role_code=_viewer_role_code(ctx)))
+    return APIResponse(data=_enrich_response(db, row, viewer_role_code=_viewer_role_code(ctx), locale=locale))
 
 
 @router.get("/procurements/{procurement_id}", response_model=APIResponse[ProcurementResponse])
@@ -144,9 +155,10 @@ def get_procurement(
     procurement_date: date = Query(...),
     ctx: CurrentUserContext = Depends(require_permission("procurements:read")),
     db: Session = Depends(get_db),
+    locale: str = Depends(_response_locale),
 ):
     row = service.get_procurement(db, ctx.user.org_id, procurement_id, procurement_date)
-    return APIResponse(data=_enrich_response(db, row, viewer_role_code=_viewer_role_code(ctx)))
+    return APIResponse(data=_enrich_response(db, row, viewer_role_code=_viewer_role_code(ctx), locale=locale))
 
 
 @router.patch("/procurements/{procurement_id}", response_model=APIResponse[ProcurementResponse])
@@ -157,11 +169,12 @@ def update_procurement(
     ctx: CurrentUserContext = Depends(require_permission("procurements:update")),
     client: ClientContext = Depends(get_client_context),
     db: Session = Depends(get_db),
+    locale: str = Depends(_response_locale),
 ):
     row = service.update_procurement(
         db, ctx.user.org_id, procurement_id, procurement_date, payload, ctx.user.id, client
     )
-    return APIResponse(data=_enrich_response(db, row, viewer_role_code=_viewer_role_code(ctx)))
+    return APIResponse(data=_enrich_response(db, row, viewer_role_code=_viewer_role_code(ctx), locale=locale))
 
 
 @router.post("/procurements/{procurement_id}/submit", response_model=APIResponse[ProcurementResponse])
@@ -171,11 +184,12 @@ def submit_procurement(
     ctx: CurrentUserContext = Depends(require_permission("procurements:update")),
     client: ClientContext = Depends(get_client_context),
     db: Session = Depends(get_db),
+    locale: str = Depends(_response_locale),
 ):
     row = service.submit_procurement(
         db, ctx.user.org_id, procurement_id, procurement_date, ctx.user.id, client
     )
-    return APIResponse(data=_enrich_response(db, row, viewer_role_code=_viewer_role_code(ctx)))
+    return APIResponse(data=_enrich_response(db, row, viewer_role_code=_viewer_role_code(ctx), locale=locale))
 
 
 @router.post("/procurements/{procurement_id}/weighment", response_model=APIResponse[ProcurementResponse])
@@ -186,11 +200,12 @@ def record_weighment(
     ctx: CurrentUserContext = Depends(require_permission("procurements:update")),
     client: ClientContext = Depends(get_client_context),
     db: Session = Depends(get_db),
+    locale: str = Depends(_response_locale),
 ):
     row = service.record_weighment(
         db, ctx.user.org_id, procurement_id, procurement_date, payload, ctx.user.id, client
     )
-    return APIResponse(data=_enrich_response(db, row, viewer_role_code=_viewer_role_code(ctx)))
+    return APIResponse(data=_enrich_response(db, row, viewer_role_code=_viewer_role_code(ctx), locale=locale))
 
 
 @router.post("/procurements/{procurement_id}/apply-price", response_model=APIResponse[ProcurementResponse])
@@ -200,9 +215,10 @@ def apply_price(
     ctx: CurrentUserContext = Depends(require_permission("procurements:update")),
     client: ClientContext = Depends(get_client_context),
     db: Session = Depends(get_db),
+    locale: str = Depends(_response_locale),
 ):
     row = service.apply_price(db, ctx.user.org_id, procurement_id, procurement_date, ctx.user.id, client)
-    return APIResponse(data=_enrich_response(db, row, viewer_role_code=_viewer_role_code(ctx)))
+    return APIResponse(data=_enrich_response(db, row, viewer_role_code=_viewer_role_code(ctx), locale=locale))
 
 
 @router.post("/procurements/{procurement_id}/confirm", response_model=APIResponse[ProcurementResponse])
@@ -212,11 +228,12 @@ def confirm_procurement(
     ctx: CurrentUserContext = Depends(require_permission("procurements:confirm")),
     client: ClientContext = Depends(get_client_context),
     db: Session = Depends(get_db),
+    locale: str = Depends(_response_locale),
 ):
     row = service.confirm_procurement(
         db, ctx.user.org_id, procurement_id, procurement_date, ctx.user.id, client
     )
-    return APIResponse(data=_enrich_response(db, row, viewer_role_code=_viewer_role_code(ctx)))
+    return APIResponse(data=_enrich_response(db, row, viewer_role_code=_viewer_role_code(ctx), locale=locale))
 
 
 @router.post("/procurements/{procurement_id}/cancel", response_model=APIResponse[ProcurementResponse])
@@ -227,11 +244,12 @@ def cancel_procurement(
     ctx: CurrentUserContext = Depends(require_permission("procurements:cancel")),
     client: ClientContext = Depends(get_client_context),
     db: Session = Depends(get_db),
+    locale: str = Depends(_response_locale),
 ):
     row = service.cancel_procurement(
         db, ctx.user.org_id, procurement_id, procurement_date, payload, ctx.user.id, client
     )
-    return APIResponse(data=_enrich_response(db, row, viewer_role_code=_viewer_role_code(ctx)))
+    return APIResponse(data=_enrich_response(db, row, viewer_role_code=_viewer_role_code(ctx), locale=locale))
 
 
 @router.post("/procurements/{procurement_id}/reverse", response_model=APIResponse[ProcurementResponse])
@@ -243,11 +261,12 @@ def reverse_procurement(
     ctx: CurrentUserContext = Depends(require_permission("procurements:confirm")),
     client: ClientContext = Depends(get_client_context),
     db: Session = Depends(get_db),
+    locale: str = Depends(_response_locale),
 ):
     row = service.reverse_procurement(
         db, ctx.user.org_id, procurement_id, procurement_date, payload, ctx.user.id, client
     )
-    return APIResponse(data=_enrich_response(db, row, viewer_role_code=_viewer_role_code(ctx)))
+    return APIResponse(data=_enrich_response(db, row, viewer_role_code=_viewer_role_code(ctx), locale=locale))
 
 
 @router.post(
@@ -262,8 +281,9 @@ def add_deduction(
     ctx: CurrentUserContext = Depends(require_permission("procurements:update")),
     client: ClientContext = Depends(get_client_context),
     db: Session = Depends(get_db),
+    locale: str = Depends(_response_locale),
 ):
     row = service.add_deduction(
         db, ctx.user.org_id, procurement_id, procurement_date, payload, ctx.user.id, client
     )
-    return APIResponse(data=_enrich_response(db, row, viewer_role_code=_viewer_role_code(ctx)))
+    return APIResponse(data=_enrich_response(db, row, viewer_role_code=_viewer_role_code(ctx), locale=locale))

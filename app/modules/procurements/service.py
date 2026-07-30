@@ -12,6 +12,7 @@ from app.core.exceptions import ConflictError, NotFoundError
 from app.modules.farmers.models import Farmer
 from app.modules.master_data.models import CropType, Village
 from app.modules.platform.models import Buyer, CropPriceRule
+from app.shared.locale import pick_display
 from app.modules.procurements.models import FarmerLedgerEntry, Procurement, ProcurementDeduction
 from app.modules.procurements.schemas import (
     CANCELLABLE_STATUSES,
@@ -900,22 +901,27 @@ def add_deduction(
 def related_names(
     db: Session,
     procurements: list[Procurement],
+    locale: str = "en",
 ) -> tuple[dict[UUID, str], dict[UUID, str], dict[UUID, str], dict[UUID, str]]:
     farmer_ids = {p.farmer_id for p in procurements}
     village_ids = {p.village_id for p in procurements}
     crop_ids = {p.crop_type_id for p in procurements}
     buyer_ids = {p.buyer_id for p in procurements if p.buyer_id}
 
-    farmers = {}
+    farmers: dict[UUID, str] = {}
     if farmer_ids:
-        farmers = dict(db.query(Farmer.id, Farmer.full_name).filter(Farmer.id.in_(farmer_ids)).all())
-    villages = {}
+        for row in db.query(Farmer).filter(Farmer.id.in_(farmer_ids)).all():
+            farmers[row.id] = pick_display(row.full_name, row.full_name_te, locale) or row.full_name
+    villages: dict[UUID, str] = {}
     if village_ids:
-        villages = dict(db.query(Village.id, Village.name).filter(Village.id.in_(village_ids)).all())
-    crops = {}
+        for row in db.query(Village).filter(Village.id.in_(village_ids)).all():
+            villages[row.id] = pick_display(row.name, row.name_te, locale) or row.name
+    crops: dict[UUID, str] = {}
     if crop_ids:
-        crops = dict(db.query(CropType.id, CropType.name).filter(CropType.id.in_(crop_ids)).all())
-    buyers = {}
+        for row in db.query(CropType).filter(CropType.id.in_(crop_ids)).all():
+            crops[row.id] = pick_display(row.name, row.name_te, locale) or row.name
+    buyers: dict[UUID, str] = {}
     if buyer_ids:
-        buyers = dict(db.query(Buyer.id, Buyer.name).filter(Buyer.id.in_(buyer_ids)).all())
+        for row in db.query(Buyer).filter(Buyer.id.in_(buyer_ids)).all():
+            buyers[row.id] = pick_display(row.name, row.name_te, locale) or row.name
     return farmers, villages, crops, buyers
