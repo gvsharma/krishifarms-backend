@@ -36,6 +36,7 @@ class Procurement(Base, TimestampMixin, AuditActorMixin, SoftDeleteMixin):
         Numeric(14, 2), nullable=False, default=Decimal("0")
     )
     gross_weight_kg: Mapped[Decimal] = mapped_column(Numeric(12, 3), nullable=False, default=Decimal("0"))
+    tare_weight_kg: Mapped[Decimal] = mapped_column(Numeric(12, 3), nullable=False, default=Decimal("0"))
     moisture_pct: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
     net_weight_kg: Mapped[Decimal] = mapped_column(Numeric(12, 3), nullable=False, default=Decimal("0"))
     rate_per_quintal: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False, default=Decimal("0"))
@@ -55,6 +56,33 @@ class Procurement(Base, TimestampMixin, AuditActorMixin, SoftDeleteMixin):
         back_populates="procurement",
         cascade="all, delete-orphan",
     )
+    bag_entries: Mapped[list["ProcurementBagEntry"]] = relationship(
+        "ProcurementBagEntry",
+        back_populates="procurement",
+        cascade="all, delete-orphan",
+        order_by="ProcurementBagEntry.bag_number",
+    )
+
+
+class ProcurementBagEntry(Base, TimestampMixin, AuditActorMixin):
+    __tablename__ = "procurement_bag_entries"
+
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
+    org_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), ForeignKey("organizations.id"), nullable=False)
+    procurement_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), nullable=False)
+    procurement_date: Mapped[date] = mapped_column(Date, nullable=False)
+    bag_number: Mapped[int] = mapped_column(nullable=False)
+    weight_kg: Mapped[Decimal] = mapped_column(Numeric(12, 3), nullable=False)
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["procurement_id", "procurement_date"],
+            ["procurements.id", "procurements.procurement_date"],
+            ondelete="CASCADE",
+        ),
+    )
+
+    procurement: Mapped["Procurement"] = relationship("Procurement", back_populates="bag_entries")
 
 
 class ProcurementDeduction(Base):

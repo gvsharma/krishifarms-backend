@@ -27,6 +27,7 @@ import {
 } from "@/features/procurements/api";
 import { resolveProcurementDisplayExtras } from "@/features/procurements/draft-extras";
 import { ProcurementWorkflowActions } from "@/features/procurements/workflow-actions";
+import { ProcurementWeightBreakdown } from "@/features/procurements/procurement-weight-breakdown";
 
 export default function ProcurementDetailPage() {
   const params = useParams<{ id: string }>();
@@ -109,18 +110,13 @@ export default function ProcurementDetailPage() {
               <Grid size={{ xs: 6, sm: 4 }}>
                 <Field label="Bags" value={String(data.bag_count)} />
               </Grid>
-              <Grid size={{ xs: 6, sm: 4 }}>
-                <Field label="Gross weight (kg)" value={data.gross_weight_kg} />
-              </Grid>
-              <Grid size={{ xs: 6, sm: 4 }}>
-                <Field
-                  label="Per-bag deduction (kg)"
-                  value={`${data.per_bag_deduction_kg} × ${data.bag_count} = ${data.bag_weight_deduction_kg} kg`}
-                />
-              </Grid>
-              <Grid size={{ xs: 6, sm: 4 }}>
-                <Field label="Net weight (kg)" value={data.net_weight_kg} />
-              </Grid>
+            </Grid>
+
+            <Box sx={{ mt: 2 }}>
+              <ProcurementWeightBreakdown data={data} />
+            </Box>
+
+            <Grid container spacing={2} sx={{ mt: 1 }}>
               <Grid size={{ xs: 6, sm: 4 }}>
                 <Field
                   label="Moisture %"
@@ -145,30 +141,11 @@ export default function ProcurementDetailPage() {
                   }
                 />
               </Grid>
-              <Grid size={{ xs: 6, sm: 4 }}>
-                <Field label="Gross amount" value={formatInr(data.gross_amount)} />
-              </Grid>
-              <Grid size={{ xs: 6, sm: 4 }}>
-                <Field label="Line deductions" value={formatInr(data.deduction_amount)} />
-              </Grid>
-              {data.is_spot_payment && (
-                <Grid size={{ xs: 6, sm: 4 }}>
-                  <Field
-                    label="Spot payment deduction"
-                    value={`${formatInr(data.spot_deduction_amount)} (₹${data.spot_deduction_per_quintal}/qtl)`}
-                  />
-                </Grid>
-              )}
-              <Grid size={{ xs: 6, sm: 4 }}>
-                <Field
-                  label="Net payment (farmer)"
-                  value={formatInr(data.net_amount)}
-                />
-              </Grid>
               {data.is_spot_payment && (
                 <Grid size={{ xs: 12 }}>
                   <Typography variant="caption" color="text.secondary">
-                    Spot payment — 100% cash on delivery; ₹100 per net quintal deducted from payment.
+                    Spot payment — 100% cash on delivery; ₹{data.spot_deduction_per_quintal} per net
+                    quintal deducted from payment.
                   </Typography>
                 </Grid>
               )}

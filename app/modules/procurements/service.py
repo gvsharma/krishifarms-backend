@@ -13,7 +13,7 @@ from app.modules.farmers.models import Farmer
 from app.modules.master_data.models import CropType, Village
 from app.modules.platform.models import Buyer, CropPriceRule
 from app.shared.locale import pick_display
-from app.modules.procurements.models import FarmerLedgerEntry, Procurement, ProcurementDeduction
+from app.modules.procurements.models import FarmerLedgerEntry, Procurement, ProcurementBagEntry, ProcurementDeduction
 from app.modules.procurements.schemas import (
     CANCELLABLE_STATUSES,
     DEFAULT_PER_BAG_DEDUCTION_KG,
@@ -26,6 +26,7 @@ from app.modules.procurements.schemas import (
     ProcurementUpdateRequest,
     WeighmentRequest,
 )
+from app.shared.procurement_notes import moisture_pct_from_notes, rate_per_quintal_from_notes
 from app.shared.services.audit import write_activity_feed, write_audit_log
 
 
@@ -144,7 +145,7 @@ def _get_procurement(
 ) -> Procurement:
     row = (
         db.query(Procurement)
-        .options(joinedload(Procurement.deductions))
+        .options(joinedload(Procurement.deductions), joinedload(Procurement.bag_entries))
         .filter(
             Procurement.id == procurement_id,
             Procurement.procurement_date == procurement_date,
@@ -392,6 +393,151 @@ def _transition(procurement: Procurement, target: str) -> None:
     procurement.status = target
 
 
+def _replace_bag_entries(
+    db: Session,
+    *,
+    org_id: UUID,
+    procurement: Procurement,
+    weights: list[Decimal],
+    actor_user_id: UUID,
+) -> None:
+    db.query(ProcurementBagEntry).filter(
+        ProcurementBagEntry.procurement_id == procurement.id,
+        ProcurementBagEntry.procurement_date == procurement.procurement_date,
+        ProcurementBagEntry.org_id == org_id,
+    ).delete(synchronize_session=False)
+    for idx, weight in enumerate(weights, start=1):
+        db.add(
+            ProcurementBagEntry(
+                org_id=org_id,
+                procurement_id=procurement.id,
+                procurement_date=procurement.procurement_date,
+                bag_number=idx,
+                weight_kg=_weight(weight),
+                created_by=actor_user_id,
+                updated_by=actor_user_id,
+            )
+        )
+
+
+def _apply_weighment_values(
+    db: Session,
+    *,
+    org_id: UUID,
+    row: Procurement,
+    payload: WeighmentRequest,
+    actor_user_id: UUID,
+) -> Decimal:
+    gross = _weight(payload.resolved_gross_weight_kg())
+    tare = _weight(payload.tare_weight_kg)
+    bag_weights = payload.bag_weights_kg
+    effective_bag_count = (
+        len(bag_weights)
+        if bag_weights
+        else (payload.bag_count if payload.bag_count is not None else row.bag_count)
+    )
+    effective_per_bag = (
+        payload.per_bag_deduction_kg if payload.per_bag_deduction_kg is not None else row.per_bag_deduction_kg
+    )
+    bag_weight_deduction, net_weight = compute_net_weight(gross, tare, effective_bag_count, effective_per_bag)
+    if net_weight <= _ZERO:
+        raise ConflictError("Net weight must be positive after tare and per-bag weight deductions")
+
+    row.gross_weight_kg = gross
+    row.tare_weight_kg = tare
+    row.net_weight_kg = net_weight
+    if payload.moisture_pct is not None:
+        row.moisture_pct = payload.moisture_pct
+    row.bag_count = effective_bag_count
+    row.per_bag_deduction_kg = effective_per_bag
+    row.updated_by = actor_user_id
+
+    if bag_weights:
+        _replace_bag_entries(
+            db,
+            org_id=org_id,
+            procurement=row,
+            weights=bag_weights,
+            actor_user_id=actor_user_id,
+        )
+    return bag_weight_deduction
+
+
+def _advance_to_weighed(row: Procurement) -> str:
+    before_status = row.status
+    if row.status == "draft":
+        _transition(row, "pending_weighment")
+    if row.status == "pending_weighment":
+        _transition(row, "weighed")
+    return before_status
+
+
+def _maybe_apply_price_after_weigh(
+    db: Session,
+    org_id: UUID,
+    row: Procurement,
+    *,
+    rate_override: Decimal | None = None,
+) -> None:
+    rate = rate_override
+    if rate is None or rate <= _ZERO:
+        rate = rate_per_quintal_from_notes(row.notes)
+    if rate is None or rate <= _ZERO:
+        rate = resolve_rate_per_quintal(db, org_id, row.crop_type_id, row.village_id, row.procurement_date)
+    if rate <= _ZERO:
+        return
+    row.rate_per_quintal = rate
+    _sync_amounts(row)
+    if can_transition(row.status, "priced"):
+        _transition(row, "priced")
+
+
+def _apply_intake_on_create(
+    db: Session,
+    org_id: UUID,
+    row: Procurement,
+    payload: ProcurementCreateRequest,
+    actor_user_id: UUID,
+) -> None:
+    if not payload.gross_weight_kg and not payload.bag_weights_kg:
+        return
+
+    before_status = _advance_to_weighed(row)
+    moisture = payload.moisture_pct
+    if moisture is None:
+        moisture = moisture_pct_from_notes(payload.notes)
+
+    weighment = WeighmentRequest(
+        gross_weight_kg=payload.gross_weight_kg,
+        tare_weight_kg=payload.tare_weight_kg or Decimal("0"),
+        moisture_pct=moisture,
+        bag_count=payload.bag_count or None,
+        per_bag_deduction_kg=row.per_bag_deduction_kg,
+        bag_weights_kg=payload.bag_weights_kg,
+    )
+    bag_weight_deduction = _apply_weighment_values(
+        db, org_id=org_id, row=row, payload=weighment, actor_user_id=actor_user_id
+    )
+    _maybe_apply_price_after_weigh(db, org_id, row, rate_override=payload.rate_per_quintal)
+    _audit(
+        db,
+        org_id=org_id,
+        actor_user_id=actor_user_id,
+        action="WEIGH",
+        entity_id=row.id,
+        before={"status": before_status},
+        after={
+            "status": row.status,
+            "net_weight_kg": str(row.net_weight_kg),
+            "bag_count": row.bag_count,
+            "bag_weight_deduction_kg": str(bag_weight_deduction),
+            "intake_on_create": True,
+        },
+        client=None,
+        summary=f"Intake weighment on create: {row.procurement_number}",
+    )
+
+
 def list_procurements(
     db: Session,
     org_id: UUID,
@@ -503,6 +649,7 @@ def create_procurement(
     )
     db.add(row)
     db.flush()
+    _apply_intake_on_create(db, org_id, row, payload, actor_user_id)
     _audit(
         db,
         org_id=org_id,
@@ -622,31 +769,11 @@ def record_weighment(
 ) -> Procurement:
     row = _get_procurement(db, org_id, procurement_id, procurement_date)
     before_status = row.status
-    _transition(row, "weighed")
+    _advance_to_weighed(row)
 
-    effective_bag_count = payload.bag_count if payload.bag_count is not None else row.bag_count
-    effective_per_bag = (
-        payload.per_bag_deduction_kg
-        if payload.per_bag_deduction_kg is not None
-        else row.per_bag_deduction_kg
+    bag_weight_deduction = _apply_weighment_values(
+        db, org_id=org_id, row=row, payload=payload, actor_user_id=actor_user_id
     )
-    bag_weight_deduction, net_weight = compute_net_weight(
-        payload.gross_weight_kg,
-        payload.tare_weight_kg,
-        effective_bag_count,
-        effective_per_bag,
-    )
-    if net_weight <= _ZERO:
-        raise ConflictError(
-            "Net weight must be positive after tare and per-bag weight deductions"
-        )
-
-    row.gross_weight_kg = payload.gross_weight_kg
-    row.net_weight_kg = net_weight
-    row.moisture_pct = payload.moisture_pct
-    row.bag_count = effective_bag_count
-    row.per_bag_deduction_kg = effective_per_bag
-    row.updated_by = actor_user_id
 
     _audit(
         db,

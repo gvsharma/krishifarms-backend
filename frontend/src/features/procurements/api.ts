@@ -47,6 +47,12 @@ export interface ProcurementListItem {
   tags: string[];
 }
 
+export interface ProcurementBagEntry {
+  id: string;
+  bag_number: number;
+  weight_kg: string;
+}
+
 export interface ProcurementDetail extends ProcurementListItem {
   org_id: string;
   village_name: string | null;
@@ -59,6 +65,7 @@ export interface ProcurementDetail extends ProcurementListItem {
   spot_deduction_per_quintal: string;
   spot_deduction_amount: string;
   gross_weight_kg: string;
+  tare_weight_kg: string;
   moisture_pct: string | null;
   rate_per_quintal: string;
   gross_amount: string;
@@ -69,6 +76,7 @@ export interface ProcurementDetail extends ProcurementListItem {
   cancelled_at: string | null;
   cancellation_reason: string | null;
   deductions: ProcurementDeduction[];
+  bag_entries: ProcurementBagEntry[];
   comments: { id: string; body: string; author_name: string | null; created_at: string }[];
   /** Present for staff roles only; omitted for FARMER. */
   profit_summary?: ProcurementProfitSummary | null;
@@ -195,6 +203,7 @@ export function recordWeighment(
     moisture_pct?: string | null;
     bag_count?: number | null;
     per_bag_deduction_kg?: string | null;
+    bag_weights_kg?: string[] | null;
   },
 ): Promise<ProcurementDetail> {
   return fetchApi<ProcurementDetail>(

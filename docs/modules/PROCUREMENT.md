@@ -40,6 +40,8 @@ net_weight_kg = gross_weight_kg − tare_weight_kg − (bag_count × per_bag_ded
 
 - `per_bag_deduction_kg` — standard per-bag weight deduction (kata), column on `procurements`, **default `2.000` kg** (migration `035`). Configurable at draft create and overridable at weighment; `>= 0` (check constraint).
 - `bag_weight_deduction_kg` — computed response field = `bag_count × per_bag_deduction_kg`.
+- `bag_weights_kg` — optional list on create/weighment when each bag is weighed separately (mobile). Stored in `procurement_bag_entries`; gross = sum of bag weights.
+- `tare_weight_kg` — persisted on procurement after weighment (migration `039`).
 - Worked example: 50 bags × 50 kg = 2500 kg gross; 2 kg/bag → 100 kg deducted → **2400 kg** net payable.
 - Helpers: `compute_bag_weight_deduction`, `compute_net_weight` (`service.py`).
 
