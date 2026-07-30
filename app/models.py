@@ -39,6 +39,4 @@ from app.modules.users.models import (  # noqa: F401
     User,
 )
 
-from app.modules.hamali.models import HamaliWorkEntry, Worker  # noqa: F401
-
 __all__ = ["Base"]
