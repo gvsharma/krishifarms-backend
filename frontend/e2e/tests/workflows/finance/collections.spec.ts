@@ -19,7 +19,7 @@ test.describe("finance — collections", () => {
 
     await expect(page.getByRole("heading", { name: /^Collections$/i })).toBeVisible();
     await expect(
-      page.getByText(/Daily collection entries, weighment, and quality checks/i),
+      page.getByText(/Farmer payment collections/i),
     ).toBeVisible();
 
     await expectListOrEmptyOrError(page, { emptyTitle: /Collections — coming soon/i });

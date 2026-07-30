@@ -450,12 +450,10 @@ BACKEND_TO_MOBILE: dict[str, str] = {
     "field_services:create": FIELD_SERVICE_CREATE,
     "field_services:update": FIELD_SERVICE_UPDATE,
     "field_services:delete": FIELD_SERVICE_DELETE,
-    "hamali_work:read": HAMALI_VIEW,
-    "hamali_work:create": HAMALI_WORK_MANAGE,
-    "hamali_work:update": HAMALI_WORK_MANAGE,
-    "hamali_work:delete": HAMALI_WORK_MANAGE,
-    "workers:read": HAMALI_WORK_MANAGE,
-    "workers:create": HAMALI_WORK_MANAGE,
+    "hamali:read": HAMALI_VIEW,
+    "hamali:create": HAMALI_WORK_MANAGE,
+    "hamali:update": HAMALI_WORK_MANAGE,
+    "hamali:pay": HAMALI_WORK_MANAGE,
 }
 
 # Module keys returned as accessibleModules — any matching view permission grants access.

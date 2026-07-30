@@ -17,6 +17,7 @@ from app.modules.dashboard.router import router as dashboard_router
 from app.modules.devices.router import router as devices_router
 from app.modules.documents.router import router as documents_router
 from app.modules.field_services.router import router as field_services_router
+from app.modules.hamali.router import router as hamali_router
 from app.modules.financial.router import router as financial_router
 from app.modules.farmers.router import router as farmers_router
 from app.modules.farmer_payments.router import router as farmer_payments_router
@@ -60,6 +61,7 @@ api_v1.include_router(master_data_router)
 api_v1.include_router(platform_router)
 api_v1.include_router(farmers_router)
 api_v1.include_router(field_services_router)
+api_v1.include_router(hamali_router)
 api_v1.include_router(procurements_router)
 api_v1.include_router(farmer_payments_router)
 api_v1.include_router(farms_router)

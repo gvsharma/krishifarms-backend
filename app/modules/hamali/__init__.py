@@ -1,1 +1,1 @@
-"""Hamali (porter) work tracking — bags and tips per farmer."""
+"""Hamali (porter) labor tracking for procurement."""

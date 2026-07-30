@@ -104,7 +104,7 @@ No workflow auto-merges or pushes to `main`.
 
 | Workflow | Trigger | Purpose |
 |----------|---------|---------|
-| `ci.yml` | PR + push to `main` + nightly cron | Runs `validate.yml` + Playwright `e2e.yml` |
+| `ci.yml` | PR + push to `main` + nightly cron | Runs `validate.yml`, **`wake-ec2.yml`**, then Playwright `e2e.yml` |
 | `validate.yml` | Called by CI/deploy | Ruff lint, Docker build, Trivy scan; frontend lint/build |
 | `e2e.yml` | Called by CI | Playwright: PR = smoke+workflow; push = +regression; nightly = full cross-browser; HTML report artifact |
 | `deploy.yml` | Push to `main` only | Validate → bundle → S3 → SSM → Docker Compose deploy |

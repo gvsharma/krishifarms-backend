@@ -1,61 +1,55 @@
-# Hamali (porter) work tracking
+# Hamali (porter) labor — procurement bag handling
 
-**Status:** Live (backend + web + Android branch)  
-**Role code:** `HAMALI`  
-**Display name:** Hamali / Porter
+Track daily hamali work at the godown: bags lifted, labor pay (default **₹20/bag**), maintenance charges, and tips. Settle on a **weekly** basis (Monday–Sunday).
 
-## Purpose
+## Data model (migration `037`)
 
-Hamalis (porters) see **read-only** summaries of their work:
+| Table | Purpose |
+|-------|---------|
+| `hamali_workers` | Roster — `HML-0001` codes, `default_rate_per_bag` (default 20.00) |
+| `hamali_daily_entries` | One row per worker per day — bags, labor, maintenance, tip, payment status |
+| `hamali_weekly_payments` | Weekly batch — aggregates pending entries, marks paid |
 
-- Bags handled per day, broken down by farmer
-- Tips received per farmer
-- Weekly and monthly rollups
+### Daily entry amounts
 
-They log in with **mobile number** (OTP/password) — accounts are **admin-created only** (no self-registration).
+```
+labor_amount = bags_lifted × rate_per_bag
+total_amount = labor_amount + maintenance_amount + tip_amount
+```
 
-## Data model
+### Payment flow
 
-Table `hamali_work_entries`:
+1. **Log daily work** — `payment_status = pending`
+2. **Create weekly batch** — links pending entries in the week; status → `scheduled`
+3. **Mark batch paid** — entries → `paid`; batch → `paid`
 
-| Column | Description |
-|--------|-------------|
-| `worker_id` | Links to `workers` |
-| `farmer_id` | Farmer they helped |
-| `work_date` | Calendar day |
-| `bag_count` | Bags handled |
-| `tip_amount` | INR tip from farmer |
-| `procurement_id` | Optional link |
+## API (`/api/v1/hamali/…`)
 
-`users.worker_id` must be set for HAMALI logins (auto-created on user create when role is HAMALI).
+| Method | Path | Permission |
+|--------|------|------------|
+| GET/POST | `/hamali/workers` | read / create |
+| PATCH/DELETE | `/hamali/workers/{id}` | update |
+| GET/POST | `/hamali/daily-entries` | read / create |
+| PATCH/DELETE | `/hamali/daily-entries/{id}` | update |
+| GET | `/hamali/weekly-summary?week_start_date=` | read |
+| GET/POST | `/hamali/weekly-payments` | read / pay |
+| POST | `/hamali/weekly-payments/{id}/mark-paid` | pay |
 
-## API (`/api/v1`)
+### HAMALI viewer (migration `039`)
 
 | Method | Path | Permission | Notes |
 |--------|------|------------|-------|
-| GET | `/hamali/me/daily` | `hamali_work:read` | Self; scoped by `users.worker_id` |
-| GET | `/hamali/me/summary` | `hamali_work:read` | `period=week\|month` |
-| GET | `/hamali/work-entries` | `hamali_work:read` | HAMALI sees own rows only |
-| POST | `/hamali/work-entries` | `hamali_work:create` | Manager / supervisor |
-| PATCH | `/hamali/work-entries/{id}` | `hamali_work:update` | Manager / supervisor |
-| DELETE | `/hamali/work-entries/{id}` | `hamali_work:delete` | Manager / owner |
-| GET/POST | `/hamali/workers` | `workers:read/create` | Worker profiles |
+| GET | `/hamali/me/daily?work_date=` | read | Scoped to `users.hamali_worker_id` |
+| GET | `/hamali/me/summary?period=week\|month&anchor_date=` | read | Week/month totals for linked worker |
 
-## RBAC
-
-| Role | Access |
-|------|--------|
-| `HAMALI` | View own daily/weekly/monthly summaries only |
-| `SUPERVISOR` | Log work entries |
-| `MANAGER` / `OWNER` | Full hamali work CRUD + user provisioning |
-
-Mobile permissions: `HAMALI_VIEW`, `REPORT_VIEW`, `SETTINGS_VIEW` — no create/update.
+Admin creates HAMALI users with mobile login; backend auto-creates `hamali_workers` roster row when `hamali_worker_id` is omitted.
 
 ## Web UI
 
-- `/hamali` — hamali portal (read-only)
-- `/settings/hamali` — supervisors log bags/tips
+- Nav: **Operations → Hamali** (`/hamali`) — OWNER, MANAGER, ACCOUNTANT, SUPERVISOR (manage); HAMALI (read-only via `hamali:read`)
+- Tabs: Daily entries · Workers · Weekly payments
 
-## Android
+## Related
 
-Feature package `feature/hamali/` — see `krishifarms-mobile` branch `feature/hamali-viewer-role`.
+- Procurement bag count: [PROCUREMENT.md](./PROCUREMENT.md) (farmer weight kata — separate from hamali pay)
+- General workforce (Phase 4): `workers` / `work_orders` OpenAPI — farm labor, not godown hamali

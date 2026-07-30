@@ -92,6 +92,7 @@ docs/deploy/           → CI/CD details
 | Hamali (porter) | ✅ | ✅ viewer APIs + work log | `/hamali`, `/settings/hamali` | `035` | — | Read-only bags/tips; admin logs work |
 | Farms | 🟡 | ✅ thin CRUD + activities | Placeholder | `006` | `paths/farms.yaml` | Own-farming UI remaining |
 | Procurements | ✅ | ✅ | ✅ | `008`, `019`, `026` | `paths/procurement.yaml` | 2b (+ buyer/terms) |
+| Hamali (porter labor) | ✅ | ✅ daily/weekly | ✅ `/hamali` | `037` | `paths/hamali.yaml` | Procurement godown — ₹20/bag default |
 | Farmer payments / Ledger | ✅ | ✅ list/create/get/allocate/reverse | ✅ | `008` | `paths/payments.yaml` | Web `/payments` settlement UI (allocate/reverse) |
 | Workers | ⬜ | — | — | `005` | `paths/workers.yaml` | 4 |
 | Work orders / Attendance | ⬜ | — | — | `009` | `paths/work-orders.yaml` | 4 |

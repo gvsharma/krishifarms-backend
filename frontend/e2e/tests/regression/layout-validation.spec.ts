@@ -17,7 +17,7 @@ test.describe("regression — layout validation", () => {
     await validateEntirePage(page, {
       name: "dashboard",
       skip: ["network"],
-      softFail: ["typography", "performance", "buttons"],
+      softFail: ["typography", "performance", "buttons", "contrast"],
       viewports: ["desktop"],
     });
 

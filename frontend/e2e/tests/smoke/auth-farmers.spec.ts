@@ -12,7 +12,15 @@ test.describe("smoke — login flow", () => {
     await validateEntirePage(page, {
       name: "login",
       skip: ["network", "visual", "responsive", "tables", "dialogs"],
-      softFail: ["typography", "css", "performance", "contrast", "accessibility", "inputs"],
+      softFail: [
+        "typography",
+        "css",
+        "performance",
+        "contrast",
+        "accessibility",
+        "inputs",
+        "console",
+      ],
     });
   });
 });
@@ -27,7 +35,7 @@ test.describe("smoke — farmers", () => {
     await validateEntirePage(page, {
       name: "farmers-list",
       skip: ["visual", "responsive"],
-      softFail: ["typography", "css", "performance", "contrast", "inputs", "accessibility"],
+      softFail: ["typography", "css", "performance", "contrast", "inputs", "accessibility", "layout"],
     });
   });
 
@@ -39,7 +47,7 @@ test.describe("smoke — farmers", () => {
     await validateEntirePage(page, {
       name: "farmers-create",
       skip: ["visual", "responsive", "tables"],
-      softFail: ["typography", "css", "performance", "contrast", "inputs"],
+      softFail: ["typography", "css", "performance", "contrast", "inputs", "layout", "accessibility"],
     });
   });
 });

@@ -16,6 +16,9 @@ import { isEmailIdentifier, loginWithPassword } from "@/features/auth/api";
 import { clearSignedOutFlag, wasExplicitlySignedOut } from "@/features/auth/session";
 import { getAccessToken } from "@/lib/api/client";
 import { ROUTES, SITE_NAME } from "@/constants/routes";
+import { useTranslation } from "@/i18n/use-translation";
+import type { AppLocale } from "@/i18n/messages";
+import { useLocaleStore } from "@/stores/locale-store";
 import { cn } from "@/lib/utils";
 
 /**
@@ -49,6 +52,9 @@ function identifierLooksValid(value: string): boolean {
 /** Phone-first password sign-in (email OR mobile) + OTP stub. */
 export default function LoginPage() {
   const router = useRouter();
+  const { t } = useTranslation();
+  const setLocale = useLocaleStore((s) => s.setLocale);
+  const locale = useLocaleStore((s) => s.locale);
   const identifierId = useId();
   const passwordId = useId();
   const errorId = useId();
@@ -71,7 +77,7 @@ export default function LoginPage() {
     event.preventDefault();
     setError(null);
     if (!identifierLooksValid(identifier)) {
-      setError("Enter a valid phone number (10+ digits) or email");
+      setError(t("auth.invalidIdentifier"));
       return;
     }
     setSubmitting(true);
@@ -80,7 +86,7 @@ export default function LoginPage() {
       await loginWithPassword(identifier, password);
       router.replace(ROUTES.dashboard);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
+      setError(err instanceof Error ? err.message : t("auth.loginFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -120,6 +126,19 @@ export default function LoginPage() {
         }}
       >
         <Stack spacing={1} alignItems="center" sx={{ mb: 3 }}>
+          <Stack direction="row" spacing={1} sx={{ alignSelf: "flex-end", mb: 1 }}>
+            {(["en", "te"] as AppLocale[]).map((code) => (
+              <Button
+                key={code}
+                size="small"
+                variant={locale === code ? "contained" : "text"}
+                onClick={() => setLocale(code)}
+                sx={{ minWidth: 56, textTransform: "none" }}
+              >
+                {code === "en" ? "EN" : "తె"}
+              </Button>
+            ))}
+          </Stack>
           <Box
             sx={{
               width: 40,
@@ -137,10 +156,10 @@ export default function LoginPage() {
             KF
           </Box>
           <Typography variant="h5" fontWeight={400} component="h1">
-            Sign in
+            {t("auth.signIn")}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            to continue to {SITE_NAME}
+            {t("auth.signInTo", { site: SITE_NAME })}
           </Typography>
         </Stack>
 
@@ -154,7 +173,7 @@ export default function LoginPage() {
 
             <div>
               <label htmlFor={identifierId} className={fieldLabelClassName}>
-                Phone or email
+                {t("auth.phoneOrEmail")}
               </label>
               <div
                 className="flex h-[54px] items-center overflow-hidden rounded-2xl transition-[border-color,box-shadow] focus-within:border-[#111827] focus-within:shadow-[0_0_0_3px_rgba(17,24,39,0.12)]"
@@ -168,7 +187,7 @@ export default function LoginPage() {
                   autoComplete="username"
                   autoFocus
                   required
-                  placeholder="10-digit phone or email"
+                  placeholder={t("auth.phoneOrEmailPlaceholder")}
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
                   disabled={submitting}
@@ -178,13 +197,13 @@ export default function LoginPage() {
                 />
               </div>
               <Typography variant="caption" color="text.secondary" sx={{ mt: 0.75, display: "block" }}>
-                Prefer phone (10+ digits, +91 optional) — same password as email login
+                {t("auth.phoneHint")}
               </Typography>
             </div>
 
             <div>
               <label htmlFor={passwordId} className={fieldLabelClassName}>
-                Password
+                {t("auth.password")}
               </label>
               <div
                 className="flex h-[54px] items-center overflow-hidden rounded-2xl transition-[border-color,box-shadow] focus-within:border-[#111827] focus-within:shadow-[0_0_0_3px_rgba(17,24,39,0.12)]"
@@ -207,7 +226,7 @@ export default function LoginPage() {
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
                   disabled={submitting}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-label={showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
                   aria-pressed={showPassword}
                   className={cn(
                     "mr-1.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
@@ -241,13 +260,13 @@ export default function LoginPage() {
                   transition: "none",
                 }}
               >
-                {submitting ? <CircularProgress size={18} color="inherit" /> : "Sign in"}
+                {submitting ? <CircularProgress size={18} color="inherit" /> : t("auth.signIn")}
               </Button>
             </Box>
 
             <Divider sx={{ my: 0.5 }}>
               <Typography variant="caption" color="text.secondary">
-                or
+                {t("common.or")}
               </Typography>
             </Divider>
 
@@ -266,7 +285,7 @@ export default function LoginPage() {
                 color: "text.secondary",
               }}
             >
-              Login with OTP (coming soon)
+              {t("auth.otpComingSoon")}
             </Button>
           </Stack>
         </Box>

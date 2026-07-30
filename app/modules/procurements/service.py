@@ -8,21 +8,103 @@ from uuid import UUID
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.client_context import ClientContext
-from app.core.exceptions import ConflictError, NotFoundError
+from app.core.exceptions import ConflictError, ForbiddenError, NotFoundError
 from app.modules.farmers.models import Farmer
 from app.modules.master_data.models import CropType, Village
 from app.modules.platform.models import Buyer, CropPriceRule
+from app.shared.locale import pick_display
 from app.modules.procurements.models import FarmerLedgerEntry, Procurement, ProcurementDeduction
 from app.modules.procurements.schemas import (
     CANCELLABLE_STATUSES,
+    DEFAULT_PER_BAG_DEDUCTION_KG,
+    DEFAULT_SPOT_DEDUCTION_PER_QUINTAL,
+    ProcurementCalculateRequest,
+    ProcurementCalculateResponse,
     ProcurementCancelRequest,
     ProcurementCreateRequest,
     ProcurementDeductionInput,
+    ProcurementFieldEntryRequest,
+    ProcurementProfitSummary,
     ProcurementReverseRequest,
     ProcurementUpdateRequest,
     WeighmentRequest,
 )
+from app.modules.users.models import User
 from app.shared.services.audit import write_activity_feed, write_audit_log
+
+
+def _notify_farmer_summary(db: Session, row: Procurement, *, actor_user_id: UUID) -> None:
+    try:
+        from app.modules.devices.service import notify_farmer_procurement_summary
+
+        notify_farmer_procurement_summary(
+            db,
+            org_id=row.org_id,
+            procurement=row,
+            actor_user_id=actor_user_id,
+        )
+    except Exception:
+        pass
+
+
+def _viewer_role_code(user: User) -> str | None:
+    role = getattr(user, "role", None)
+    return role.code if role is not None else None
+
+
+def resolve_farmer_list_filter(user: User, farmer_id: UUID | None) -> UUID | None:
+    """FARMER role may only list their own tickets; staff may filter freely."""
+    if _viewer_role_code(user) == "FARMER":
+        if user.farmer_id is None:
+            raise ForbiddenError("Farmer account is not linked to a farmer profile")
+        if farmer_id is not None and farmer_id != user.farmer_id:
+            raise ForbiddenError("Cannot view other farmers' procurements")
+        return user.farmer_id
+    return farmer_id
+
+
+def assert_farmer_can_view_procurement(user: User, procurement: Procurement) -> None:
+    if _viewer_role_code(user) != "FARMER":
+        return
+    if user.farmer_id is None:
+        raise ForbiddenError("Farmer account is not linked to a farmer profile")
+    if procurement.farmer_id != user.farmer_id:
+        raise ForbiddenError("Procurement not found")
+
+
+def calculate_procurement_preview(payload: ProcurementCalculateRequest) -> ProcurementCalculateResponse:
+    per_bag = (
+        payload.per_bag_deduction_kg
+        if payload.per_bag_deduction_kg is not None
+        else DEFAULT_PER_BAG_DEDUCTION_KG
+    )
+    spot_rate = (
+        payload.spot_deduction_per_quintal
+        if payload.spot_deduction_per_quintal is not None
+        else DEFAULT_SPOT_DEDUCTION_PER_QUINTAL
+    )
+    gross_weight = _weight(Decimal(payload.bag_count) * payload.weight_per_bag_kg)
+    bag_deduction, net_weight = compute_net_weight(
+        gross_weight, payload.tare_weight_kg, payload.bag_count, per_bag
+    )
+    gross_amount, line_deduction, spot_deduction, net_amount = compute_amounts(
+        net_weight,
+        payload.rate_per_quintal,
+        payload.line_deduction_amount,
+        is_spot_payment=payload.is_spot_payment,
+        spot_deduction_per_quintal=spot_rate,
+    )
+    return ProcurementCalculateResponse(
+        gross_weight_kg=gross_weight,
+        bag_weight_deduction_kg=bag_deduction,
+        net_weight_kg=net_weight,
+        net_quintals=_weight(net_weight / _QUINTAL_KG),
+        gross_amount=gross_amount,
+        line_deduction_amount=line_deduction,
+        spot_deduction_amount=spot_deduction,
+        net_amount=net_amount,
+        moisture_pct=payload.moisture_pct,
+    )
 
 
 def _notify_status(db: Session, row: Procurement, actor_user_id: UUID) -> None:
@@ -38,6 +120,7 @@ def _notify_status(db: Session, row: Procurement, actor_user_id: UUID) -> None:
             village_id=row.village_id,
             created_by=row.created_by,
             actor_user_id=actor_user_id,
+            procurement_date=row.procurement_date,
         )
     except Exception:
         # Push must not fail the business transaction
@@ -48,6 +131,7 @@ _PROCUREMENT_NUMBER_PREFIX = "PR-"
 _QUINTAL_KG = Decimal("100")
 _ZERO = Decimal("0")
 _TWOPLACES = Decimal("0.01")
+_THREEPLACES = Decimal("0.001")
 _PAYMENT_TERM_DAYS = {
     "one_week": 7,
     "10_days": 10,
@@ -70,6 +154,10 @@ def can_transition(current: str, target: str) -> bool:
 
 def _money(value: Decimal) -> Decimal:
     return value.quantize(_TWOPLACES, rounding=ROUND_HALF_UP)
+
+
+def _weight(value: Decimal) -> Decimal:
+    return value.quantize(_THREEPLACES, rounding=ROUND_HALF_UP)
 
 
 def _next_procurement_number(db: Session, org_id: UUID) -> str:
@@ -239,17 +327,79 @@ def resolve_rate_per_quintal(
     return rule.rate_per_quintal
 
 
+def compute_bag_weight_deduction(bag_count: int, per_bag_deduction_kg: Decimal) -> Decimal:
+    """Total weight (kg) deducted for bags (kata) = bag_count * per_bag_deduction_kg."""
+    return _weight(Decimal(bag_count) * per_bag_deduction_kg)
+
+
+def compute_net_weight(
+    gross_weight_kg: Decimal,
+    tare_weight_kg: Decimal,
+    bag_count: int,
+    per_bag_deduction_kg: Decimal,
+) -> tuple[Decimal, Decimal]:
+    """Return (bag_weight_deduction_kg, net_weight_kg).
+
+    net_weight = gross - tare - (bag_count * per_bag_deduction_kg)
+    """
+    bag_weight_deduction = compute_bag_weight_deduction(bag_count, per_bag_deduction_kg)
+    net_weight = _weight(gross_weight_kg - tare_weight_kg - bag_weight_deduction)
+    return bag_weight_deduction, net_weight
+
+
+def compute_spot_deduction_amount(
+    net_weight_kg: Decimal,
+    is_spot_payment: bool,
+    spot_deduction_per_quintal: Decimal,
+) -> Decimal:
+    """Cash discount when farmer accepts 100% payment on spot: net_quintals × rate."""
+    if not is_spot_payment or spot_deduction_per_quintal <= _ZERO:
+        return _ZERO
+    net_quintals = net_weight_kg / _QUINTAL_KG
+    return _money(net_quintals * spot_deduction_per_quintal)
+
+
 def compute_amounts(
     net_weight_kg: Decimal,
     rate_per_quintal: Decimal,
-    deduction_amount: Decimal,
-) -> tuple[Decimal, Decimal, Decimal]:
+    line_deduction_amount: Decimal,
+    *,
+    is_spot_payment: bool = False,
+    spot_deduction_per_quintal: Decimal = DEFAULT_SPOT_DEDUCTION_PER_QUINTAL,
+) -> tuple[Decimal, Decimal, Decimal, Decimal]:
+    """Return (gross_amount, line_deduction_amount, spot_deduction_amount, net_amount)."""
     gross_amount = _money((net_weight_kg / _QUINTAL_KG) * rate_per_quintal)
-    deduction_amount = _money(deduction_amount)
-    net_amount = _money(gross_amount - deduction_amount)
+    line_deduction_amount = _money(line_deduction_amount)
+    spot_deduction_amount = compute_spot_deduction_amount(
+        net_weight_kg, is_spot_payment, spot_deduction_per_quintal
+    )
+    net_amount = _money(gross_amount - line_deduction_amount - spot_deduction_amount)
     if net_amount < _ZERO:
         raise ConflictError("Deductions exceed gross amount")
-    return gross_amount, deduction_amount, net_amount
+    return gross_amount, line_deduction_amount, spot_deduction_amount, net_amount
+
+
+def compute_profit_summary(procurement: Procurement) -> ProcurementProfitSummary | None:
+    """Buyer margin from weight kata + spot discount. Requires priced weights/rate."""
+    if procurement.rate_per_quintal <= _ZERO or procurement.gross_weight_kg <= _ZERO:
+        return None
+    rate = procurement.rate_per_quintal
+    weight_deduction_kg = compute_bag_weight_deduction(
+        procurement.bag_count, procurement.per_bag_deduction_kg
+    )
+    weight_quintals = weight_deduction_kg / _QUINTAL_KG
+    weight_profit = _money(weight_quintals * rate)
+    spot_amount = procurement.spot_deduction_amount
+    gross_quintals = _weight(procurement.gross_weight_kg / _QUINTAL_KG)
+    net_quintals = _weight(procurement.net_weight_kg / _QUINTAL_KG)
+    return ProcurementProfitSummary(
+        gross_quintals=gross_quintals,
+        net_quintals=net_quintals,
+        weight_deduction_kg=weight_deduction_kg,
+        weight_deduction_profit_amount=weight_profit,
+        spot_deduction_amount=spot_amount,
+        total_profit_amount=_money(weight_profit + spot_amount),
+    )
 
 
 def _sum_deductions(procurement: Procurement) -> Decimal:
@@ -257,13 +407,16 @@ def _sum_deductions(procurement: Procurement) -> Decimal:
 
 
 def _sync_amounts(procurement: Procurement) -> None:
-    gross_amount, deduction_amount, net_amount = compute_amounts(
+    gross_amount, line_deduction, spot_deduction, net_amount = compute_amounts(
         procurement.net_weight_kg,
         procurement.rate_per_quintal,
         _sum_deductions(procurement),
+        is_spot_payment=procurement.is_spot_payment,
+        spot_deduction_per_quintal=procurement.spot_deduction_per_quintal,
     )
     procurement.gross_amount = gross_amount
-    procurement.deduction_amount = deduction_amount
+    procurement.deduction_amount = line_deduction
+    procurement.spot_deduction_amount = spot_deduction
     procurement.net_amount = net_amount
 
 
@@ -330,7 +483,10 @@ def list_procurements(
     status: str | None = None,
     date_from: date | None = None,
     date_to: date | None = None,
+    viewer: User | None = None,
 ) -> tuple[list[Procurement], int]:
+    if viewer is not None:
+        farmer_id = resolve_farmer_list_filter(viewer, farmer_id)
     q = db.query(Procurement).filter(Procurement.org_id == org_id, Procurement.deleted_at.is_(None))
     if farmer_id:
         q = q.filter(Procurement.farmer_id == farmer_id)
@@ -355,8 +511,81 @@ def get_procurement(
     org_id: UUID,
     procurement_id: UUID,
     procurement_date: date,
+    *,
+    viewer: User | None = None,
 ) -> Procurement:
-    return _get_procurement(db, org_id, procurement_id, procurement_date)
+    row = _get_procurement(db, org_id, procurement_id, procurement_date)
+    if viewer is not None:
+        assert_farmer_can_view_procurement(viewer, row)
+    return row
+
+
+def create_field_entry(
+    db: Session,
+    org_id: UUID,
+    payload: ProcurementFieldEntryRequest,
+    actor_user_id: UUID,
+    client: ClientContext | None,
+    *,
+    idempotency_key: str | None = None,
+) -> Procurement:
+    """Mobile manager flow: draft → weigh → price → optional confirm in one request."""
+    create_payload = ProcurementCreateRequest(
+        farmer_id=payload.farmer_id,
+        crop_type_id=payload.crop_type_id,
+        village_id=payload.village_id,
+        procurement_date=payload.procurement_date,
+        bag_count=payload.bag_count,
+        per_bag_deduction_kg=payload.per_bag_deduction_kg,
+        is_spot_payment=payload.is_spot_payment,
+        spot_deduction_per_quintal=payload.spot_deduction_per_quintal,
+        buyer_id=payload.buyer_id,
+        payment_terms=payload.payment_terms,
+        payment_terms_custom=payload.payment_terms_custom,
+        expected_payment_date=payload.expected_payment_date,
+        notes=payload.notes,
+        weight_per_bag_kg=payload.weight_per_bag_kg,
+    )
+    row = create_procurement(
+        db, org_id, create_payload, actor_user_id, client, idempotency_key=idempotency_key
+    )
+
+    submit_procurement(db, org_id, row.id, row.procurement_date, actor_user_id, client)
+
+    gross_weight = _weight(Decimal(payload.bag_count) * payload.weight_per_bag_kg)
+    weigh_payload = WeighmentRequest(
+        gross_weight_kg=gross_weight,
+        tare_weight_kg=payload.tare_weight_kg,
+        moisture_pct=payload.moisture_pct,
+        bag_count=payload.bag_count,
+        per_bag_deduction_kg=payload.per_bag_deduction_kg,
+    )
+    record_weighment(
+        db, org_id, row.id, row.procurement_date, weigh_payload, actor_user_id, client
+    )
+    row = _get_procurement(db, org_id, row.id, row.procurement_date)
+
+    for deduction in payload.line_deductions:
+        add_deduction(db, org_id, row.id, row.procurement_date, deduction, actor_user_id, client)
+        row = _get_procurement(db, org_id, row.id, row.procurement_date)
+
+    apply_price(
+        db,
+        org_id,
+        row.id,
+        row.procurement_date,
+        actor_user_id,
+        client,
+        rate_per_quintal=payload.rate_per_quintal,
+    )
+    row = _get_procurement(db, org_id, row.id, row.procurement_date)
+
+    if payload.auto_confirm:
+        confirm_procurement(db, org_id, row.id, row.procurement_date, actor_user_id, client)
+        row = _get_procurement(db, org_id, row.id, row.procurement_date)
+    elif payload.notify_farmer:
+        _notify_farmer_summary(db, row, actor_user_id=actor_user_id)
+    return row
 
 
 def create_procurement(
@@ -396,6 +625,18 @@ def create_procurement(
         procurement_number=_next_procurement_number(db, org_id),
         status="draft",
         bag_count=payload.bag_count,
+        per_bag_deduction_kg=(
+            payload.per_bag_deduction_kg
+            if payload.per_bag_deduction_kg is not None
+            else DEFAULT_PER_BAG_DEDUCTION_KG
+        ),
+        is_spot_payment=payload.is_spot_payment,
+        spot_deduction_per_quintal=(
+            payload.spot_deduction_per_quintal
+            if payload.spot_deduction_per_quintal is not None
+            else DEFAULT_SPOT_DEDUCTION_PER_QUINTAL
+        ),
+        spot_deduction_amount=_ZERO,
         gross_weight_kg=_ZERO,
         net_weight_kg=_ZERO,
         rate_per_quintal=_ZERO,
@@ -408,6 +649,7 @@ def create_procurement(
         expected_payment_date=expected,
         idempotency_key=idempotency_key,
         notes=payload.notes,
+        weight_per_bag_kg=payload.weight_per_bag_kg,
         created_by=actor_user_id,
         updated_by=actor_user_id,
         farmer_id=payload.farmer_id,
@@ -451,6 +693,9 @@ def update_procurement(
         raise ConflictError("Only draft procurements can be updated")
 
     data = payload.model_dump(exclude_unset=True)
+    # per_bag_deduction_kg is NOT NULL; ignore an explicit null so it keeps its value.
+    if data.get("per_bag_deduction_kg") is None:
+        data.pop("per_bag_deduction_kg", None)
     if "farmer_id" in data and data["farmer_id"] is not None:
         _validate_farmer(db, org_id, data["farmer_id"])
     if "village_id" in data and data["village_id"] is not None:
@@ -535,15 +780,28 @@ def record_weighment(
     before_status = row.status
     _transition(row, "weighed")
 
-    net_weight = payload.gross_weight_kg - payload.tare_weight_kg
+    effective_bag_count = payload.bag_count if payload.bag_count is not None else row.bag_count
+    effective_per_bag = (
+        payload.per_bag_deduction_kg
+        if payload.per_bag_deduction_kg is not None
+        else row.per_bag_deduction_kg
+    )
+    bag_weight_deduction, net_weight = compute_net_weight(
+        payload.gross_weight_kg,
+        payload.tare_weight_kg,
+        effective_bag_count,
+        effective_per_bag,
+    )
     if net_weight <= _ZERO:
-        raise ConflictError("Net weight must be positive after tare deduction")
+        raise ConflictError(
+            "Net weight must be positive after tare and per-bag weight deductions"
+        )
 
     row.gross_weight_kg = payload.gross_weight_kg
     row.net_weight_kg = net_weight
     row.moisture_pct = payload.moisture_pct
-    if payload.bag_count is not None:
-        row.bag_count = payload.bag_count
+    row.bag_count = effective_bag_count
+    row.per_bag_deduction_kg = effective_per_bag
     row.updated_by = actor_user_id
 
     _audit(
@@ -553,7 +811,13 @@ def record_weighment(
         action="WEIGH",
         entity_id=row.id,
         before={"status": before_status},
-        after={"status": row.status, "net_weight_kg": str(row.net_weight_kg)},
+        after={
+            "status": row.status,
+            "net_weight_kg": str(row.net_weight_kg),
+            "bag_count": row.bag_count,
+            "per_bag_deduction_kg": str(row.per_bag_deduction_kg),
+            "bag_weight_deduction_kg": str(bag_weight_deduction),
+        },
         client=client,
         summary=f"Weighment recorded: {row.procurement_number}",
     )
@@ -570,12 +834,18 @@ def apply_price(
     procurement_date: date,
     actor_user_id: UUID,
     client: ClientContext | None,
+    *,
+    rate_per_quintal: Decimal | None = None,
 ) -> Procurement:
     row = _get_procurement(db, org_id, procurement_id, procurement_date)
     before_status = row.status
     _transition(row, "priced")
 
-    rate = resolve_rate_per_quintal(db, org_id, row.crop_type_id, row.village_id, row.procurement_date)
+    rate = (
+        rate_per_quintal
+        if rate_per_quintal is not None
+        else resolve_rate_per_quintal(db, org_id, row.crop_type_id, row.village_id, row.procurement_date)
+    )
     row.rate_per_quintal = rate
     _sync_amounts(row)
     row.updated_by = actor_user_id
@@ -649,6 +919,7 @@ def confirm_procurement(
     db.commit()
     db.refresh(row)
     _notify_status(db, row, actor_user_id)
+    _notify_farmer_summary(db, row, actor_user_id=actor_user_id)
     return row
 
 
@@ -793,22 +1064,27 @@ def add_deduction(
 def related_names(
     db: Session,
     procurements: list[Procurement],
+    locale: str = "en",
 ) -> tuple[dict[UUID, str], dict[UUID, str], dict[UUID, str], dict[UUID, str]]:
     farmer_ids = {p.farmer_id for p in procurements}
     village_ids = {p.village_id for p in procurements}
     crop_ids = {p.crop_type_id for p in procurements}
     buyer_ids = {p.buyer_id for p in procurements if p.buyer_id}
 
-    farmers = {}
+    farmers: dict[UUID, str] = {}
     if farmer_ids:
-        farmers = dict(db.query(Farmer.id, Farmer.full_name).filter(Farmer.id.in_(farmer_ids)).all())
-    villages = {}
+        for row in db.query(Farmer).filter(Farmer.id.in_(farmer_ids)).all():
+            farmers[row.id] = pick_display(row.full_name, row.full_name_te, locale) or row.full_name
+    villages: dict[UUID, str] = {}
     if village_ids:
-        villages = dict(db.query(Village.id, Village.name).filter(Village.id.in_(village_ids)).all())
-    crops = {}
+        for row in db.query(Village).filter(Village.id.in_(village_ids)).all():
+            villages[row.id] = pick_display(row.name, row.name_te, locale) or row.name
+    crops: dict[UUID, str] = {}
     if crop_ids:
-        crops = dict(db.query(CropType.id, CropType.name).filter(CropType.id.in_(crop_ids)).all())
-    buyers = {}
+        for row in db.query(CropType).filter(CropType.id.in_(crop_ids)).all():
+            crops[row.id] = pick_display(row.name, row.name_te, locale) or row.name
+    buyers: dict[UUID, str] = {}
     if buyer_ids:
-        buyers = dict(db.query(Buyer.id, Buyer.name).filter(Buyer.id.in_(buyer_ids)).all())
+        for row in db.query(Buyer).filter(Buyer.id.in_(buyer_ids)).all():
+            buyers[row.id] = pick_display(row.name, row.name_te, locale) or row.name
     return farmers, villages, crops, buyers

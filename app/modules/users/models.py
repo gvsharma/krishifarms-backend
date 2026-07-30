@@ -39,6 +39,7 @@ class Role(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     org_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), ForeignKey("organizations.id"), nullable=False)
     code: Mapped[str] = mapped_column(String(50), nullable=False)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
+    name_te: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_system: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     permissions: Mapped[list[Permission]] = relationship(
@@ -75,8 +76,13 @@ class User(Base, UUIDPrimaryKeyMixin, TimestampMixin, AuditActorMixin, SoftDelet
     firebase_uid: Mapped[str | None] = mapped_column(String(128), nullable=True)
     password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
     full_name: Mapped[str] = mapped_column(String(200), nullable=False)
+    full_name_te: Mapped[str | None] = mapped_column(Text, nullable=True)
     role_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), ForeignKey("roles.id"), nullable=False)
     village_id: Mapped[UUID | None] = mapped_column(PGUUID(as_uuid=True), ForeignKey("villages.id"), nullable=True)
+    farmer_id: Mapped[UUID | None] = mapped_column(PGUUID(as_uuid=True), ForeignKey("farmers.id"), nullable=True)
+    hamali_worker_id: Mapped[UUID | None] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("hamali_workers.id"), nullable=True
+    )
     worker_id: Mapped[UUID | None] = mapped_column(PGUUID(as_uuid=True), ForeignKey("workers.id"), nullable=True)
     preferred_locale: Mapped[str] = mapped_column(String(10), default="en", nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)

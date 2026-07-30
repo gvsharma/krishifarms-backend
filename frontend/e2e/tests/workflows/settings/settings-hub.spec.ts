@@ -44,7 +44,7 @@ test.describe("Settings — hub", () => {
       /Activity types/i,
       /Expense categories/i,
       /Payment modes/i,
-      /Villages/i,
+      /Villages.*Geography master/i,
     ]) {
       await expect(page.getByRole("link", { name })).toBeVisible();
     }

@@ -6,6 +6,8 @@ import {
   Button,
   Card,
   CircularProgress,
+  FormControlLabel,
+  Checkbox,
   MenuItem,
   Stack,
   TextField,
@@ -40,6 +42,7 @@ import {
   type LocationCascadeValue,
 } from "@/features/master-data/location-cascade";
 import { createProcurement } from "@/features/procurements/api";
+import { calculateProcurementPreview } from "@/features/procurements/calculate";
 import {
   PAYMENT_TERM_OPTIONS,
   mergeProcurementExtrasIntoNotes,
@@ -57,6 +60,9 @@ export default function NewProcurementPage() {
   const [location, setLocation] = useState<LocationCascadeValue>({ ...EMPTY_LOCATION_CASCADE });
   const [hydrateVillageId, setHydrateVillageId] = useState<string | null>(null);
   const [bagCount, setBagCount] = useState("0");
+  const [weightPerBag, setWeightPerBag] = useState("50");
+  const [perBagDeduction, setPerBagDeduction] = useState("2");
+  const [isSpotPayment, setIsSpotPayment] = useState(false);
   const [buyerId, setBuyerId] = useState("");
   const [paymentTerms, setPaymentTerms] = useState<PaymentTermValue | "">("one_week");
   const [paymentTermsCustom, setPaymentTermsCustom] = useState("");
@@ -116,6 +122,18 @@ export default function NewProcurementPage() {
     },
   });
 
+  const calcPreview = useMemo(
+    () =>
+      calculateProcurementPreview({
+        bagCount: Number(bagCount) || 0,
+        weightPerBagKg: Number(weightPerBag) || 0,
+        perBagDeductionKg: Number(perBagDeduction) || 2,
+        ratePerQuintal: Number(ratePerQuintal) || 0,
+        isSpotPayment,
+      }),
+    [bagCount, weightPerBag, perBagDeduction, ratePerQuintal, isSpotPayment],
+  );
+
   const createMutation = useMutation({
     mutationFn: () => {
       // First-class buyer/terms on API (migration 026); planned moisture/rate stay in [kf:proc] notes.
@@ -129,6 +147,9 @@ export default function NewProcurementPage() {
         village_id: location.villageId,
         procurement_date: today,
         bag_count: Number(bagCount) || 0,
+        weight_per_bag_kg: weightPerBag.trim() || null,
+        per_bag_deduction_kg: perBagDeduction.trim() || null,
+        is_spot_payment: isSpotPayment,
         buyer_id: buyerId || null,
         payment_terms: paymentTerms || null,
         payment_terms_custom:
@@ -294,14 +315,75 @@ export default function NewProcurementPage() {
               />
             </Stack>
 
-            <TextField
-              label="Bag count"
-              type="number"
-              sx={TOUCH_FIELD_SX}
-              inputProps={{ min: 0 }}
-              value={bagCount}
-              onChange={(e) => setBagCount(e.target.value)}
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+              <TextField
+                fullWidth
+                label="Bag count"
+                type="number"
+                sx={TOUCH_FIELD_SX}
+                inputProps={{ min: 0 }}
+                value={bagCount}
+                onChange={(e) => setBagCount(e.target.value)}
+              />
+              <TextField
+                fullWidth
+                label="Weight per bag (kg)"
+                type="number"
+                sx={TOUCH_FIELD_SX}
+                inputProps={{ min: 0, step: 0.001 }}
+                value={weightPerBag}
+                onChange={(e) => setWeightPerBag(e.target.value)}
+                helperText="Gross = bags × kg/bag"
+              />
+              <TextField
+                fullWidth
+                label="Per-bag deduction (kg)"
+                type="number"
+                sx={TOUCH_FIELD_SX}
+                inputProps={{ min: 0, step: 0.001 }}
+                value={perBagDeduction}
+                onChange={(e) => setPerBagDeduction(e.target.value)}
+                helperText="Kata weight deducted per bag at weighment. Default 2 kg."
+              />
+            </Stack>
+
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={isSpotPayment}
+                  onChange={(e) => setIsSpotPayment(e.target.checked)}
+                />
+              }
+              label="100% payment on spot"
+              sx={{ alignItems: "flex-start", ml: 0 }}
             />
+            <Typography variant="caption" color="text.secondary" sx={{ mt: -1.5, display: "block" }}>
+              When checked, deducts ₹100 per net quintal from farmer payment (cash discount).
+            </Typography>
+
+            {calcPreview && ratePerQuintal && (
+              <Card variant="outlined" sx={{ p: 2, bgcolor: "action.hover" }}>
+                <Typography variant="subtitle2" gutterBottom>
+                  Live calculation preview
+                </Typography>
+                <Stack spacing={0.5}>
+                  <Typography variant="body2">
+                    Gross weight: {calcPreview.grossWeightKg} kg · Kata: −{calcPreview.bagWeightDeductionKg} kg
+                  </Typography>
+                  <Typography variant="body2">
+                    Net weight: {calcPreview.netWeightKg} kg ({calcPreview.netQuintals} qtl)
+                  </Typography>
+                  <Typography variant="body2">
+                    Gross amount: ₹{calcPreview.grossAmount.toLocaleString("en-IN")}
+                    {calcPreview.spotDeductionAmount > 0 &&
+                      ` · Spot: −₹${calcPreview.spotDeductionAmount.toLocaleString("en-IN")}`}
+                  </Typography>
+                  <Typography variant="body2" fontWeight={600}>
+                    Farmer net: ₹{calcPreview.netAmount.toLocaleString("en-IN")}
+                  </Typography>
+                </Stack>
+              </Card>
+            )}
 
             <TextField
               label="Notes"

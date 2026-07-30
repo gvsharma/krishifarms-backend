@@ -60,6 +60,14 @@ def test_agent_field_services_not_procurement_create():
     assert "documents:create" in agent
 
 
+def test_hamali_role_is_read_only_hamali_module():
+    hamali = set(ROLE_PERMISSIONS["HAMALI"])
+    assert hamali == {"hamali:read", "dashboard:read"}
+    assert "hamali:create" not in hamali
+    assert "hamali:update" not in hamali
+    assert "hamali:pay" not in hamali
+
+
 def test_farmer_can_comment_on_posted_field_work():
     farmer = set(ROLE_PERMISSIONS["FARMER"])
     assert "comments:read" in farmer

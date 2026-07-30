@@ -58,6 +58,24 @@ jobs:
           echo "Frontend failed to start"
           exit 1
 
+      - name: Wait for EC2 API (login proxy target)
+        env:
+          API_PROXY_TARGET: ${{ env.API_PROXY_TARGET }}
+        run: |
+          set -euo pipefail
+          HEALTH_URL="${API_PROXY_TARGET%/}/api/v1/health"
+          echo "Waiting for ${HEALTH_URL}…"
+          for attempt in $(seq 1 36); do
+            if curl -sf --max-time 15 "${HEALTH_URL}" >/dev/null; then
+              echo "API health OK (attempt ${attempt})"
+              exit 0
+            fi
+            echo "API not ready (attempt ${attempt}/36)…"
+            sleep 10
+          done
+          echo "::error::EC2 API unreachable at ${HEALTH_URL}. E2E login requires the shared dev instance — check wake-ec2 job and /api/v1/health on EC2."
+          exit 1
+
       - name: Run smoke + functional E2E (PR gate)
         if: github.event_name == 'pull_request'
         env:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
+from decimal import Decimal
 from uuid import UUID
 
 from sqlalchemy.orm import Session, joinedload
@@ -10,6 +11,7 @@ from app.core.exceptions import AppError, NotFoundError
 from app.modules.devices.fcm import is_invalid_token_error, send_fcm_notification
 from app.modules.devices.models import UserDeviceToken
 from app.modules.devices.schemas import PushTokenDeleteRequest, PushTokenRegisterRequest
+from app.modules.farmers.models import Farmer
 from app.modules.users.models import Role, User
 
 
@@ -193,10 +195,14 @@ def notify_procurement_status(
     village_id: UUID | None,
     created_by: UUID | None,
     actor_user_id: UUID,
+    procurement_date: date | None = None,
 ) -> None:
     recipients = {u.id for u in _users_by_role_codes(db, org_id, {"OWNER", "MANAGER", "SUPERVISOR"}, village_id=village_id)}
     if created_by:
         recipients.add(created_by)
+    data: dict[str, str] = {"type": "procurement", "id": str(procurement_id), "status": status}
+    if procurement_date is not None:
+        data["procurement_date"] = procurement_date.isoformat()
     notify_users(
         db,
         org_id=org_id,
@@ -205,9 +211,110 @@ def notify_procurement_status(
         body_en=f"{procurement_number} is now {status}",
         title_te="కొనుగోలు నవీకరించబడింది",
         body_te=f"{procurement_number} ఇప్పుడు {status}",
-        data={"type": "procurement", "id": str(procurement_id), "status": status},
+        data=data,
         skip_user_id=actor_user_id,
     )
+
+
+def _farmer_user_ids_for_procurement(db: Session, org_id: UUID, farmer_id: UUID) -> set[UUID]:
+    from app.modules.auth.phone import normalize_phone_for_lookup
+
+    farmer = (
+        db.query(Farmer)
+        .filter(Farmer.id == farmer_id, Farmer.org_id == org_id, Farmer.deleted_at.is_(None))
+        .first()
+    )
+    if farmer is None:
+        return set()
+
+    user_ids: set[UUID] = set()
+    linked = (
+        db.query(User)
+        .join(Role, User.role_id == Role.id)
+        .filter(
+            User.org_id == org_id,
+            User.deleted_at.is_(None),
+            User.is_active.is_(True),
+            User.farmer_id == farmer_id,
+            Role.code == "FARMER",
+        )
+        .all()
+    )
+    user_ids |= {u.id for u in linked}
+
+    farmer_phone = normalize_phone_for_lookup(farmer.phone_primary or "")
+    if farmer_phone:
+        candidates = (
+            db.query(User)
+            .join(Role, User.role_id == Role.id)
+            .filter(
+                User.org_id == org_id,
+                User.deleted_at.is_(None),
+                User.is_active.is_(True),
+                User.phone.isnot(None),
+                Role.code == "FARMER",
+            )
+            .all()
+        )
+        for user in candidates:
+            if normalize_phone_for_lookup(user.phone or "") == farmer_phone:
+                user_ids.add(user.id)
+    return user_ids
+
+
+def notify_farmer_procurement_summary(
+    db: Session,
+    *,
+    org_id: UUID,
+    procurement,
+    actor_user_id: UUID,
+) -> None:
+    """Push + SMS to farmer-linked users when a procurement is confirmed or priced."""
+    from app.shared.sms import send_sms
+
+    farmer = (
+        db.query(Farmer)
+        .filter(
+            Farmer.id == procurement.farmer_id,
+            Farmer.org_id == org_id,
+            Farmer.deleted_at.is_(None),
+        )
+        .first()
+    )
+    if farmer is None:
+        return
+
+    user_ids = _farmer_user_ids_for_procurement(db, org_id, procurement.farmer_id)
+    net_qtl = procurement.net_weight_kg / Decimal("100")
+    summary_en = (
+        f"{procurement.procurement_number}: {procurement.bag_count} bags, "
+        f"net {net_qtl:.2f} qtl, amount ₹{procurement.net_amount}"
+    )
+    summary_te = (
+        f"{procurement.procurement_number}: {procurement.bag_count} సంచులు, "
+        f"నికర {net_qtl:.2f} క్వин్టాళ్లు, మొత్తం ₹{procurement.net_amount}"
+    )
+
+    if user_ids:
+        notify_users(
+            db,
+            org_id=org_id,
+            user_ids=user_ids,
+            title_en="Your procurement is recorded",
+            body_en=summary_en,
+            title_te="మీ కొనుగోలు నమోదు అయింది",
+            body_te=summary_te,
+            data={
+                "type": "farmer_procurement",
+                "id": str(procurement.id),
+                "procurement_date": procurement.procurement_date.isoformat(),
+                "status": procurement.status,
+            },
+            skip_user_id=actor_user_id,
+        )
+
+    if farmer.phone_primary:
+        send_sms(phone=farmer.phone_primary, message=f"KrishiFarms: {summary_en}")
 
 
 def notify_farmer_comment(

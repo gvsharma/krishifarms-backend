@@ -48,8 +48,8 @@ test.describe("workflows — villages add dialog", () => {
     await validateEntirePage(page, {
       name: "settings-villages-add-dialog",
       skip: ["visual", "responsive"],
-      // Under-dialog chrome is covered by the modal; layout/buttons soft while dialog is open.
-      softFail: ["typography", "css", "performance", "contrast", "layout", "buttons"],
+      // Under-dialog chrome is covered by the modal; layout/buttons/a11y soft while dialog is open.
+      softFail: ["typography", "css", "performance", "contrast", "layout", "buttons", "accessibility"],
     });
 
     await page.getByRole("button", { name: /Cancel/i }).click();

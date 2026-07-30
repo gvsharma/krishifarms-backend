@@ -19,7 +19,7 @@ test.describe("finance — expenses", () => {
 
     await expect(page.getByRole("heading", { name: /^Expenses$/i })).toBeVisible();
     await expect(
-      page.getByText(/Operational expenses, categories, and approval workflow/i),
+      page.getByText(/Operational expense tracking/i),
     ).toBeVisible();
 
     await expectListOrEmptyOrError(page, { emptyTitle: /Expenses — coming soon/i });

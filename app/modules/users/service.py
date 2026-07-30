@@ -10,7 +10,10 @@ from app.core.cache.keys import user_permissions_key
 from app.core.exceptions import ConflictError, NotFoundError
 from app.core.security import hash_password
 from app.modules.auth.phone import normalize_phone_for_lookup
-from app.modules.hamali.service import create_worker_for_hamali_user
+from app.modules.farmers.models import Farmer
+from app.modules.hamali.models import HamaliWorker
+from app.modules.hamali.schemas import HamaliWorkerCreateRequest
+from app.modules.hamali import service as hamali_service
 from app.modules.users.models import RefreshToken, Role, User
 from app.modules.users.schemas import UserCreateRequest, UserSelfUpdateRequest, UserUpdateRequest
 from app.shared.services.audit import write_audit_log
@@ -141,6 +144,34 @@ def get_current_profile(db: Session, user_id: UUID) -> User:
     return user
 
 
+def _validate_farmer_link(db: Session, org_id: UUID, farmer_id: UUID | None) -> None:
+    if farmer_id is None:
+        return
+    row = (
+        db.query(Farmer)
+        .filter(Farmer.id == farmer_id, Farmer.org_id == org_id, Farmer.deleted_at.is_(None))
+        .first()
+    )
+    if row is None:
+        raise NotFoundError("Farmer not found")
+
+
+def _validate_hamali_worker_link(db: Session, org_id: UUID, hamali_worker_id: UUID | None) -> None:
+    if hamali_worker_id is None:
+        return
+    row = (
+        db.query(HamaliWorker)
+        .filter(
+            HamaliWorker.id == hamali_worker_id,
+            HamaliWorker.org_id == org_id,
+            HamaliWorker.deleted_at.is_(None),
+        )
+        .first()
+    )
+    if row is None:
+        raise NotFoundError("Hamali worker not found")
+
+
 def create_user(
     db: Session,
     org_id: UUID,
@@ -171,22 +202,28 @@ def create_user(
     if role is None:
         raise NotFoundError("Role not found")
 
+    _validate_farmer_link(db, org_id, payload.farmer_id)
+
     password_hash = (
         hash_password(payload.password)
         if payload.password
         else hash_password(secrets.token_urlsafe(32))
     )
 
-    worker_id = payload.worker_id
-    if role.code == "HAMALI" and worker_id is None:
-        worker = create_worker_for_hamali_user(
+    hamali_worker_id = payload.hamali_worker_id
+    if role.code == "HAMALI" and hamali_worker_id is None:
+        worker = hamali_service.create_worker(
             db,
             org_id,
-            full_name=payload.full_name,
-            phone=normalized_phone or payload.phone,
-            actor_user_id=actor_user_id,
+            HamaliWorkerCreateRequest(
+                full_name=payload.full_name,
+                full_name_te=payload.full_name_te,
+                phone=normalized_phone or payload.phone,
+            ),
+            actor_user_id,
+            client=None,
         )
-        worker_id = worker.id
+        hamali_worker_id = worker.id
 
     user = User(
         org_id=org_id,
@@ -194,9 +231,11 @@ def create_user(
         phone=normalized_phone or payload.phone,
         password_hash=password_hash,
         full_name=payload.full_name,
+        full_name_te=payload.full_name_te,
         role_id=payload.role_id,
         village_id=payload.village_id,
-        worker_id=worker_id,
+        farmer_id=payload.farmer_id,
+        hamali_worker_id=hamali_worker_id,
         preferred_locale=payload.preferred_locale,
         created_by=actor_user_id,
         updated_by=actor_user_id,
@@ -235,12 +274,18 @@ def update_user(
 
     if payload.full_name is not None:
         user.full_name = payload.full_name
+    if payload.full_name_te is not None:
+        user.full_name_te = payload.full_name_te
     if payload.phone is not None:
         user.phone = normalize_phone_for_lookup(payload.phone) or payload.phone
     if payload.village_id is not None:
         user.village_id = payload.village_id
-    if payload.worker_id is not None:
-        user.worker_id = payload.worker_id
+    if payload.farmer_id is not None:
+        _validate_farmer_link(db, org_id, payload.farmer_id)
+        user.farmer_id = payload.farmer_id
+    if payload.hamali_worker_id is not None:
+        _validate_hamali_worker_link(db, org_id, payload.hamali_worker_id)
+        user.hamali_worker_id = payload.hamali_worker_id
     if payload.preferred_locale is not None:
         user.preferred_locale = payload.preferred_locale
     if payload.is_active is not None:
@@ -270,6 +315,8 @@ def update_current_user(db: Session, user_id: UUID, payload: UserSelfUpdateReque
 
     if payload.full_name is not None:
         user.full_name = payload.full_name
+    if payload.full_name_te is not None:
+        user.full_name_te = payload.full_name_te
     if payload.preferred_locale is not None:
         user.preferred_locale = payload.preferred_locale
 

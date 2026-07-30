@@ -34,6 +34,7 @@ tags:
   - name: Field Services
   - name: Farms
   - name: Procurement
+  - name: Hamali
   - name: Payments
   - name: Workers
   - name: Work Orders
@@ -194,6 +195,10 @@ paths:
 
   /procurements:
     $ref: paths/procurement.yaml#/procurements
+  /procurements/calculate:
+    $ref: paths/procurement.yaml#/procurementCalculate
+  /procurements/field-entry:
+    $ref: paths/procurement.yaml#/procurementFieldEntry
   /procurements/{procurement_id}:
     $ref: paths/procurement.yaml#/procurementById
   /procurements/{procurement_id}/submit:
@@ -210,6 +215,17 @@ paths:
     $ref: paths/procurement.yaml#/procurementReverse
   /procurements/{procurement_id}/deductions:
     $ref: paths/procurement.yaml#/procurementDeductions
+
+  /hamali/workers:
+    $ref: paths/hamali.yaml#/~1hamali~1workers
+  /hamali/daily-entries:
+    $ref: paths/hamali.yaml#/~1hamali~1daily-entries
+  /hamali/weekly-summary:
+    $ref: paths/hamali.yaml#/~1hamali~1weekly-summary
+  /hamali/weekly-payments:
+    $ref: paths/hamali.yaml#/~1hamali~1weekly-payments
+  /hamali/weekly-payments/{payment_id}/mark-paid:
+    $ref: paths/hamali.yaml#/~1hamali~1weekly-payments~1{payment_id}~1mark-paid
 
   /farmer-payments:
     $ref: paths/payments.yaml#/farmerPayments

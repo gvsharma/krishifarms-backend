@@ -20,6 +20,7 @@ class RoleResponse(ORMModel):
     id: UUID
     code: str
     name: str
+    name_te: str | None = None
 
 
 class PermissionResponse(ORMModel):
@@ -35,7 +36,10 @@ class UserResponse(ORMModel):
     email: str | None
     phone: str | None
     full_name: str
+    full_name_te: str | None = None
     village_id: UUID | None = None
+    farmer_id: UUID | None = None
+    hamali_worker_id: UUID | None = None
     preferred_locale: str
     is_active: bool
     role: RoleResponse
@@ -49,10 +53,12 @@ class UserCreateRequest(BaseModel):
     email: str | None = Field(default=None, max_length=255)
     password: str | None = Field(default=None, min_length=8)
     full_name: str = Field(min_length=2, max_length=200)
+    full_name_te: str | None = None
     phone: str = Field(min_length=10, max_length=20)
     role_id: UUID
     village_id: UUID | None = None
-    worker_id: UUID | None = None
+    farmer_id: UUID | None = None
+    hamali_worker_id: UUID | None = None
     preferred_locale: str = "en"
 
     @field_validator("email")
@@ -81,10 +87,12 @@ class UserCreateRequest(BaseModel):
 
 class UserUpdateRequest(BaseModel):
     full_name: str | None = Field(default=None, min_length=2, max_length=200)
+    full_name_te: str | None = None
     phone: str | None = None
     village_id: UUID | None = None
+    farmer_id: UUID | None = None
+    hamali_worker_id: UUID | None = None
     role_id: UUID | None = None
-    worker_id: UUID | None = None
     preferred_locale: str | None = None
     is_active: bool | None = None
     password: str | None = Field(default=None, min_length=8)
@@ -99,6 +107,7 @@ class UserUpdateRequest(BaseModel):
 
 class UserSelfUpdateRequest(BaseModel):
     full_name: str | None = Field(default=None, min_length=2, max_length=200)
+    full_name_te: str | None = None
     preferred_locale: str | None = Field(default=None, min_length=2, max_length=10)
 
 

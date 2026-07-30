@@ -15,6 +15,7 @@ class ExpenseCategory(Base, UUIDPrimaryKeyMixin, TimestampMixin, AuditActorMixin
 
     org_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), ForeignKey("organizations.id"), nullable=False)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
+    name_te: Mapped[str | None] = mapped_column(Text, nullable=True)
     parent_id: Mapped[UUID | None] = mapped_column(
         PGUUID(as_uuid=True), ForeignKey("expense_categories.id"), nullable=True
     )
