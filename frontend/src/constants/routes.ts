@@ -13,6 +13,7 @@ export const ROUTES = {
   expenses: "/expenses",
   vehicles: "/vehicles",
   hamali: "/hamali",
+  myProcurements: "/my-procurements",
   workers: "/workers",
   reports: "/reports",
   analytics: "/analytics",

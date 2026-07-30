@@ -206,3 +206,36 @@ procurementDeductions:
           schema: { $ref: '../schemas/procurement.yaml#/ProcurementDeductionCreate' }
     responses:
       '201': { description: Deduction added }
+
+procurementCalculate:
+  post:
+    tags: [Procurement]
+    operationId: calculateProcurement
+    description: Live preview of gross/net weight and amounts (mobile + admin UI).
+    requestBody:
+      content:
+        application/json:
+          schema: { $ref: '../schemas/procurement.yaml#/ProcurementCalculate' }
+    responses:
+      '200':
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean }
+                data: { $ref: '../schemas/procurement.yaml#/ProcurementCalculateResult' }
+
+procurementFieldEntry:
+  post:
+    tags: [Procurement]
+    operationId: createProcurementFieldEntry
+    description: Mobile manager one-shot — create, weigh, price, optional confirm + farmer notify.
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/IdempotencyKey'
+    requestBody:
+      content:
+        application/json:
+          schema: { $ref: '../schemas/procurement.yaml#/ProcurementFieldEntry' }
+    responses:
+      '201': { description: Procurement recorded }

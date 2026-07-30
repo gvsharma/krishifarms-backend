@@ -33,6 +33,9 @@ Procurement:
     actual_payment_date: { type: string, format: date }
     procurement_date: { type: string, format: date }
     bag_count: { type: integer, minimum: 0 }
+    weight_per_bag_kg:
+      $ref: 'common.yaml#/Weight'
+      description: Standard gross kg per bag (mobile field entry); gross = bag_count × weight_per_bag_kg.
     # Per-bag weight deduction (kata) in kg; defaults to 2.000.
     per_bag_deduction_kg: { $ref: 'common.yaml#/Weight' }
     # Computed: bag_count * per_bag_deduction_kg.
@@ -158,3 +161,53 @@ ProcurementList:
     total: { type: integer }
     page: { type: integer }
     page_size: { type: integer }
+
+ProcurementCalculate:
+  type: object
+  required: [bag_count, weight_per_bag_kg, rate_per_quintal]
+  properties:
+    bag_count: { type: integer, minimum: 0 }
+    weight_per_bag_kg: { $ref: 'common.yaml#/Weight' }
+    per_bag_deduction_kg: { $ref: 'common.yaml#/Weight' }
+    tare_weight_kg: { $ref: 'common.yaml#/Weight' }
+    moisture_pct: { type: number }
+    rate_per_quintal: { $ref: 'common.yaml#/Money' }
+    is_spot_payment: { type: boolean }
+    spot_deduction_per_quintal: { $ref: 'common.yaml#/Money' }
+    line_deduction_amount: { $ref: 'common.yaml#/Money' }
+
+ProcurementCalculateResult:
+  type: object
+  properties:
+    gross_weight_kg: { $ref: 'common.yaml#/Weight' }
+    bag_weight_deduction_kg: { $ref: 'common.yaml#/Weight' }
+    net_weight_kg: { $ref: 'common.yaml#/Weight' }
+    net_quintals: { $ref: 'common.yaml#/Weight' }
+    gross_amount: { $ref: 'common.yaml#/Money' }
+    line_deduction_amount: { $ref: 'common.yaml#/Money' }
+    spot_deduction_amount: { $ref: 'common.yaml#/Money' }
+    net_amount: { $ref: 'common.yaml#/Money' }
+    moisture_pct: { type: number }
+
+ProcurementFieldEntry:
+  allOf:
+    - { $ref: '#/ProcurementCalculate' }
+    - type: object
+      required: [farmer_id, crop_type_id, village_id, procurement_date]
+      properties:
+        farmer_id: { $ref: 'common.yaml#/UUID' }
+        crop_type_id: { $ref: 'common.yaml#/UUID' }
+        village_id: { $ref: 'common.yaml#/UUID' }
+        procurement_date: { type: string, format: date }
+        buyer_id: { $ref: 'common.yaml#/UUID' }
+        payment_terms: { type: string }
+        auto_confirm: { type: boolean, default: true }
+        notify_farmer: { type: boolean, default: true }
+        notes: { type: string }
+
+ApplyPrice:
+  type: object
+  properties:
+    rate_per_quintal:
+      $ref: 'common.yaml#/Money'
+      description: Optional explicit rate; otherwise crop price rule applies.

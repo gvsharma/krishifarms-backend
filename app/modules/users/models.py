@@ -79,6 +79,7 @@ class User(Base, UUIDPrimaryKeyMixin, TimestampMixin, AuditActorMixin, SoftDelet
     full_name_te: Mapped[str | None] = mapped_column(Text, nullable=True)
     role_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), ForeignKey("roles.id"), nullable=False)
     village_id: Mapped[UUID | None] = mapped_column(PGUUID(as_uuid=True), ForeignKey("villages.id"), nullable=True)
+    farmer_id: Mapped[UUID | None] = mapped_column(PGUUID(as_uuid=True), ForeignKey("farmers.id"), nullable=True)
     worker_id: Mapped[UUID | None] = mapped_column(PGUUID(as_uuid=True), ForeignKey("workers.id"), nullable=True)
     preferred_locale: Mapped[str] = mapped_column(String(10), default="en", nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
