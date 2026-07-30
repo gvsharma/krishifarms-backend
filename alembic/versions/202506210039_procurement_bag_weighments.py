@@ -9,7 +9,7 @@ from sqlalchemy.dialects import postgresql
 from migration_utils import audit_columns, org_fk
 
 revision: str = "202506210039"
-down_revision: Union[str, None] = "202506210037"
+down_revision: Union[str, None] = "202506210038"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

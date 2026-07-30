@@ -15,7 +15,8 @@ Inventory of create/update/delete (and admin management) capabilities across the
 | Field services (tractor, transport, fertiliser, seeds, agri-finance, vehicle/godown ops) | ✅ List + create; vehicle-type work profiles (Tractor/Trolley/Bolero/DCM/Pump/Drone) via `[kf:work]` comments | ✅ `/field-services` CRUD | ✅ List + create form with vehicle-type questions |
 | Users / roles | ✅ Admin hub; display labels via `RoleLabels` | ✅ Live | ✅ Settings → Users + sidebar |
 | Farmers | CRU (+ offline); form sends `village_id` (Room `village_id` col v7) | ✅ Live | ✅ List / detail / create |
-| Procurements | ✅ Create + list/detail; draft extras; **full workflow** submit / weigh / price / confirm / **cancel** / **reverse** on detail | ✅ Full workflow | ✅ List / create / detail + workflow actions |
+| Procurements | ✅ Create + list/detail; draft extras; **full workflow** submit / weigh / price / confirm / **cancel** / **reverse** on detail; **field-entry** one-shot (bags × kg/bag, rate, moisture, spot) via `POST /field-entry` | ✅ Full workflow + **calculate** + **field-entry** + farmer scoping | ✅ List / create / detail + workflow + live calc preview |
+| Farmer portal | ✅ FARMER list/detail (scoped) + push on confirm | ✅ FARMER scoped read + FCM/SMS notify | ✅ `/my-procurements` read-only |
 | Workers / work orders / attendance | CRU / CR / CU | 📋 Schema + OpenAPI only | ⬜ Placeholder |
 | Expenses | Create + list/detail | ✅ Live CRUD | ⬜ Placeholder |
 | Farmer payments | List + create | ✅ Thin list/create/allocate/reverse | ✅ List + create on `/payments` (allocate UI deferred) |
@@ -73,6 +74,8 @@ Full matrix (visible / stub / hidden) + field-ops gaps: [docs/qa/ROLE_SCREEN_AUD
 
 ### Done this iteration (Android)
 
+- **Field-entry form (MANAGER)** — call `POST /api/v1/procurements/field-entry` with `bag_count`, `weight_per_bag_kg`, `moisture_pct`, `rate_per_quintal`, `is_spot_payment`, `auto_confirm`, `notify_farmer`. Use `POST /procurements/calculate` for live preview while typing. See `ProcurementFieldEntry` in OpenAPI.
+- **Farmer home** — FARMER role: list via `GET /procurements` (server scopes to `users.farmer_id` or phone match); detail deep-link needs `procurement_date` query param; handle FCM `type=farmer_procurement`.
 - Procurement cancel / reverse on detail (`ProcurementApi` + reason dialogs; cancel = `PROCUREMENT_DELETE` / reverse = OWNER + `PROCUREMENT_APPROVE`)
 - Field-service vehicle work profiles: Tractor/Trolley/Bolero/DCM/Pump/Drone questions; `[kf:work]` comment codec + `vehicle_type_id` on create
 - Prior: Field-services list + create; farmer `village_id` cascade; procurement submit / weigh / price / confirm

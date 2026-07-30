@@ -9,9 +9,13 @@ from app.core.dependencies import CurrentUserContext, get_current_user_context, 
 from app.modules.procurements import service
 from app.modules.procurements.schemas import (
     PROCUREMENT_STATUSES,
+    ApplyPriceRequest,
+    ProcurementCalculateRequest,
+    ProcurementCalculateResponse,
     ProcurementCancelRequest,
     ProcurementCreateRequest,
     ProcurementDeductionInput,
+    ProcurementFieldEntryRequest,
     ProcurementListItemResponse,
     ProcurementListResponse,
     ProcurementResponse,
@@ -122,6 +126,7 @@ def list_procurements(
         status=status,
         date_from=date_from,
         date_to=date_to,
+        viewer=ctx.user,
     )
     farmers, villages, crops, buyers = service.related_names(db, items, locale=locale)
     tag_map = attach_tags_only(db, ctx.user.org_id, "procurement", [p.id for p in items])
@@ -150,6 +155,29 @@ def create_procurement(
     return APIResponse(data=_enrich_response(db, row, viewer_role_code=_viewer_role_code(ctx), locale=locale))
 
 
+@router.post("/procurements/calculate", response_model=APIResponse[ProcurementCalculateResponse])
+def calculate_procurement(
+    payload: ProcurementCalculateRequest,
+    _: CurrentUserContext = Depends(require_permission("procurements:read")),
+):
+    return APIResponse(data=service.calculate_procurement_preview(payload))
+
+
+@router.post("/procurements/field-entry", response_model=APIResponse[ProcurementResponse], status_code=201)
+def create_field_entry(
+    payload: ProcurementFieldEntryRequest,
+    ctx: CurrentUserContext = Depends(require_permission("procurements:create")),
+    client: ClientContext = Depends(get_client_context),
+    db: Session = Depends(get_db),
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+    locale: str = Depends(_response_locale),
+):
+    row = service.create_field_entry(
+        db, ctx.user.org_id, payload, ctx.user.id, client, idempotency_key=idempotency_key
+    )
+    return APIResponse(data=_enrich_response(db, row, viewer_role_code=_viewer_role_code(ctx), locale=locale))
+
+
 @router.get("/procurements/{procurement_id}", response_model=APIResponse[ProcurementResponse])
 def get_procurement(
     procurement_id: UUID,
@@ -158,7 +186,9 @@ def get_procurement(
     db: Session = Depends(get_db),
     locale: str = Depends(_response_locale),
 ):
-    row = service.get_procurement(db, ctx.user.org_id, procurement_id, procurement_date)
+    row = service.get_procurement(
+        db, ctx.user.org_id, procurement_id, procurement_date, viewer=ctx.user
+    )
     return APIResponse(data=_enrich_response(db, row, viewer_role_code=_viewer_role_code(ctx), locale=locale))
 
 
@@ -213,12 +243,22 @@ def record_weighment(
 def apply_price(
     procurement_id: UUID,
     procurement_date: date = Query(...),
+    payload: ApplyPriceRequest | None = None,
     ctx: CurrentUserContext = Depends(require_permission("procurements:update")),
     client: ClientContext = Depends(get_client_context),
     db: Session = Depends(get_db),
     locale: str = Depends(_response_locale),
 ):
-    row = service.apply_price(db, ctx.user.org_id, procurement_id, procurement_date, ctx.user.id, client)
+    rate = payload.rate_per_quintal if payload else None
+    row = service.apply_price(
+        db,
+        ctx.user.org_id,
+        procurement_id,
+        procurement_date,
+        ctx.user.id,
+        client,
+        rate_per_quintal=rate,
+    )
     return APIResponse(data=_enrich_response(db, row, viewer_role_code=_viewer_role_code(ctx), locale=locale))
 
 

@@ -25,6 +25,7 @@ class Procurement(Base, TimestampMixin, AuditActorMixin, SoftDeleteMixin):
     expected_payment_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     actual_payment_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     bag_count: Mapped[int] = mapped_column(nullable=False, default=0)
+    weight_per_bag_kg: Mapped[Decimal | None] = mapped_column(Numeric(8, 3), nullable=True)
     per_bag_deduction_kg: Mapped[Decimal] = mapped_column(
         Numeric(6, 3), nullable=False, default=Decimal("2.000")
     )
