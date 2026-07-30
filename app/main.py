@@ -25,6 +25,7 @@ from app.modules.procurements.router import router as procurements_router
 from app.modules.master_data.router import router as master_data_router
 from app.modules.platform.router import router as platform_router
 from app.modules.legal.router import router as legal_router
+from app.modules.hamali.router import router as hamali_router
 from app.modules.users.router import router as users_router
 
 
@@ -70,6 +71,7 @@ api_v1.include_router(devices_router)
 api_v1.include_router(audit_router)
 api_v1.include_router(dashboard_router)
 api_v1.include_router(analytics_router)
+api_v1.include_router(hamali_router)
 
 
 @api_v1.exception_handler(AppError)

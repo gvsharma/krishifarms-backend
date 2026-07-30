@@ -10,6 +10,7 @@ from app.core.cache.keys import user_permissions_key
 from app.core.exceptions import ConflictError, NotFoundError
 from app.core.security import hash_password
 from app.modules.auth.phone import normalize_phone_for_lookup
+from app.modules.hamali.service import create_worker_for_hamali_user
 from app.modules.users.models import RefreshToken, Role, User
 from app.modules.users.schemas import UserCreateRequest, UserSelfUpdateRequest, UserUpdateRequest
 from app.shared.services.audit import write_audit_log
@@ -176,6 +177,17 @@ def create_user(
         else hash_password(secrets.token_urlsafe(32))
     )
 
+    worker_id = payload.worker_id
+    if role.code == "HAMALI" and worker_id is None:
+        worker = create_worker_for_hamali_user(
+            db,
+            org_id,
+            full_name=payload.full_name,
+            phone=normalized_phone or payload.phone,
+            actor_user_id=actor_user_id,
+        )
+        worker_id = worker.id
+
     user = User(
         org_id=org_id,
         email=payload.email,
@@ -184,6 +196,7 @@ def create_user(
         full_name=payload.full_name,
         role_id=payload.role_id,
         village_id=payload.village_id,
+        worker_id=worker_id,
         preferred_locale=payload.preferred_locale,
         created_by=actor_user_id,
         updated_by=actor_user_id,
@@ -226,6 +239,8 @@ def update_user(
         user.phone = normalize_phone_for_lookup(payload.phone) or payload.phone
     if payload.village_id is not None:
         user.village_id = payload.village_id
+    if payload.worker_id is not None:
+        user.worker_id = payload.worker_id
     if payload.preferred_locale is not None:
         user.preferred_locale = payload.preferred_locale
     if payload.is_active is not None:

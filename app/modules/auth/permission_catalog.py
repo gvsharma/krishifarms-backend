@@ -82,6 +82,9 @@ FIELD_SERVICE_CREATE = "FIELD_SERVICE_CREATE"
 FIELD_SERVICE_UPDATE = "FIELD_SERVICE_UPDATE"
 FIELD_SERVICE_DELETE = "FIELD_SERVICE_DELETE"
 
+HAMALI_VIEW = "HAMALI_VIEW"
+HAMALI_WORK_MANAGE = "HAMALI_WORK_MANAGE"
+
 ALL_MOBILE_PERMISSIONS: frozenset[str] = frozenset(
     [
         FARMER_VIEW,
@@ -141,6 +144,8 @@ ALL_MOBILE_PERMISSIONS: frozenset[str] = frozenset(
         FIELD_SERVICE_CREATE,
         FIELD_SERVICE_UPDATE,
         FIELD_SERVICE_DELETE,
+        HAMALI_VIEW,
+        HAMALI_WORK_MANAGE,
     ]
 )
 
@@ -195,6 +200,8 @@ _MANAGER: frozenset[str] = frozenset(
         COMMENT_VIEW,
         COMMENT_CREATE,
         TAG_VIEW,
+        HAMALI_VIEW,
+        HAMALI_WORK_MANAGE,
     ]
 )
 
@@ -262,6 +269,8 @@ _SUPERVISOR: frozenset[str] = frozenset(
         COMMENT_VIEW,
         COMMENT_CREATE,
         TAG_VIEW,
+        HAMALI_VIEW,
+        HAMALI_WORK_MANAGE,
     ]
 )
 
@@ -295,6 +304,14 @@ _FARMER: frozenset[str] = frozenset(
     ]
 )
 
+_HAMALI: frozenset[str] = frozenset(
+    [
+        HAMALI_VIEW,
+        REPORT_VIEW,
+        SETTINGS_VIEW,
+    ]
+)
+
 _ACCOUNTANT: frozenset[str] = frozenset(
     [
         FARMER_VIEW,
@@ -324,6 +341,7 @@ ROLE_MOBILE_PERMISSIONS: dict[str, frozenset[str]] = {
     "AGENT": _AGENT,
     "DRIVER": _DRIVER,
     "WORKER": _WORKER,
+    "HAMALI": _HAMALI,
     "FARMER": _FARMER,
     "ACCOUNTANT": _ACCOUNTANT,
 }
@@ -432,6 +450,12 @@ BACKEND_TO_MOBILE: dict[str, str] = {
     "field_services:create": FIELD_SERVICE_CREATE,
     "field_services:update": FIELD_SERVICE_UPDATE,
     "field_services:delete": FIELD_SERVICE_DELETE,
+    "hamali_work:read": HAMALI_VIEW,
+    "hamali_work:create": HAMALI_WORK_MANAGE,
+    "hamali_work:update": HAMALI_WORK_MANAGE,
+    "hamali_work:delete": HAMALI_WORK_MANAGE,
+    "workers:read": HAMALI_WORK_MANAGE,
+    "workers:create": HAMALI_WORK_MANAGE,
 }
 
 # Module keys returned as accessibleModules — any matching view permission grants access.
@@ -455,6 +479,7 @@ MODULE_VIEW_PERMISSIONS: dict[str, frozenset[str]] = {
     "documents": frozenset({DOCUMENT_VIEW}),
     "admin": frozenset({SETTINGS_MANAGE, USER_MANAGE}),
     "settings": frozenset({SETTINGS_VIEW}),
+    "hamali": frozenset({HAMALI_VIEW}),
     "sync": frozenset({SYNC_MANAGE, SETTINGS_VIEW}),
 }
 
@@ -477,6 +502,7 @@ MODULE_ORDER: dict[str, int] = {
     "rentals": 140,
     "documents": 150,
     "admin": 155,
+    "hamali": 157,
     "settings": 160,
     "sync": 170,
 }

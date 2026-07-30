@@ -11,12 +11,13 @@ import {
   People,
   Settings,
   Spa,
+  WorkOutline,
 } from "@mui/icons-material";
 import type { SvgIconComponent } from "@mui/icons-material";
 import { ROUTES } from "@/constants/routes";
 
 /** Role codes aligned with backend RBAC. */
-export type NavRole = "OWNER" | "MANAGER" | "SUPERVISOR" | "AGENT" | "DRIVER" | "WORKER" | "ACCOUNTANT";
+export type NavRole = "OWNER" | "MANAGER" | "SUPERVISOR" | "AGENT" | "DRIVER" | "WORKER" | "HAMALI" | "ACCOUNTANT";
 
 export interface NavItem {
   href: string;
@@ -64,6 +65,18 @@ export const NAV_SECTIONS: NavSection[] = [
         href: ROUTES.procurement,
         label: "Procurement",
         icon: Spa,
+        roles: ["OWNER", "MANAGER", "SUPERVISOR"],
+      },
+      {
+        href: ROUTES.hamali,
+        label: "My work",
+        icon: WorkOutline,
+        roles: ["HAMALI"],
+      },
+      {
+        href: ROUTES.settingsHamali,
+        label: "Hamali work log",
+        icon: WorkOutline,
         roles: ["OWNER", "MANAGER", "SUPERVISOR"],
       },
       {

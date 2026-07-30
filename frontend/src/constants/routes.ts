@@ -15,6 +15,8 @@ export const ROUTES = {
   workers: "/workers",
   reports: "/reports",
   analytics: "/analytics",
+  hamali: "/hamali",
+  settingsHamali: "/settings/hamali",
   settings: "/settings",
   settingsUsers: "/settings/users",
   settingsVillages: "/settings/villages",

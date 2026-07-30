@@ -97,6 +97,12 @@ SYSTEM_PERMISSIONS: list[tuple[str, str]] = [
     ("documents:delete", "Delete documents"),
     ("audit:read", "View audit logs"),
     ("dashboard:read", "View dashboard"),
+    ("hamali_work:read", "View hamali bag and tip records"),
+    ("hamali_work:create", "Log hamali bag and tip records"),
+    ("hamali_work:update", "Update hamali bag and tip records"),
+    ("hamali_work:delete", "Delete hamali bag and tip records"),
+    ("workers:read", "View worker profiles"),
+    ("workers:create", "Create worker profiles"),
 ]
 
 _LOCATION_READ = [
@@ -172,8 +178,14 @@ _MANAGER_MASTER = [
     "procurements:confirm",
     "procurements:cancel",
     "farmer_payments:read",
-    "farmer_payments:create",
-    "approve",
+        "farmer_payments:create",
+        "hamali_work:read",
+        "hamali_work:create",
+        "hamali_work:update",
+        "hamali_work:delete",
+        "workers:read",
+        "workers:create",
+        "approve",
     "comments:read",
     "comments:create",
     "tags:read",
@@ -222,6 +234,11 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
         "documents:read",
         "documents:create",
         "dashboard:read",
+        "hamali_work:read",
+        "hamali_work:create",
+        "hamali_work:update",
+        "workers:read",
+        "workers:create",
     ],
     "AGENT": [
         *_LOCATION_READ,
@@ -266,6 +283,10 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
         "documents:read",
         "documents:create",
     ],
+    "HAMALI": [
+        "hamali_work:read",
+        "dashboard:read",
+    ],
     "FARMER": [
         *_LOCATION_READ,
         "crop_types:read",
@@ -288,5 +309,6 @@ ROLE_DEFINITIONS: list[tuple[str, str]] = [
     ("AGENT", "Agent"),
     ("DRIVER", "Vehicle Supervisor"),
     ("WORKER", "Worker"),
+    ("HAMALI", "Hamali / Porter"),
     ("FARMER", "Farmer"),
 ]

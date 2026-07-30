@@ -34,6 +34,12 @@ export const BACKEND_TO_MOBILE: Record<string, string> = {
   "users:delete": "USER_MANAGE",
   "roles:read": "USER_MANAGE",
   "dashboard:read": "REPORT_VIEW",
+  "hamali_work:read": "HAMALI_VIEW",
+  "hamali_work:create": "HAMALI_WORK_MANAGE",
+  "hamali_work:update": "HAMALI_WORK_MANAGE",
+  "hamali_work:delete": "HAMALI_WORK_MANAGE",
+  "workers:read": "HAMALI_WORK_MANAGE",
+  "workers:create": "HAMALI_WORK_MANAGE",
   "audit:read": "REPORT_VIEW",
   "approve": "PAYMENT_APPROVE",
 };

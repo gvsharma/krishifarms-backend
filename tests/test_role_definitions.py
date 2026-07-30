@@ -12,6 +12,7 @@ def test_role_definitions_match_erp_display_names():
     assert by_code["AGENT"] == "Agent"
     assert by_code["FARMER"] == "Farmer"
     assert by_code["WORKER"] == "Worker"
+    assert by_code["HAMALI"] == "Hamali / Porter"
 
 
 def test_role_permissions_keys_match_definitions():

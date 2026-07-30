@@ -52,6 +52,7 @@ class UserCreateRequest(BaseModel):
     phone: str = Field(min_length=10, max_length=20)
     role_id: UUID
     village_id: UUID | None = None
+    worker_id: UUID | None = None
     preferred_locale: str = "en"
 
     @field_validator("email")
@@ -83,6 +84,7 @@ class UserUpdateRequest(BaseModel):
     phone: str | None = None
     village_id: UUID | None = None
     role_id: UUID | None = None
+    worker_id: UUID | None = None
     preferred_locale: str | None = None
     is_active: bool | None = None
     password: str | None = Field(default=None, min_length=8)

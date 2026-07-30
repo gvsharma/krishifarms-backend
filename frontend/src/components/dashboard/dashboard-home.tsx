@@ -84,6 +84,8 @@ const ROLE_HINTS: Record<string, string> = {
   DRIVER: "Vehicle supervisor — transport and diesel-related ops.",
   AGENT: "Field agent — farmers and procurement drafts.",
   WORKER: "Field ops — use the sidebar for assigned work.",
+  HAMALI: "View your daily bags and tips — open My work from the sidebar.",
+  FARMER: "Farmer portal — read-only procurement and field updates.",
   ACCOUNTANT: "Finance focus — expenses and collections (when live).",
 };
 

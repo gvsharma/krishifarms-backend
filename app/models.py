@@ -1,8 +1,5 @@
 """Import all models so Alembic metadata includes every table."""
 
-from sqlalchemy import Column, Table
-from sqlalchemy.dialects.postgresql import UUID as PGUUID
-
 from app.core.database import Base
 from app.modules.analytics.models import AnalyticsDailyOrgFact  # noqa: F401
 from app.modules.assets.models import Asset  # noqa: F401
@@ -40,8 +37,6 @@ from app.modules.users.models import (  # noqa: F401
     User,
 )
 
-# Migration-only tables referenced by live FKs (no ORM module yet)
-if "workers" not in Base.metadata.tables:
-    Table("workers", Base.metadata, Column("id", PGUUID(as_uuid=True), primary_key=True))
+from app.modules.hamali.models import HamaliWorkEntry, Worker  # noqa: F401
 
 __all__ = ["Base"]
