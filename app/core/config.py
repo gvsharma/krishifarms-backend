@@ -40,6 +40,12 @@ class Settings(BaseSettings):
     account_deletion_url: str = "https://krishifarms-privacy.vercel.app/delete-account"
     support_email: str = "support@krishifarms.com"
 
+    # Farmer procurement SMS (optional — MSG91)
+    sms_enabled: bool = False
+    sms_provider: str = "msg91"
+    msg91_auth_key: str | None = None
+    msg91_sender_id: str = "KRISHI"
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]

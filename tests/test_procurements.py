@@ -50,6 +50,26 @@ class TestProcurementStateMachine:
             assert ALLOWED_TRANSITIONS.get(terminal, frozenset()) == frozenset()
 
 
+class TestProcurementCalculate:
+    def test_calculate_preview_worked_example(self):
+        from app.modules.procurements.schemas import ProcurementCalculateRequest
+        from app.modules.procurements.service import calculate_procurement_preview
+
+        result = calculate_procurement_preview(
+            ProcurementCalculateRequest(
+                bag_count=50,
+                weight_per_bag_kg=Decimal("50"),
+                per_bag_deduction_kg=Decimal("2"),
+                rate_per_quintal=Decimal("2100"),
+                is_spot_payment=True,
+            )
+        )
+        assert result.gross_weight_kg == Decimal("2500.000")
+        assert result.net_weight_kg == Decimal("2400.000")
+        assert result.net_amount == Decimal("48000.00")
+        assert result.spot_deduction_amount == Decimal("2400.00")
+
+
 class TestProcurementPricing:
     def test_compute_amounts_uses_decimal(self):
         gross, line_deduction, spot_deduction, net = compute_amounts(

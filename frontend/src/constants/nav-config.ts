@@ -17,7 +17,15 @@ import type { SvgIconComponent } from "@mui/icons-material";
 import { ROUTES } from "@/constants/routes";
 
 /** Role codes aligned with backend RBAC. */
-export type NavRole = "OWNER" | "MANAGER" | "SUPERVISOR" | "AGENT" | "DRIVER" | "WORKER" | "ACCOUNTANT";
+export type NavRole =
+  | "OWNER"
+  | "MANAGER"
+  | "SUPERVISOR"
+  | "AGENT"
+  | "DRIVER"
+  | "WORKER"
+  | "ACCOUNTANT"
+  | "FARMER";
 
 export interface NavItem {
   href: string;
@@ -49,6 +57,13 @@ export const NAV_SECTIONS: NavSection[] = [
         labelKey: "nav.analytics",
         icon: Analytics,
         roles: ["OWNER", "MANAGER", "ACCOUNTANT"],
+      },
+      {
+        href: ROUTES.myProcurements,
+        label: "My procurements",
+        labelKey: "nav.myProcurements",
+        icon: Spa,
+        roles: ["FARMER"],
       },
     ],
   },

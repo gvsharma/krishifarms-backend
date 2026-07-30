@@ -195,6 +195,10 @@ paths:
 
   /procurements:
     $ref: paths/procurement.yaml#/procurements
+  /procurements/calculate:
+    $ref: paths/procurement.yaml#/procurementCalculate
+  /procurements/field-entry:
+    $ref: paths/procurement.yaml#/procurementFieldEntry
   /procurements/{procurement_id}:
     $ref: paths/procurement.yaml#/procurementById
   /procurements/{procurement_id}/submit:
