@@ -74,6 +74,16 @@ prune_backups() {
   done
 }
 
+prune_docker_before_build() {
+  log "Disk before Docker prune:"
+  df -h / /var/lib/docker 2>/dev/null || df -h /
+  # Reclaim build cache and unused images — do NOT pass --volumes (Postgres data lives in named volumes).
+  docker builder prune -af 2>/dev/null || true
+  docker system prune -af 2>/dev/null || true
+  log "Disk after Docker prune:"
+  df -h / /var/lib/docker 2>/dev/null || df -h /
+}
+
 rollback() {
   local backup_file="$1"
   if [[ ! -f "${backup_file}" ]]; then
@@ -139,6 +149,8 @@ mv "${REPO_DIR}.new" "${REPO_DIR}"
 chown -R ec2-user:krishifarms "${REPO_DIR}"
 
 sync_runtime_env
+
+prune_docker_before_build
 
 log "Building and starting Docker Compose stack"
 cd "${REPO_DIR}"
