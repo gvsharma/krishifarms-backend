@@ -83,6 +83,7 @@ def _enrich_response(
             "crop_type_name": crops.get(row.crop_type_id),
             "buyer_name": buyers.get(row.buyer_id) if row.buyer_id else None,
             "deductions": row.deductions if include_deductions else [],
+            "bag_entries": row.bag_entries if include_deductions else [],
             "profit_summary": profit_summary,
         }
     )
