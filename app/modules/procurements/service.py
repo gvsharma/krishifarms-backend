@@ -16,6 +16,7 @@ from app.modules.platform.models import Buyer, CropPriceRule
 from app.shared.locale import pick_display
 from app.modules.procurements.models import FarmerLedgerEntry, Procurement, ProcurementBagEntry, ProcurementDeduction
 from app.modules.procurements.schemas import (
+    AssignBuyerRequest,
     CANCELLABLE_STATUSES,
     DEFAULT_PER_BAG_DEDUCTION_KG,
     DEFAULT_SPOT_DEDUCTION_PER_QUINTAL,
@@ -394,13 +395,27 @@ def compute_profit_summary(procurement: Procurement) -> ProcurementProfitSummary
     spot_amount = procurement.spot_deduction_amount
     gross_quintals = _weight(procurement.gross_weight_kg / _QUINTAL_KG)
     net_quintals = _weight(procurement.net_weight_kg / _QUINTAL_KG)
+
+    sale_rate = procurement.sale_rate_per_quintal
+    sale_amount: Decimal | None = None
+    sale_margin: Decimal | None = None
+    if sale_rate is not None and sale_rate > _ZERO:
+        net_q = procurement.net_weight_kg / _QUINTAL_KG
+        sale_amount = _money(net_q * sale_rate)
+        # Buyer margin = (sale rate − farmer rate) × net quintals.
+        sale_margin = _money(net_q * (sale_rate - rate))
+
+    total_profit = weight_profit + spot_amount + (sale_margin or _ZERO)
     return ProcurementProfitSummary(
         gross_quintals=gross_quintals,
         net_quintals=net_quintals,
         weight_deduction_kg=weight_deduction_kg,
         weight_deduction_profit_amount=weight_profit,
         spot_deduction_amount=spot_amount,
-        total_profit_amount=_money(weight_profit + spot_amount),
+        total_profit_amount=_money(total_profit),
+        sale_rate_per_quintal=sale_rate,
+        sale_amount=sale_amount,
+        sale_margin_amount=sale_margin,
     )
 
 
@@ -1250,6 +1265,58 @@ def reverse_procurement(
     db.refresh(row)
     _notify_status(db, row, actor_user_id)
     return row
+
+
+def assign_buyer(
+    db: Session,
+    org_id: UUID,
+    payload: AssignBuyerRequest,
+    actor_user_id: UUID,
+    client: ClientContext | None,
+) -> int:
+    """Assign one buyer (+ optional sale rate / dispatch date / terms) to many tickets."""
+    _validate_buyer(db, org_id, payload.buyer_id)
+    if payload.payment_terms == "custom" and not (payload.payment_terms_custom or "").strip():
+        raise ConflictError("payment_terms_custom is required when payment_terms is custom")
+
+    count = 0
+    for item in payload.items:
+        row = _get_procurement(db, org_id, item.procurement_id, item.procurement_date)
+        if row.status in {"cancelled", "reversed"}:
+            raise ConflictError(
+                f"Cannot assign a buyer to a {row.status} procurement ({row.procurement_number})"
+            )
+        before = {"buyer_id": str(row.buyer_id) if row.buyer_id else None}
+        row.buyer_id = payload.buyer_id
+        if payload.sale_rate_per_quintal is not None:
+            row.sale_rate_per_quintal = payload.sale_rate_per_quintal
+        if payload.sale_date is not None:
+            row.sale_date = payload.sale_date
+        if payload.payment_terms is not None:
+            row.payment_terms = payload.payment_terms
+            row.payment_terms_custom = payload.payment_terms_custom
+        row.updated_by = actor_user_id
+        _audit(
+            db,
+            org_id=org_id,
+            actor_user_id=actor_user_id,
+            action="ASSIGN_BUYER",
+            entity_id=row.id,
+            before=before,
+            after=_audit_safe(
+                {
+                    "buyer_id": payload.buyer_id,
+                    "sale_rate_per_quintal": payload.sale_rate_per_quintal,
+                    "sale_date": payload.sale_date,
+                }
+            ),
+            client=client,
+            summary=f"Buyer assigned: {row.procurement_number}",
+        )
+        count += 1
+
+    db.commit()
+    return count
 
 
 def add_deduction(
