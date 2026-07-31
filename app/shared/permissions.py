@@ -101,6 +101,7 @@ SYSTEM_PERMISSIONS: list[tuple[str, str]] = [
     ("documents:delete", "Delete documents"),
     ("audit:read", "View audit logs"),
     ("dashboard:read", "View dashboard"),
+    ("analytics:admin", "View admin analytics (profit, revenue, expenses)"),
 ]
 
 _LOCATION_READ = [

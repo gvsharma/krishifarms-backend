@@ -40,6 +40,14 @@ import {
   updateUser,
   type User,
 } from "@/features/settings/api";
+import { TOUCH_FIELD_SX } from "@/lib/ui/touch-targets";
+import {
+  isValidIndianMobile,
+  normalizeIndianMobile,
+  phoneInputSlotProps,
+  PHONE_REQUIRED_ERROR,
+  sanitizePhoneInput,
+} from "@/lib/validation/phone";
 
 type FormState = {
   full_name: string;
@@ -72,8 +80,7 @@ export default function SettingsUsersPage() {
   const usersQuery = useQuery({ queryKey: ["users"], queryFn: () => fetchUsers() });
   const rolesQuery = useQuery({ queryKey: ["roles"], queryFn: fetchRoles });
 
-  const phoneDigits = form.phone.replace(/\D/g, "");
-  const phoneValid = phoneDigits.length >= 10;
+  const phoneValid = isValidIndianMobile(form.phone);
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteUser(id),
@@ -86,9 +93,9 @@ export default function SettingsUsersPage() {
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!phoneValid) {
-        throw new Error("Phone is required (at least 10 digits)");
+        throw new Error(PHONE_REQUIRED_ERROR);
       }
-      const phone = phoneDigits;
+      const phone = normalizeIndianMobile(form.phone)!;
       if (editing) {
         return updateUser(editing.id, {
           full_name: form.full_name.trim(),
@@ -281,9 +288,15 @@ export default function SettingsUsersPage() {
               fullWidth
               required
               value={form.phone}
-              onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))}
+              onChange={(e) => setForm((p) => ({ ...p, phone: sanitizePhoneInput(e.target.value) }))}
               error={form.phone.length > 0 && !phoneValid}
-              helperText="Required for staff (10+ digits). Used for phone login and future OTP."
+              helperText={
+                form.phone.length > 0 && !phoneValid
+                  ? PHONE_REQUIRED_ERROR
+                  : "Required for staff (10 digits). Used for phone login."
+              }
+              slotProps={phoneInputSlotProps}
+              sx={TOUCH_FIELD_SX}
             />
             <TextField
               label={editing ? "New password (optional)" : "Password"}

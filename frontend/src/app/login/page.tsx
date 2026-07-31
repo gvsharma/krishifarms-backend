@@ -16,6 +16,7 @@ import { isEmailIdentifier, loginWithPassword } from "@/features/auth/api";
 import { clearSignedOutFlag, wasExplicitlySignedOut } from "@/features/auth/session";
 import { getAccessToken } from "@/lib/api/client";
 import { ROUTES, SITE_NAME } from "@/constants/routes";
+import { isValidIndianMobile } from "@/lib/validation/phone";
 import { useTranslation } from "@/i18n/use-translation";
 import type { AppLocale } from "@/i18n/messages";
 import { useLocaleStore } from "@/stores/locale-store";
@@ -45,8 +46,7 @@ function identifierLooksValid(value: string): boolean {
   const trimmed = value.trim();
   if (!trimmed) return false;
   if (isEmailIdentifier(trimmed)) return trimmed.includes("@") && !trimmed.startsWith("@");
-  const digits = trimmed.replace(/\D/g, "");
-  return digits.length >= 10;
+  return isValidIndianMobile(trimmed);
 }
 
 /** Phone-first password sign-in (email OR mobile) + OTP stub. */

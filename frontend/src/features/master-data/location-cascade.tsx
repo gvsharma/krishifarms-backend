@@ -4,7 +4,8 @@ import { Stack, type SxProps, type Theme } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo } from "react";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import { useAuth } from "@/hooks/use-auth";
+import { useLocale } from "@/i18n/use-translation";
+import { districtLabel, formatMasterOptionLabel, mandalLabel } from "@/lib/bilingual";
 import {
   fetchDistricts,
   fetchMandals,
@@ -57,8 +58,8 @@ export function LocationCascade({
   hydrateVillageId,
   hydrateVillageName,
 }: LocationCascadeProps) {
-  const { user } = useAuth();
-  const labels = locationLabels(user?.preferred_locale ?? "en");
+  const locale = useLocale();
+  const labels = locationLabels(locale);
 
   const districtsQuery = useQuery({
     queryKey: ["districts", "cascade"],
@@ -183,7 +184,7 @@ export function LocationCascade({
     <Stack spacing={2}>
       <SearchableSelect
         options={districts}
-        getOptionLabel={(d) => d.name}
+        getOptionLabel={(d) => districtLabel(locale, d.name)}
         isOptionEqualToValue={(a, b) => a.id === b.id}
         value={selectedDistrict}
         onChange={setDistrict}
@@ -198,7 +199,7 @@ export function LocationCascade({
 
       <SearchableSelect
         options={mandals}
-        getOptionLabel={(m) => m.name}
+        getOptionLabel={(m) => mandalLabel(locale, m.name)}
         isOptionEqualToValue={(a, b) => a.id === b.id}
         value={selectedMandal}
         onChange={setMandal}
@@ -215,7 +216,7 @@ export function LocationCascade({
       {showVillage && (
         <SearchableSelect
           options={villageOptions}
-          getOptionLabel={(v) => v.name}
+          getOptionLabel={(v) => formatMasterOptionLabel(locale, v.name, v.name_te)}
           isOptionEqualToValue={(a, b) => a.id === b.id}
           value={selectedVillage}
           onChange={setVillage}

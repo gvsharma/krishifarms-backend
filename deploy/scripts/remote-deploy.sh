@@ -162,6 +162,9 @@ docker compose -f "${COMPOSE_FILE}" exec -T api alembic upgrade head
 log "Seeding database if empty (idempotent)"
 docker compose -f "${COMPOSE_FILE}" exec -T api python scripts/seed.py || log "WARN: seed exited non-zero"
 
+log "Seeding location / crop / service masters (idempotent)"
+docker compose -f "${COMPOSE_FILE}" exec -T api python scripts/seed_masters.py || log "WARN: seed_masters exited non-zero"
+
 if wait_for_health "deploy"; then
   prune_backups
   rm -f "${INCOMING_ARCHIVE}"

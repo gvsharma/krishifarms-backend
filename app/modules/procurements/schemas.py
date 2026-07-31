@@ -98,6 +98,9 @@ class ProcurementUpdateRequest(BaseModel):
     # Editable financials on finalized tickets (recomputed + ledger-adjusted on save).
     moisture_pct: Decimal | None = Field(default=None, ge=0, le=100)
     rate_per_quintal: Decimal | None = Field(default=None, gt=0)
+    # Sale side (Part B).
+    sale_rate_per_quintal: Decimal | None = Field(default=None, ge=0)
+    sale_date: date | None = None
 
 
 class WeighmentRequest(BaseModel):
@@ -179,6 +182,29 @@ class ProcurementFieldEntryRequest(BaseModel):
     line_deductions: list[ProcurementDeductionInput] = Field(default_factory=list)
 
 
+class AssignBuyerItem(BaseModel):
+    """Identifies one procurement (partitioned by date) to assign to a buyer."""
+
+    procurement_id: UUID
+    procurement_date: date
+
+
+class AssignBuyerRequest(BaseModel):
+    """Assign one buyer + sale details to many procurements (Part B)."""
+
+    items: list[AssignBuyerItem] = Field(min_length=1)
+    buyer_id: UUID
+    sale_rate_per_quintal: Decimal | None = Field(default=None, ge=0)
+    sale_date: date | None = None
+    payment_terms: str | None = Field(default=None, pattern=_PAYMENT_TERMS_PATTERN)
+    payment_terms_custom: str | None = None
+
+
+class AssignBuyerResponse(BaseModel):
+    assigned_count: int
+    buyer_id: UUID
+
+
 class ProcurementCancelRequest(BaseModel):
     reason: str = Field(min_length=3)
 
@@ -196,6 +222,10 @@ class ProcurementProfitSummary(BaseModel):
     weight_deduction_profit_amount: Decimal
     spot_deduction_amount: Decimal
     total_profit_amount: Decimal
+    # Buyer-sale margin (Part B) — present once a sale rate is assigned.
+    sale_rate_per_quintal: Decimal | None = None
+    sale_amount: Decimal | None = None
+    sale_margin_amount: Decimal | None = None
 
 
 class ProcurementResponse(AuditMetaMixin):
@@ -212,6 +242,8 @@ class ProcurementResponse(AuditMetaMixin):
     village_name: str | None = None
     buyer_id: UUID | None = None
     buyer_name: str | None = None
+    sale_rate_per_quintal: Decimal | None = None
+    sale_date: date | None = None
     payment_terms: str | None = None
     payment_terms_custom: str | None = None
     expected_payment_date: date | None = None
@@ -263,6 +295,8 @@ class ProcurementListItemResponse(AuditMetaMixin):
     village_id: UUID
     buyer_id: UUID | None = None
     buyer_name: str | None = None
+    sale_rate_per_quintal: Decimal | None = None
+    sale_date: date | None = None
     payment_terms: str | None = None
     expected_payment_date: date | None = None
     procurement_date: date

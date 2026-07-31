@@ -8,10 +8,10 @@ import {
   Chip,
   CircularProgress,
   MenuItem,
+  Stack,
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
   TableRow,
   TextField,
@@ -23,6 +23,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { MuiPageShell } from "@/components/shell/mui-page-shell";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
 import {
   fetchProcurements,
   formatInr,
@@ -58,9 +59,14 @@ export default function ProcurementPage() {
       title="Procurement"
       description="Intake tickets from draft through confirmation."
       actions={
-        <Button component={Link} href="/procurement/new" variant="contained" startIcon={<Add />}>
-          New procurement
-        </Button>
+        <Stack direction="row" spacing={1}>
+          <Button component={Link} href="/procurement/sales" variant="outlined">
+            Sales
+          </Button>
+          <Button component={Link} href="/procurement/new" variant="contained" startIcon={<Add />}>
+            New procurement
+          </Button>
+        </Stack>
       }
     >
       <Card sx={{ mb: 2, p: 2 }}>
@@ -95,7 +101,7 @@ export default function ProcurementPage() {
         )}
 
         {!isLoading && data && (
-          <TableContainer>
+          <ResponsiveTable>
             <Table size="small">
               <TableHead>
                 <TableRow>
@@ -143,7 +149,7 @@ export default function ProcurementPage() {
                 )}
               </TableBody>
             </Table>
-          </TableContainer>
+          </ResponsiveTable>
         )}
       </Card>
     </MuiPageShell>

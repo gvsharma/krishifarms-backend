@@ -199,16 +199,27 @@ def build_executive_summary(
         SeriesPoint(x=d.isoformat(), y=amt, series="procurement_revenue")
         for d, amt in q.revenue_series_by_day(db, org_id, date_from, date_to, village_id=village_id)
     ]
+    series.extend(
+        SeriesPoint(x=d.isoformat(), y=amt, series="profit")
+        for d, amt in q.profit_series_by_day(db, org_id, date_from, date_to, village_id=village_id)
+    )
+    series.extend(
+        SeriesPoint(x=d.isoformat(), y=amt, series="expenses")
+        for d, amt in q.expense_series_by_day(db, org_id, date_from, date_to)
+    )
 
     villages = q.top_villages_by_procurement(db, org_id, date_from, date_to, limit=10)
+    farmers = q.top_farmers_by_revenue(db, org_id, date_from, date_to, limit=10)
+    crops = q.top_crops_by_procurement(db, org_id, date_from, date_to, limit=10)
     tables = [
         TablePage(
             id="top_villages",
-            title="Top villages by procurement value",
+            title="Profit by village (revenue; expenses org-level)",
             columns=[
                 TableColumn(key="name", label="Village"),
                 TableColumn(key="kg", label="Net kg", format="number"),
-                TableColumn(key="amount", label="Net amount", format="money"),
+                TableColumn(key="amount", label="Revenue", format="money"),
+                TableColumn(key="profit", label="Gross margin", format="money"),
                 TableColumn(key="tickets", label="Tickets", format="number"),
             ],
             rows=[
@@ -217,13 +228,58 @@ def build_executive_summary(
                         "name": v["name"],
                         "kg": v["kg"],
                         "amount": v["amount"],
+                        "profit": v["profit"],
                         "tickets": v["tickets"],
                     }
                 )
                 for v in villages
             ],
             total=len(villages),
-        )
+        ),
+        TablePage(
+            id="top_farmers",
+            title="Profit by farmer (revenue)",
+            columns=[
+                TableColumn(key="name", label="Farmer"),
+                TableColumn(key="revenue", label="Revenue", format="money"),
+                TableColumn(key="profit", label="Gross margin", format="money"),
+                TableColumn(key="tickets", label="Tickets", format="number"),
+            ],
+            rows=[
+                TableRow(
+                    cells={
+                        "name": f["name"],
+                        "revenue": f["revenue"],
+                        "profit": f["profit"],
+                        "tickets": f["tickets"],
+                    }
+                )
+                for f in farmers
+            ],
+            total=len(farmers),
+        ),
+        TablePage(
+            id="top_crops",
+            title="Profit by crop (revenue)",
+            columns=[
+                TableColumn(key="name", label="Crop"),
+                TableColumn(key="amount", label="Revenue", format="money"),
+                TableColumn(key="profit", label="Gross margin", format="money"),
+                TableColumn(key="tickets", label="Tickets", format="number"),
+            ],
+            rows=[
+                TableRow(
+                    cells={
+                        "name": c["name"],
+                        "amount": c["amount"],
+                        "profit": c["profit"],
+                        "tickets": c["tickets"],
+                    }
+                )
+                for c in crops
+            ],
+            total=len(crops),
+        ),
     ]
 
     return ModuleSummaryResponse(

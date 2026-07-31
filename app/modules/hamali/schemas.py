@@ -2,9 +2,10 @@ from datetime import date, datetime
 from decimal import Decimal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.shared.schemas.audit_meta import AuditMetaMixin
+from app.shared.validation.phone import normalize_indian_mobile_optional
 
 DEFAULT_RATE_PER_BAG = Decimal("20.00")
 
@@ -16,16 +17,26 @@ _WEEKLY_STATUS = ("draft", "paid")
 class HamaliWorkerCreateRequest(BaseModel):
     full_name: str = Field(min_length=1, max_length=200)
     full_name_te: str | None = None
-    phone: str | None = Field(default=None, max_length=20)
+    phone: str | None = Field(default=None, max_length=10)
     default_rate_per_bag: Decimal | None = Field(default=None, ge=0)
+
+    @field_validator("phone")
+    @classmethod
+    def validate_phone(cls, value: str | None) -> str | None:
+        return normalize_indian_mobile_optional(value)
 
 
 class HamaliWorkerUpdateRequest(BaseModel):
     full_name: str | None = Field(default=None, min_length=1, max_length=200)
     full_name_te: str | None = None
-    phone: str | None = Field(default=None, max_length=20)
+    phone: str | None = Field(default=None, max_length=10)
     default_rate_per_bag: Decimal | None = Field(default=None, ge=0)
     status: str | None = Field(default=None, pattern="^(active|inactive)$")
+
+    @field_validator("phone")
+    @classmethod
+    def validate_phone(cls, value: str | None) -> str | None:
+        return normalize_indian_mobile_optional(value)
 
 
 class HamaliWorkerResponse(AuditMetaMixin):

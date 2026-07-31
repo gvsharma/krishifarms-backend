@@ -14,11 +14,20 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { MuiPageShell } from "@/components/shell/mui-page-shell";
 import { createFarmer } from "@/features/farmers/api";
+import { useAutoTeluguName } from "@/hooks/use-auto-telugu-name";
 import {
   EMPTY_LOCATION_CASCADE,
   LocationCascade,
   type LocationCascadeValue,
 } from "@/features/master-data/location-cascade";
+import { TOUCH_FIELD_SX } from "@/lib/ui/touch-targets";
+import {
+  isValidIndianMobile,
+  normalizeIndianMobile,
+  phoneInputSlotProps,
+  PHONE_REQUIRED_ERROR,
+  sanitizePhoneInput,
+} from "@/lib/validation/phone";
 
 export default function NewFarmerPage() {
   const router = useRouter();
@@ -29,15 +38,26 @@ export default function NewFarmerPage() {
   const [location, setLocation] = useState<LocationCascadeValue>({ ...EMPTY_LOCATION_CASCADE });
   const [notes, setNotes] = useState("");
 
+  const { onTeluguChange: onFarmerTeluguChange } = useAutoTeluguName(
+    fullName,
+    fullNameTe,
+    setFullNameTe,
+  );
+
+  const phoneValid = isValidIndianMobile(phone);
+
   const createMutation = useMutation({
-    mutationFn: () =>
-      createFarmer({
+    mutationFn: () => {
+      const normalized = normalizeIndianMobile(phone);
+      if (!normalized) throw new Error(PHONE_REQUIRED_ERROR);
+      return createFarmer({
         full_name: fullName.trim(),
-        phone_primary: phone.trim(),
+        phone_primary: normalized,
         village_id: location.villageId,
         full_name_te: fullNameTe.trim() || null,
         notes: notes.trim() || null,
-      }),
+      });
+    },
     onSuccess: (created) => {
       queryClient.invalidateQueries({ queryKey: ["farmers"] });
       router.push(`/farmers/${created.id}`);
@@ -46,7 +66,7 @@ export default function NewFarmerPage() {
 
   const canSubmit =
     fullName.trim().length >= 2 &&
-    phone.trim().length >= 10 &&
+    phoneValid &&
     location.villageId &&
     !createMutation.isPending;
 
@@ -74,18 +94,26 @@ export default function NewFarmerPage() {
             label="Full name"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
+            disabled={createMutation.isPending}
           />
           <TextField
             label="Full name (Telugu)"
             value={fullNameTe}
-            onChange={(e) => setFullNameTe(e.target.value)}
+            onChange={(e) => onFarmerTeluguChange(e.target.value)}
+            disabled={createMutation.isPending}
+            slotProps={{
+              input: { sx: { fontFamily: "var(--font-noto-telugu), sans-serif" } },
+            }}
           />
           <TextField
             required
             label="Primary phone"
             value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            helperText="10–20 digits"
+            onChange={(e) => setPhone(sanitizePhoneInput(e.target.value))}
+            error={phone.length > 0 && !phoneValid}
+            helperText={phone.length > 0 && !phoneValid ? PHONE_REQUIRED_ERROR : "10 digits, numbers only"}
+            slotProps={phoneInputSlotProps}
+            sx={TOUCH_FIELD_SX}
           />
 
           <LocationCascade required value={location} onChange={setLocation} />

@@ -18,6 +18,9 @@ export interface ProcurementProfitSummary {
   weight_deduction_profit_amount: string;
   spot_deduction_amount: string;
   total_profit_amount: string;
+  sale_rate_per_quintal?: string | null;
+  sale_amount?: string | null;
+  sale_margin_amount?: string | null;
 }
 
 export interface ProcurementDeduction {
@@ -38,6 +41,8 @@ export interface ProcurementListItem {
   village_id: string;
   buyer_id?: string | null;
   buyer_name?: string | null;
+  sale_rate_per_quintal?: string | null;
+  sale_date?: string | null;
   payment_terms?: string | null;
   expected_payment_date?: string | null;
   procurement_date: string;
@@ -283,6 +288,20 @@ export function addProcurementDeduction(
       clientHeaders: true,
     },
   );
+}
+
+export function assignBuyer(payload: {
+  items: { procurement_id: string; procurement_date: string }[];
+  buyer_id: string;
+  sale_rate_per_quintal?: string | null;
+  sale_date?: string | null;
+  payment_terms?: string | null;
+}): Promise<{ assigned_count: number; buyer_id: string }> {
+  return fetchApi("/procurements/assign-buyer", {
+    method: "POST",
+    body: payload,
+    clientHeaders: true,
+  });
 }
 
 export function fetchCropTypes(): Promise<CropTypeListData> {

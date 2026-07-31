@@ -19,6 +19,8 @@ export type SearchableSelectProps<T> = {
   listboxSx?: SxProps<Theme>;
   /** When true, allow clearing the selection. Default true. */
   clearable?: boolean;
+  /** When true, raise popper z-index so lists work inside MUI Dialog. Default true. */
+  inDialog?: boolean;
 };
 
 /**
@@ -40,6 +42,7 @@ export function SearchableSelect<T>({
   sx,
   listboxSx,
   clearable = true,
+  inDialog = true,
 }: SearchableSelectProps<T>) {
   return (
     <Autocomplete
@@ -50,13 +53,18 @@ export function SearchableSelect<T>({
       isOptionEqualToValue={isOptionEqualToValue}
       disabled={disabled || loading}
       disableClearable={!clearable}
-      slotProps={
-        listboxSx
+      slotProps={{
+        popper: inDialog
+          ? {
+              sx: { zIndex: (theme) => theme.zIndex.modal + 2 },
+            }
+          : undefined,
+        ...(listboxSx
           ? {
               listbox: { sx: listboxSx },
             }
-          : undefined
-      }
+          : {}),
+      }}
       renderInput={(params) => (
         <TextField
           {...params}

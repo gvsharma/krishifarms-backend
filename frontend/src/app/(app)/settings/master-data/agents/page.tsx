@@ -12,7 +12,7 @@ export default function AgentsPage() {
       fields={[
         { key: "name", label: "Name", required: true },
         { key: "name_te", label: "Name (Telugu)", table: false },
-        { key: "phone", label: "Phone" },
+        { key: "phone", label: "Phone", type: "phone" },
         { key: "commission_pct", label: "Commission %", type: "number" },
         { key: "notes", label: "Notes", table: false },
         { key: "is_active", label: "Active", type: "boolean" },

@@ -46,6 +46,7 @@ import { signOut } from "@/features/auth/api";
 import { useAuth } from "@/hooks/use-auth";
 import { useTranslation } from "@/i18n/use-translation";
 import type { MessageKey } from "@/i18n/messages";
+import { GlobalLoadingBar } from "@/components/ui/global-loading-bar";
 import { DRAWER_WIDTH, DRAWER_WIDTH_COLLAPSED } from "@/theme/material-theme";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -196,6 +197,7 @@ export function MuiAppShell({ children }: MuiAppShellProps) {
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "background.default" }}>
+      <GlobalLoadingBar />
       <AppBar
         position="fixed"
         color="inherit"

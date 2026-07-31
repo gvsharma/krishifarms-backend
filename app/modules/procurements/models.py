@@ -20,6 +20,9 @@ class Procurement(Base, TimestampMixin, AuditActorMixin, SoftDeleteMixin):
     crop_type_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), ForeignKey("crop_types.id"), nullable=False)
     village_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), ForeignKey("villages.id"), nullable=False)
     buyer_id: Mapped[UUID | None] = mapped_column(PGUUID(as_uuid=True), ForeignKey("buyers.id"), nullable=True)
+    # Sale side (Part B): buyer + rate the crop is sold at, assigned separately from intake.
+    sale_rate_per_quintal: Mapped[Decimal | None] = mapped_column(Numeric(14, 2), nullable=True)
+    sale_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     payment_terms: Mapped[str | None] = mapped_column(String(20), nullable=True)
     payment_terms_custom: Mapped[str | None] = mapped_column(Text, nullable=True)
     expected_payment_date: Mapped[date | None] = mapped_column(Date, nullable=True)

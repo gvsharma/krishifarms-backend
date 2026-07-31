@@ -25,6 +25,7 @@ import {
   formValuesToCreatePayload,
   type FieldServiceFormValues,
 } from "@/features/field-services/field-service-form";
+import { categoryForVehicleSlug } from "@/features/field-services/url-prefill";
 
 const VALID_CATEGORIES = new Set(SERVICE_CATEGORIES.map((c) => c.value));
 
@@ -38,13 +39,22 @@ function NewFieldServicePageContent() {
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
 
-  const initialCategory = useMemo(
-    () => parseCategory(searchParams.get("category")),
-    [searchParams],
-  );
+  const farmerIdParam = searchParams.get("farmer_id");
+  const vehicleParam = searchParams.get("vehicle");
+  const categoryParam = searchParams.get("category");
+
+  const initialCategory = useMemo(() => {
+    const fromQuery = parseCategory(categoryParam);
+    if (fromQuery) return fromQuery;
+    if (vehicleParam) return categoryForVehicleSlug(vehicleParam);
+    return "";
+  }, [categoryParam, vehicleParam]);
 
   const [category, setCategory] = useState<ServiceCategory | "">(initialCategory);
-  const [values, setValues] = useState<FieldServiceFormValues>(EMPTY_FORM);
+  const [values, setValues] = useState<FieldServiceFormValues>(() => ({
+    ...EMPTY_FORM,
+    farmer_id: farmerIdParam ?? "",
+  }));
 
   const createMutation = useMutation({
     mutationFn: () => {
@@ -59,7 +69,11 @@ function NewFieldServicePageContent() {
 
   const handleCategoryChange = (next: ServiceCategory | "") => {
     setCategory(next);
-    setValues({ ...EMPTY_FORM, service_date: values.service_date });
+    setValues({
+      ...EMPTY_FORM,
+      service_date: values.service_date,
+      farmer_id: farmerIdParam ?? values.farmer_id,
+    });
   };
 
   return (
@@ -118,6 +132,7 @@ function NewFieldServicePageContent() {
                 onSubmit={() => createMutation.mutate()}
                 submitLabel="Create service record"
                 isSubmitting={createMutation.isPending}
+                initialVehicleCode={vehicleParam}
                 error={
                   createMutation.isError
                     ? createMutation.error instanceof Error

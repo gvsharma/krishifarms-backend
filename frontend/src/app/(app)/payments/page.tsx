@@ -12,7 +12,6 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
   TableRow,
   TextField,
@@ -31,6 +30,7 @@ import {
 } from "@/components/ui/premium-dialog";
 import { Button as PremiumButton, PREMIUM_SCOPE } from "@/components/ui/premium";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { fetchFarmers, type FarmerListItem } from "@/features/farmers/api";
 import {
   createFarmerPayment,
@@ -43,10 +43,13 @@ import {
 import { PaymentSettlementActions } from "@/features/farmer-payments/settlement-actions";
 import { fetchPaymentModes, type PaymentMode } from "@/features/master-data/api";
 import { formatInr } from "@/features/procurements/api";
+import { formatMasterOptionLabel } from "@/lib/bilingual";
+import { useLocale } from "@/i18n/use-translation";
 
 const TYPE_OPTIONS: FarmerPaymentType[] = ["advance", "final", "adjustment"];
 
 export default function PaymentsPage() {
+  const locale = useLocale();
   const queryClient = useQueryClient();
   const [typeFilter, setTypeFilter] = useState<string>("");
   const [createOpen, setCreateOpen] = useState(false);
@@ -178,7 +181,7 @@ export default function PaymentsPage() {
         )}
 
         {!listQuery.isLoading && listQuery.data && listQuery.data.items.length > 0 && (
-          <TableContainer sx={{ overflowX: "auto" }}>
+          <ResponsiveTable>
             <Table size="small">
               <TableHead>
                 <TableRow>
@@ -229,7 +232,7 @@ export default function PaymentsPage() {
                 ))}
               </TableBody>
             </Table>
-          </TableContainer>
+          </ResponsiveTable>
         )}
       </Card>
 
@@ -282,7 +285,7 @@ export default function PaymentsPage() {
               options={modes}
               value={modes.find((m) => m.id === paymentModeId) ?? null}
               onChange={(m) => setPaymentModeId(m?.id ?? "")}
-              getOptionLabel={(m) => m.name}
+              getOptionLabel={(m) => formatMasterOptionLabel(locale, m.name, m.name_te)}
               isOptionEqualToValue={(a, b) => a.id === b.id}
               label="Payment mode"
               required

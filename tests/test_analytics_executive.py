@@ -21,7 +21,7 @@ def test_catalog_has_four_live_and_eleven_scaffold():
     assert len(catalog.modules) == 15
     live_ids = {m.id for m in catalog.modules if m.status == "live"}
     assert live_ids == LIVE_MODULES
-    assert catalog.permission == "dashboard:read"
+    assert catalog.permission == "analytics:admin"
 
 
 def test_money_helper_quantizes_decimal():
@@ -36,6 +36,18 @@ def test_resolve_date_range_presets():
     start, end = resolve_date_range(AnalyticsFilter(preset="7d"), today=today)
     assert end == today
     assert (end - start).days == 6
+    y_start, y_end = resolve_date_range(AnalyticsFilter(preset="yesterday"), today=today)
+    assert y_start == y_end == date(2026, 7, 13)
+    w_start, w_end = resolve_date_range(AnalyticsFilter(preset="this_week"), today=today)
+    assert w_end == today
+    assert w_start.weekday() == 0
+    m_start, m_end = resolve_date_range(AnalyticsFilter(preset="this_month"), today=today)
+    assert m_start == date(2026, 7, 1)
+    assert m_end == today
+    d_start, d_end = resolve_date_range(
+        AnalyticsFilter(preset="day", date_from=date(2026, 7, 10)), today=today
+    )
+    assert d_start == d_end == date(2026, 7, 10)
 
 
 def _mock_db_zeroes() -> MagicMock:

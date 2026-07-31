@@ -10,6 +10,8 @@ from app.modules.procurements import service
 from app.modules.procurements.schemas import (
     PROCUREMENT_STATUSES,
     ApplyPriceRequest,
+    AssignBuyerRequest,
+    AssignBuyerResponse,
     ProcurementCalculateRequest,
     ProcurementCalculateResponse,
     ProcurementCancelRequest,
@@ -176,6 +178,17 @@ def create_field_entry(
         db, ctx.user.org_id, payload, ctx.user.id, client, idempotency_key=idempotency_key
     )
     return APIResponse(data=_enrich_response(db, row, viewer_role_code=_viewer_role_code(ctx), locale=locale))
+
+
+@router.post("/procurements/assign-buyer", response_model=APIResponse[AssignBuyerResponse])
+def assign_buyer(
+    payload: AssignBuyerRequest,
+    ctx: CurrentUserContext = Depends(require_permission("procurements:update")),
+    client: ClientContext = Depends(get_client_context),
+    db: Session = Depends(get_db),
+):
+    count = service.assign_buyer(db, ctx.user.org_id, payload, ctx.user.id, client)
+    return APIResponse(data=AssignBuyerResponse(assigned_count=count, buyer_id=payload.buyer_id))
 
 
 @router.get("/procurements/{procurement_id}", response_model=APIResponse[ProcurementResponse])

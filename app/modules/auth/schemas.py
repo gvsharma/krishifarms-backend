@@ -28,12 +28,9 @@ class LoginRequest(BaseModel):
     def normalize_mobile(cls, value: str | None) -> str | None:
         if value is None:
             return None
-        from app.modules.auth.phone import normalize_phone_for_lookup
+        from app.modules.auth.phone import validate_login_mobile
 
-        normalized = normalize_phone_for_lookup(value)
-        if len(normalized) < 10:
-            raise ValueError("Mobile must be at least 10 digits")
-        return normalized
+        return validate_login_mobile(value)
 
 
 class RefreshRequest(BaseModel):

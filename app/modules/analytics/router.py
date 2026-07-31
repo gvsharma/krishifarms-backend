@@ -49,7 +49,7 @@ def _filters_from_query(
 
 @router.get("/analytics/catalog", response_model=APIResponse[AnalyticsCatalogResponse])
 def analytics_catalog(
-    ctx: CurrentUserContext = Depends(require_permission("dashboard:read")),
+    ctx: CurrentUserContext = Depends(require_permission("analytics:admin")),
 ):
     _ = ctx
     return APIResponse(data=service.get_catalog())
@@ -70,7 +70,7 @@ def analytics_module_summary(
     asset_id: UUID | None = Query(None),
     season: str | None = Query(None),
     preset: str | None = Query(None),
-    ctx: CurrentUserContext = Depends(require_permission("dashboard:read")),
+    ctx: CurrentUserContext = Depends(require_permission("analytics:admin")),
     db: Session = Depends(get_db),
 ):
     filters = _filters_from_query(
@@ -95,7 +95,7 @@ def analytics_module_series(
     asset_id: UUID | None = Query(None),
     season: str | None = Query(None),
     preset: str | None = Query(None),
-    ctx: CurrentUserContext = Depends(require_permission("dashboard:read")),
+    ctx: CurrentUserContext = Depends(require_permission("analytics:admin")),
     db: Session = Depends(get_db),
 ):
     filters = _filters_from_query(
@@ -120,7 +120,7 @@ def analytics_module_tables(
     asset_id: UUID | None = Query(None),
     season: str | None = Query(None),
     preset: str | None = Query(None),
-    ctx: CurrentUserContext = Depends(require_permission("dashboard:read")),
+    ctx: CurrentUserContext = Depends(require_permission("analytics:admin")),
     db: Session = Depends(get_db),
 ):
     filters = _filters_from_query(
@@ -133,7 +133,7 @@ def analytics_module_tables(
 @router.post("/analytics/export")
 def analytics_export(
     body: ExportRequest,
-    ctx: CurrentUserContext = Depends(require_permission("dashboard:read")),
+    ctx: CurrentUserContext = Depends(require_permission("analytics:admin")),
     db: Session = Depends(get_db),
 ):
     filters = AnalyticsFilter(

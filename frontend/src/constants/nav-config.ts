@@ -57,7 +57,7 @@ export const NAV_SECTIONS: NavSection[] = [
         label: "Analytics",
         labelKey: "nav.analytics",
         icon: Analytics,
-        roles: ["OWNER", "MANAGER", "ACCOUNTANT"],
+        roles: ["OWNER"],
       },
       {
         href: ROUTES.myProcurements,

@@ -11,6 +11,7 @@ import {
   Typography,
 } from "@mui/material";
 import type { ReactNode } from "react";
+import { TOUCH_FIELD_SX } from "@/lib/ui/touch-targets";
 import { useAnalyticsFiltersStore } from "../filters-store";
 import { tAnalytics, type AnalyticsLocale } from "../messages";
 import { ExportMenu } from "./ExportMenu";
@@ -19,8 +20,12 @@ import type { ModuleSummary } from "../types";
 
 const PRESETS = [
   { value: "today", labelKey: "today" as const },
+  { value: "yesterday", labelKey: "yesterday" as const },
+  { value: "this_week", labelKey: "thisWeek" as const },
+  { value: "this_month", labelKey: "thisMonth" as const },
   { value: "7d", labelKey: "d7" as const },
   { value: "30d", labelKey: "d30" as const },
+  { value: "day", labelKey: "pickDay" as const },
   { value: "season", labelKey: "season" as const },
   { value: "custom", labelKey: "custom" as const },
 ];
@@ -49,6 +54,13 @@ export function AnalyticsShell({
   const loadView = useAnalyticsFiltersStore((s) => s.loadView);
   const savedViews = useAnalyticsFiltersStore((s) => s.savedViews);
 
+  const rangeLabel =
+    summary?.filters?.date_from && summary?.filters?.date_to
+      ? summary.filters.date_from === summary.filters.date_to
+        ? summary.filters.date_from
+        : `${summary.filters.date_from} → ${summary.filters.date_to}`
+      : null;
+
   return (
     <Box data-testid={`analytics-shell-${module}`}>
       <Stack
@@ -67,10 +79,15 @@ export function AnalyticsShell({
           borderColor: "divider",
         }}
       >
-        <Box>
+        <Box sx={{ minWidth: 0 }}>
           <Typography variant="h5" fontWeight={700}>
             {title}
           </Typography>
+          {rangeLabel ? (
+            <Typography variant="body2" color="text.secondary">
+              {rangeLabel}
+            </Typography>
+          ) : null}
           {summary?.health_score != null ? (
             <Typography variant="body2" color="text.secondary">
               {tAnalytics(locale, "healthScore")}: {summary.health_score}
@@ -79,14 +96,14 @@ export function AnalyticsShell({
             </Typography>
           ) : null}
         </Box>
-        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ width: { xs: "100%", md: "auto" } }}>
           <TextField
             select
             size="small"
             label={tAnalytics(locale, "preset")}
             value={filters.preset ?? "30d"}
             onChange={(e) => setPreset(e.target.value)}
-            sx={{ minWidth: 140 }}
+            sx={{ minWidth: { xs: "100%", sm: 160 }, ...TOUCH_FIELD_SX }}
             data-testid="analytics-preset"
           >
             {PRESETS.map((p) => (
@@ -95,6 +112,24 @@ export function AnalyticsShell({
               </MenuItem>
             ))}
           </TextField>
+          {filters.preset === "day" ? (
+            <TextField
+              size="small"
+              type="date"
+              label={tAnalytics(locale, "pickDay")}
+              InputLabelProps={{ shrink: true }}
+              value={filters.date_from ?? ""}
+              onChange={(e) =>
+                setFilters({
+                  date_from: e.target.value || null,
+                  date_to: e.target.value || null,
+                  preset: "day",
+                })
+              }
+              sx={{ minWidth: { xs: "100%", sm: 160 }, ...TOUCH_FIELD_SX }}
+              data-testid="analytics-day-picker"
+            />
+          ) : null}
           {filters.preset === "custom" ? (
             <>
               <TextField
@@ -104,6 +139,7 @@ export function AnalyticsShell({
                 InputLabelProps={{ shrink: true }}
                 value={filters.date_from ?? ""}
                 onChange={(e) => setFilters({ date_from: e.target.value || null, preset: "custom" })}
+                sx={{ minWidth: { xs: "100%", sm: 140 }, ...TOUCH_FIELD_SX }}
               />
               <TextField
                 size="small"
@@ -112,12 +148,14 @@ export function AnalyticsShell({
                 InputLabelProps={{ shrink: true }}
                 value={filters.date_to ?? ""}
                 onChange={(e) => setFilters({ date_to: e.target.value || null, preset: "custom" })}
+                sx={{ minWidth: { xs: "100%", sm: 140 }, ...TOUCH_FIELD_SX }}
               />
             </>
           ) : null}
           <Button
             size="small"
             variant="text"
+            sx={{ minHeight: 44 }}
             onClick={() => {
               const name = window.prompt("View name");
               if (name) saveView(name.trim());
@@ -132,7 +170,7 @@ export function AnalyticsShell({
               label={tAnalytics(locale, "savedViews")}
               value=""
               onChange={(e) => loadView(e.target.value)}
-              sx={{ minWidth: 140 }}
+              sx={{ minWidth: { xs: "100%", sm: 140 }, ...TOUCH_FIELD_SX }}
             >
               {Object.keys(savedViews).map((name) => (
                 <MenuItem key={name} value={name}>

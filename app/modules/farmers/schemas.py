@@ -2,10 +2,11 @@ from datetime import date
 from decimal import Decimal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.modules.platform.schemas import CommentResponse
 from app.shared.schemas.audit_meta import AuditMetaMixin
+from app.shared.validation.phone import normalize_indian_mobile, normalize_indian_mobile_optional
 
 
 class FarmerCreateRequest(BaseModel):
@@ -13,8 +14,8 @@ class FarmerCreateRequest(BaseModel):
     full_name_te: str | None = None
     father_name: str | None = Field(default=None, max_length=200)
     father_name_te: str | None = None
-    phone_primary: str = Field(min_length=10, max_length=20)
-    phone_secondary: str | None = Field(default=None, max_length=20)
+    phone_primary: str = Field(min_length=10, max_length=10)
+    phone_secondary: str | None = Field(default=None, max_length=10)
     village_id: UUID
     address: str | None = None
     address_te: str | None = None
@@ -28,14 +29,24 @@ class FarmerCreateRequest(BaseModel):
     geo_lat: Decimal | None = None
     geo_lng: Decimal | None = None
 
+    @field_validator("phone_primary")
+    @classmethod
+    def validate_phone_primary(cls, value: str) -> str:
+        return normalize_indian_mobile(value)
+
+    @field_validator("phone_secondary")
+    @classmethod
+    def validate_phone_secondary(cls, value: str | None) -> str | None:
+        return normalize_indian_mobile_optional(value)
+
 
 class FarmerUpdateRequest(BaseModel):
     full_name: str | None = Field(default=None, min_length=2, max_length=200)
     full_name_te: str | None = None
     father_name: str | None = Field(default=None, max_length=200)
     father_name_te: str | None = None
-    phone_primary: str | None = Field(default=None, min_length=10, max_length=20)
-    phone_secondary: str | None = Field(default=None, max_length=20)
+    phone_primary: str | None = Field(default=None, min_length=10, max_length=10)
+    phone_secondary: str | None = Field(default=None, max_length=10)
     village_id: UUID | None = None
     address: str | None = None
     address_te: str | None = None
@@ -49,6 +60,18 @@ class FarmerUpdateRequest(BaseModel):
     is_vip: bool | None = None
     geo_lat: Decimal | None = None
     geo_lng: Decimal | None = None
+
+    @field_validator("phone_primary")
+    @classmethod
+    def validate_phone_primary(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return normalize_indian_mobile(value)
+
+    @field_validator("phone_secondary")
+    @classmethod
+    def validate_phone_secondary(cls, value: str | None) -> str | None:
+        return normalize_indian_mobile_optional(value)
 
 
 class FarmerResponse(AuditMetaMixin):
