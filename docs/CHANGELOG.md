@@ -21,6 +21,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Procurement spot payment + buyer profit** — checkbox **100% payment on spot** at create (`is_spot_payment`); when true deducts **₹100 per net quintal** (configurable `spot_deduction_per_quintal`) from farmer net payment. Migration `036`. Amount math: `net_amount = gross_amount − line_deductions − spot_deduction_amount`. Staff-only `profit_summary` on procurement detail (weight kata margin + spot retention); hidden for `FARMER` role. Web: checkbox on `/procurement/new`, spot line + profit card on detail. Docs: OpenAPI `procurement.yaml`, `docs/modules/PROCUREMENT.md`; tests in `tests/test_procurements.py`.
 - **Procurement per-bag weight deduction (kata)** — configurable standard weight deducted per bag before pricing. Migration `035` adds `per_bag_deduction_kg` NUMERIC(6,3) NOT NULL DEFAULT `2.000` to `procurements` (with `>= 0` check). Net weight now = `gross − tare − (bag_count × per_bag_deduction_kg)`; e.g. 50 bags @ 2 kg → 100 kg deducted (2500 → 2400 kg). API: `per_bag_deduction_kg` on create/weighment/response + computed `bag_weight_deduction_kg`; helpers `compute_bag_weight_deduction` / `compute_net_weight`. Web: per-bag field on `/procurement/new` and the weighment dialog (live net-weight preview), shown on the detail page. Docs: OpenAPI `procurement.yaml`, `docs/modules/PROCUREMENT.md`; tests in `tests/test_procurements.py`.
 
+### Changed
+
+- **EC2 cost control** — disabled all scheduled/auto EC2 wake: `wake-ec2.yml` is manual `workflow_dispatch` only; removed CI nightly cron and inline wake-before-E2E; Playwright E2E runs only on manual **CI** workflow dispatch (start EC2 first). EC2 stays stopped after daily AWS cost scheduler until explicitly started.
+- **API offline banner** — app shell and login show a warning when `GET /health` fails (e.g. EC2 stopped); polls every 30s until the API responds again. EN/TE copy.
+
 ### Fixed
 
 - **Executive analytics profit display** — village/farmer/crop tables and KPIs now show buyer procurement margin (kata + spot + sale-rate spread) distinct from farmer net; gross/net/margin columns with INR formatting; margin trend chart and village heatmap use profit not net payable.

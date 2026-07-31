@@ -21,6 +21,7 @@ import { useTranslation } from "@/i18n/use-translation";
 import type { AppLocale } from "@/i18n/messages";
 import { useLocaleStore } from "@/stores/locale-store";
 import { cn } from "@/lib/utils";
+import { ApiHealthBanner } from "@/components/ui/api-health-banner";
 
 /**
  * Login fields use inline border styles — Tailwind `border-*` width utilities are
@@ -103,16 +104,17 @@ export default function LoginPage() {
   const canSubmit = identifierLooksValid(identifier) && password.length >= 8 && !submitting;
 
   return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        display: "grid",
-        placeItems: "center",
-        px: 2,
-        bgcolor: "#f8faf8",
-        colorScheme: "light",
-      }}
-    >
+    <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column", bgcolor: "#f8faf8" }}>
+      <ApiHealthBanner />
+      <Box
+        sx={{
+          flex: 1,
+          display: "grid",
+          placeItems: "center",
+          px: 2,
+          colorScheme: "light",
+        }}
+      >
       <Box
         sx={{
           width: "100%",
@@ -289,6 +291,7 @@ export default function LoginPage() {
             </Button>
           </Stack>
         </Box>
+      </Box>
       </Box>
     </Box>
   );

@@ -23,6 +23,9 @@ export const teMessages: Record<MessageKey, string> = {
   "common.user": "వినియోగదారు",
   "common.sessionUnavailable": "సెషన్ అందుబాటులో లేదు",
   "common.signInAgain": "మీ సెషన్ లోడ్ కాలేదు. పేజీలు ఖాళీగా కనిపిస్తే మళ్లీ సైన్ ఇన్ చేయండి.",
+  "common.apiSleepingTitle": "బ్యాకెండ్ API ఆఫ్‌లైన్",
+  "common.apiSleepingDescription":
+    "ఖర్చు తగ్గించడానికి సర్వర్ ఆపి ఉండవచ్చు. API మళ్లీ ప్రారంభించే వరకు డేటా లోడ్ కాదు. API స్పందించిన వెంటనే ఈ హెచ్చరిక తొలగిపోతుంది.",
 
   // Nav sections
   "nav.overview": "అవలోకనం",
