@@ -51,7 +51,7 @@ class AnalyticsFilter(BaseModel):
     season: str | None = None
     preset: str | None = Field(
         default=None,
-        description="today | 7d | 30d | season | custom",
+        description="today | yesterday | this_week | this_month | 7d | 30d | season | day | custom",
     )
 
 
@@ -138,7 +138,7 @@ class AnalyticsCatalogResponse(BaseModel):
     live_count: int
     scaffold_count: int
     data_plane: str = "postgres_oltp_summary_cache"
-    permission: str = "dashboard:read"
+    permission: str = "analytics:admin"
 
 
 class ModuleSummaryResponse(BaseModel):

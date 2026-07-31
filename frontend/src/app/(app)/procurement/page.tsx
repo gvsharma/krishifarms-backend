@@ -12,7 +12,6 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
   TableRow,
   TextField,
@@ -24,6 +23,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { MuiPageShell } from "@/components/shell/mui-page-shell";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
 import {
   fetchProcurements,
   formatInr,
@@ -101,7 +101,7 @@ export default function ProcurementPage() {
         )}
 
         {!isLoading && data && (
-          <TableContainer>
+          <ResponsiveTable>
             <Table size="small">
               <TableHead>
                 <TableRow>
@@ -149,7 +149,7 @@ export default function ProcurementPage() {
                 )}
               </TableBody>
             </Table>
-          </TableContainer>
+          </ResponsiveTable>
         )}
       </Card>
     </MuiPageShell>

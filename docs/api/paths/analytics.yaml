@@ -4,7 +4,7 @@ analyticsCatalog:
     operationId: getAnalyticsCatalog
     summary: Analytics hub module catalog (live + scaffold)
     description: |
-      Requires `dashboard:read`. Returns 15 hub modules: 4 live (executive,
+      Requires `analytics:admin` (OWNER only). Returns 15 hub modules: 4 live (executive,
       operations, procurement, finance) and 11 scaffolds with honest
       data-availability notes. Does not invent weather/inventory/AI KPIs.
     responses:
@@ -52,7 +52,7 @@ analyticsModuleSummary:
     operationId: getAnalyticsModuleSummary
     summary: Module KPI summary (live or scaffold empty state)
     description: |
-      Requires `dashboard:read`. Org from JWT. Cached under
+      Requires `analytics:admin` (OWNER only). Org from JWT. Cached under
       `analytics:{org}:{module}:summary:{filter_hash}` (TTL 60–300s).
       Money fields are Decimal/NUMERIC — never float fabrication for
       cash book / weather / AI.
@@ -88,7 +88,7 @@ analyticsModuleSummary:
         in: query
         schema:
           type: string
-          enum: [today, 7d, 30d, season, custom]
+          enum: [today, yesterday, this_week, this_month, 7d, 30d, day, season, custom]
       - name: village_id
         in: query
         schema: { type: string, format: uuid }
@@ -233,7 +233,7 @@ analyticsExport:
     operationId: postAnalyticsExport
     summary: Export module KPIs/tables as CSV
     description: |
-      Requires `dashboard:read`. Phase 1 returns CSV attachment only
+      Requires `analytics:admin` (OWNER only). Phase 1 returns CSV attachment only
       (Excel/PDF Phase 2). Org from JWT.
     requestBody:
       required: true

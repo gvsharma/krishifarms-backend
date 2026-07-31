@@ -21,6 +21,8 @@ import { MuiPageShell } from "@/components/shell/mui-page-shell";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { fetchFarmers } from "@/features/farmers/api";
 import { fetchCropTypes } from "@/features/master-data/api";
+import { formatMasterOptionLabel } from "@/lib/bilingual";
+import { useLocale } from "@/i18n/use-translation";
 import {
   EMPTY_LOCATION_CASCADE,
   LocationCascade,
@@ -31,6 +33,7 @@ import { calculateProcurementPreview } from "@/features/procurements/calculate";
 import { TOUCH_FIELD_SX } from "@/features/field-services/work-details";
 
 export default function NewProcurementPage() {
+  const locale = useLocale();
   const router = useRouter();
   const queryClient = useQueryClient();
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
@@ -147,7 +150,9 @@ export default function NewProcurementPage() {
 
             <SearchableSelect
               options={farmers}
-              getOptionLabel={(farmer) => `${farmer.full_name} (${farmer.farmer_code})`}
+              getOptionLabel={(farmer) =>
+                `${formatMasterOptionLabel(locale, farmer.full_name, farmer.full_name_te)} (${farmer.farmer_code})`
+              }
               isOptionEqualToValue={(a, b) => a.id === b.id}
               value={farmers.find((f) => f.id === farmerId) ?? null}
               onChange={(farmer) => {
@@ -161,7 +166,7 @@ export default function NewProcurementPage() {
 
             <SearchableSelect
               options={crops}
-              getOptionLabel={(crop) => crop.name}
+              getOptionLabel={(crop) => formatMasterOptionLabel(locale, crop.name, crop.name_te)}
               isOptionEqualToValue={(a, b) => a.id === b.id}
               value={crops.find((c) => c.id === cropTypeId) ?? null}
               onChange={(crop) => onCropChange(crop?.id ?? "")}

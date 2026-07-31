@@ -16,6 +16,7 @@ export default function CropTypesPage() {
       queryKey="crop-types-admin"
       fields={[
         { key: "name", label: "Name", required: true },
+        { key: "name_te", label: "Name (Telugu)", table: false },
         { key: "code", label: "Code", required: true, createOnly: true },
         { key: "default_moisture_pct", label: "Default moisture %", type: "number" },
         { key: "is_active", label: "Active", type: "boolean" },

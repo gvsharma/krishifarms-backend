@@ -12,7 +12,7 @@ export default function BuyersPage() {
       fields={[
         { key: "name", label: "Name", required: true },
         { key: "name_te", label: "Name (Telugu)", table: false },
-        { key: "phone", label: "Phone" },
+        { key: "phone", label: "Phone", type: "phone" },
         { key: "gstin", label: "GSTIN", table: false },
         { key: "contact_person", label: "Contact person" },
         { key: "address", label: "Address", table: false },

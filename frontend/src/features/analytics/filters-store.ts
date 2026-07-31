@@ -34,8 +34,10 @@ export const useAnalyticsFiltersStore = create<AnalyticsFiltersState>()(
           filters: {
             ...s.filters,
             preset,
-            date_from: preset === "custom" ? s.filters.date_from : null,
-            date_to: preset === "custom" ? s.filters.date_to : null,
+            date_from:
+              preset === "custom" || preset === "day" ? s.filters.date_from : null,
+            date_to:
+              preset === "custom" ? s.filters.date_to : preset === "day" ? s.filters.date_from : null,
           },
         })),
       setFilters: (patch) => set((s) => ({ filters: { ...s.filters, ...patch } })),

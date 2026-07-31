@@ -2,10 +2,10 @@ from datetime import date, datetime
 from decimal import Decimal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
-
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.shared.schemas.audit_meta import AuditMetaMixin
+from app.shared.validation.phone import normalize_indian_mobile_optional
 
 
 class AuditMetaResponse(AuditMetaMixin):
@@ -89,7 +89,7 @@ class PaymentModeListResponse(BaseModel):
 class BuyerCreateRequest(BaseModel):
     name: str = Field(min_length=1, max_length=200)
     name_te: str | None = None
-    phone: str | None = Field(default=None, max_length=15)
+    phone: str | None = Field(default=None, max_length=10)
     gstin: str | None = Field(default=None, max_length=20)
     contact_person: str | None = Field(default=None, max_length=200)
     address: str | None = None
@@ -97,17 +97,27 @@ class BuyerCreateRequest(BaseModel):
     notes: str | None = None
     is_active: bool = True
 
+    @field_validator("phone")
+    @classmethod
+    def validate_phone(cls, value: str | None) -> str | None:
+        return normalize_indian_mobile_optional(value)
+
 
 class BuyerUpdateRequest(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=200)
     name_te: str | None = None
-    phone: str | None = Field(default=None, max_length=15)
+    phone: str | None = Field(default=None, max_length=10)
     gstin: str | None = Field(default=None, max_length=20)
     contact_person: str | None = Field(default=None, max_length=200)
     address: str | None = None
     village_id: UUID | None = None
     notes: str | None = None
     is_active: bool | None = None
+
+    @field_validator("phone")
+    @classmethod
+    def validate_phone(cls, value: str | None) -> str | None:
+        return normalize_indian_mobile_optional(value)
 
 
 class BuyerResponse(AuditMetaResponse):
@@ -135,23 +145,33 @@ class BuyerListResponse(BaseModel):
 class FieldAgentCreateRequest(BaseModel):
     name: str = Field(min_length=1, max_length=200)
     name_te: str | None = None
-    phone: str | None = Field(default=None, max_length=15)
+    phone: str | None = Field(default=None, max_length=10)
     user_id: UUID | None = None
     village_id: UUID | None = None
     commission_pct: Decimal | None = Field(default=None, ge=0, le=100)
     notes: str | None = None
     is_active: bool = True
 
+    @field_validator("phone")
+    @classmethod
+    def validate_phone(cls, value: str | None) -> str | None:
+        return normalize_indian_mobile_optional(value)
+
 
 class FieldAgentUpdateRequest(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=200)
     name_te: str | None = None
-    phone: str | None = Field(default=None, max_length=15)
+    phone: str | None = Field(default=None, max_length=10)
     user_id: UUID | None = None
     village_id: UUID | None = None
     commission_pct: Decimal | None = Field(default=None, ge=0, le=100)
     notes: str | None = None
     is_active: bool | None = None
+
+    @field_validator("phone")
+    @classmethod
+    def validate_phone(cls, value: str | None) -> str | None:
+        return normalize_indian_mobile_optional(value)
 
 
 class FieldAgentResponse(AuditMetaResponse):

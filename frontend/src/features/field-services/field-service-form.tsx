@@ -12,7 +12,7 @@ import {
 } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { fetchFarmers } from "@/features/farmers/api";
+import { fetchFarmers, fetchFarmer } from "@/features/farmers/api";
 import { fetchActivityTypes, fetchCropTypes, fetchVehicleTypes, fetchVillages } from "@/features/master-data/api";
 import {
   EMPTY_LOCATION_CASCADE,
@@ -47,11 +47,17 @@ import {
   type VehicleWorkDetails,
 } from "./work-details";
 import {
-  computeVehicleCharge,
+  computeBillingTotal,
+  computePendingTotal,
+  decimalHoursFromParts,
+  partsFromDecimalHours,
   rateUnitLabel,
   resolveVehicleRate,
 } from "./pricing";
+import { vehicleCodeFromSlug } from "./url-prefill";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { useLocale } from "@/i18n/use-translation";
+import { formatMasterOptionLabel } from "@/lib/bilingual";
 
 export interface FieldServiceFormValues {
   service_date: string;
@@ -62,6 +68,8 @@ export interface FieldServiceFormValues {
   vehicle_type_code: string;
   location: string;
   hours: string;
+  work_hours: string;
+  work_minutes: string;
   diesel_amount: string;
   amount_given: string;
   advance_amount: string;
@@ -103,6 +111,8 @@ export const EMPTY_FORM: FieldServiceFormValues = {
   vehicle_type_code: "",
   location: "",
   hours: "",
+  work_hours: "",
+  work_minutes: "",
   diesel_amount: "0.00",
   amount_given: "0.00",
   advance_amount: "0.00",
@@ -230,6 +240,7 @@ function applyWorkDetailsToForm(
 
 export function recordToFormValues(record: FieldServiceRecord): FieldServiceFormValues {
   const { details, freeComments } = parseWorkDetailsFromComments(record.comments);
+  const timeParts = partsFromDecimalHours(record.hours ?? "");
   const base: FieldServiceFormValues = {
     ...EMPTY_FORM,
     service_date: record.service_date,
@@ -239,6 +250,8 @@ export function recordToFormValues(record: FieldServiceRecord): FieldServiceForm
     vehicle_type_code: "",
     location: record.location ?? "",
     hours: record.hours ?? "",
+    work_hours: timeParts.hours,
+    work_minutes: timeParts.minutes,
     diesel_amount: record.diesel_amount,
     amount_given: record.amount_given,
     advance_amount: record.advance_amount,
@@ -279,7 +292,13 @@ export function formValuesToCreatePayload(
     ...(fields.has("activity_type_id") && { activity_type_id: values.activity_type_id || null }),
     ...(fields.has("vehicle_type_id") && { vehicle_type_id: values.vehicle_type_id || null }),
     ...(fields.has("location") && { location: emptyToNull(values.location) }),
-    ...(fields.has("hours") && { hours: toOptionalDecimal(values.hours) }),
+    ...(fields.has("hours") && {
+      hours: toOptionalDecimal(
+        values.work_hours || values.work_minutes
+          ? decimalHoursFromParts(values.work_hours, values.work_minutes)
+          : values.hours,
+      ),
+    }),
     ...(fields.has("diesel_amount") && { diesel_amount: toMoneyString(values.diesel_amount) }),
     ...(fields.has("amount_given") && { amount_given: toMoneyString(values.amount_given) }),
     ...(fields.has("advance_amount") && { advance_amount: toMoneyString(values.advance_amount) }),
@@ -311,6 +330,8 @@ interface FieldServiceFormProps {
   isSubmitting?: boolean;
   error?: string | null;
   disabled?: boolean;
+  /** From `/field-services/new?vehicle=tractor` — pre-select equipment once options load. */
+  initialVehicleCode?: string | null;
 }
 
 export function FieldServiceForm({
@@ -322,7 +343,9 @@ export function FieldServiceForm({
   isSubmitting = false,
   error = null,
   disabled = false,
+  initialVehicleCode = null,
 }: FieldServiceFormProps) {
+  const locale = useLocale();
   const fields = useMemo(() => new Set(CATEGORY_FIELDS[category]), [category]);
   const [locationCascade, setLocationCascade] = useState<LocationCascadeValue>({
     ...EMPTY_LOCATION_CASCADE,
@@ -334,6 +357,22 @@ export function FieldServiceForm({
     enabled: fields.has("farmer_id"),
     retry: false,
   });
+
+  const farmerDetailQuery = useQuery({
+    queryKey: ["farmer-field-service-detail", values.farmer_id],
+    queryFn: () => fetchFarmer(values.farmer_id),
+    enabled: fields.has("farmer_id") && Boolean(values.farmer_id),
+    retry: false,
+  });
+
+  const farmerOptions = useMemo(() => {
+    const items = farmersQuery.data?.items ?? [];
+    const detail = farmerDetailQuery.data;
+    if (detail && !items.some((f) => f.id === detail.id)) {
+      return [detail, ...items];
+    }
+    return items;
+  }, [farmersQuery.data, farmerDetailQuery.data]);
 
   const activityTypesQuery = useQuery({
     queryKey: ["activity-types-field-service"],
@@ -400,6 +439,33 @@ export function FieldServiceForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- avoid loops on values
   }, [selectedVehicle?.code, values.vehicle_type_id]);
 
+  useEffect(() => {
+    if (!initialVehicleCode || values.vehicle_type_id || vehicleOptions.length === 0) return;
+    const code = vehicleCodeFromSlug(initialVehicleCode);
+    if (!code) return;
+    const match =
+      vehicleOptions.find((v) => v.code.toUpperCase() === code) ??
+      vehicleOptions.find((v) => v.code.toUpperCase().includes(code));
+    if (!match) return;
+    const rate = resolveVehicleRate(match);
+    onChange({
+      ...values,
+      vehicle_type_id: match.id,
+      vehicle_type_code: match.code,
+      rate_per_unit: rate?.default_rate ?? values.rate_per_unit,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once when options + URL param ready
+  }, [initialVehicleCode, vehicleOptions.length, values.vehicle_type_id]);
+
+  useEffect(() => {
+    if (!fields.has("farmer_id") || !fields.has("location")) return;
+    const farmer = farmerOptions.find((f) => f.id === values.farmer_id);
+    if (!farmer?.village_name) return;
+    if (values.location === farmer.village_name) return;
+    onChange({ ...values, location: farmer.village_name });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- prefill location from farmer
+  }, [values.farmer_id, farmerOptions, fields]);
+
   const workProfile = useMemo(
     () =>
       fields.has("vehicle_type_id")
@@ -417,34 +483,54 @@ export function FieldServiceForm({
   );
 
   useEffect(() => {
-    if (category !== "tractor_work" || !vehicleRate) return;
-    const computed = computeVehicleCharge(vehicleRate, {
-      hours: values.hours,
-      trips: values.work_trips,
-      baleCount: values.work_bale_count,
-    });
-    if (!computed) return;
-    const nextRate = computed.ratePerUnit;
-    const nextTotal = computed.total;
-    if (values.rate_per_unit === nextRate && values.total_amount === nextTotal) return;
+    if (!fields.has("total_amount")) return;
+
+    let nextTotal = values.total_amount;
+    if (fields.has("rate_per_unit") && vehicleRate) {
+      const computed = computeBillingTotal(vehicleRate, {
+        ratePerUnit: values.rate_per_unit,
+        workHours: values.work_hours,
+        workMinutes: values.work_minutes,
+        trips: values.work_trips,
+        baleCount: values.work_bale_count,
+      });
+      if (computed !== null) nextTotal = computed;
+    }
+
+    const nextPending = computePendingTotal(nextTotal, values.advance_amount);
+    const nextHours =
+      values.work_hours || values.work_minutes
+        ? decimalHoursFromParts(values.work_hours, values.work_minutes)
+        : values.hours;
+
+    if (
+      values.total_amount === nextTotal &&
+      values.pending_amount === nextPending &&
+      values.hours === nextHours
+    ) {
+      return;
+    }
+
     onChange({
       ...values,
-      rate_per_unit: nextRate,
+      hours: nextHours,
       total_amount: nextTotal,
-      pending_amount:
-        values.advance_amount && Number(values.advance_amount) > 0
-          ? Math.max(0, Number(nextTotal) - Number(values.advance_amount)).toFixed(2)
-          : nextTotal,
+      pending_amount: nextPending,
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- pricing inputs only
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- billing inputs only
   }, [
     category,
     vehicleRate,
-    values.hours,
+    values.work_hours,
+    values.work_minutes,
+    values.rate_per_unit,
+    values.advance_amount,
     values.work_trips,
     values.work_bale_count,
     values.vehicle_type_id,
   ]);
+
+  const autoBilling = fields.has("rate_per_unit") && vehicleRate != null;
 
   const cropOptions = useMemo(
     () => (cropsQuery.data?.items ?? []).filter((c) => c.is_active),
@@ -458,9 +544,11 @@ export function FieldServiceForm({
   const onVehicleChange = (vehicleTypeId: string) => {
     const next = vehicleOptions.find((v) => v.id === vehicleTypeId);
     const profile = resolveVehicleWorkProfile(next?.code, next?.fuel_type);
+    const rate = resolveVehicleRate(next ?? null);
     set({
       vehicle_type_id: vehicleTypeId,
       vehicle_type_code: next?.code ?? "",
+      rate_per_unit: rate?.default_rate ?? values.rate_per_unit,
       work_trips:
         profile === "trolley" || profile === "bolero" || profile === "dcm"
           ? "1"
@@ -514,10 +602,15 @@ export function FieldServiceForm({
         {fields.has("farmer_id") && (
           <Grid size={{ xs: 12, sm: 6 }}>
             <Autocomplete
-              options={farmersQuery.data?.items ?? []}
+              options={farmerOptions}
               getOptionLabel={(farmer) => `${farmer.full_name} (${farmer.farmer_code})`}
-              value={(farmersQuery.data?.items ?? []).find((f) => f.id === values.farmer_id) ?? null}
-              onChange={(_e, farmer) => set({ farmer_id: farmer?.id ?? "" })}
+              value={farmerOptions.find((f) => f.id === values.farmer_id) ?? null}
+              onChange={(_e, farmer) =>
+                set({
+                  farmer_id: farmer?.id ?? "",
+                  location: farmer?.village_name ?? values.location,
+                })
+              }
               disabled={disabled || farmersQuery.isLoading}
               renderInput={(params) => (
                 <TextField {...params} label="Farmer" sx={TOUCH_FIELD_SX} placeholder="Search farmer…" />
@@ -531,7 +624,7 @@ export function FieldServiceForm({
             <SearchableSelect
               options={activityOptions}
               getOptionLabel={(activity) =>
-                activity.name_te ? `${activity.name} · ${activity.name_te}` : activity.name
+                formatMasterOptionLabel(locale, activity.name, activity.name_te)
               }
               isOptionEqualToValue={(a, b) => a.id === b.id}
               value={activityOptions.find((a) => a.id === values.activity_type_id) ?? null}
@@ -551,7 +644,7 @@ export function FieldServiceForm({
             <Autocomplete
               options={vehicleOptions}
               getOptionLabel={(vehicle) =>
-                vehicle.name_te ? `${vehicle.name} · ${vehicle.name_te}` : vehicle.name
+                formatMasterOptionLabel(locale, vehicle.name, vehicle.name_te)
               }
               value={vehicleOptions.find((v) => v.id === values.vehicle_type_id) ?? null}
               onChange={(_e, vehicle) => onVehicleChange(vehicle?.id ?? "")}
@@ -587,7 +680,7 @@ export function FieldServiceForm({
             <Grid size={{ xs: 12, sm: 4 }}>
               <Autocomplete
                 options={cropOptions}
-                getOptionLabel={(crop) => crop.name}
+                getOptionLabel={(crop) => formatMasterOptionLabel(locale, crop.name, crop.name_te)}
                 value={cropOptions.find((c) => c.code === values.work_crop_code) ?? null}
                 onChange={(_e, crop) =>
                   set({
@@ -852,7 +945,7 @@ export function FieldServiceForm({
             <Grid size={{ xs: 12, sm: 4 }}>
               <Autocomplete
                 options={cropOptions}
-                getOptionLabel={(crop) => crop.name}
+                getOptionLabel={(crop) => formatMasterOptionLabel(locale, crop.name, crop.name_te)}
                 value={cropOptions.find((c) => c.code === values.work_crop_code) ?? null}
                 onChange={(_e, crop) =>
                   set({
@@ -898,7 +991,7 @@ export function FieldServiceForm({
             <Grid size={{ xs: 12, sm: 4 }}>
               <Autocomplete
                 options={cropOptions}
-                getOptionLabel={(crop) => crop.name}
+                getOptionLabel={(crop) => formatMasterOptionLabel(locale, crop.name, crop.name_te)}
                 value={cropOptions.find((c) => c.code === values.work_crop_code) ?? null}
                 onChange={(_e, crop) =>
                   set({
@@ -962,18 +1055,32 @@ export function FieldServiceForm({
         )}
 
         {fields.has("hours") && (
-          <Grid size={{ xs: 12, sm: 6 }}>
-            <TextField
-              fullWidth
-              type="number"
-              sx={TOUCH_FIELD_SX}
-              slotProps={{ htmlInput: { min: 0, step: 0.5 } }}
-              label="Hours"
-              value={values.hours}
-              onChange={(e) => set({ hours: e.target.value })}
-              disabled={disabled}
-            />
-          </Grid>
+          <>
+            <Grid size={{ xs: 6, sm: 3 }}>
+              <TextField
+                fullWidth
+                type="number"
+                sx={TOUCH_FIELD_SX}
+                slotProps={{ htmlInput: { min: 0, step: 1 } }}
+                label="Hours"
+                value={values.work_hours}
+                onChange={(e) => set({ work_hours: e.target.value })}
+                disabled={disabled}
+              />
+            </Grid>
+            <Grid size={{ xs: 6, sm: 3 }}>
+              <TextField
+                fullWidth
+                type="number"
+                sx={TOUCH_FIELD_SX}
+                slotProps={{ htmlInput: { min: 0, max: 59, step: 1 } }}
+                label="Minutes"
+                value={values.work_minutes}
+                onChange={(e) => set({ work_minutes: e.target.value })}
+                disabled={disabled}
+              />
+            </Grid>
+          </>
         )}
 
         {fields.has("bag_count") && (
@@ -1035,13 +1142,17 @@ export function FieldServiceForm({
               slotProps={{ htmlInput: { min: 0, step: 0.01 } }}
               label={
                 vehicleRate
-                  ? `Rate (₹ ${rateUnitLabel(vehicleRate.default_rate_unit)})`
+                  ? `Hourly rate (₹ ${rateUnitLabel(vehicleRate.default_rate_unit)})`
                   : "Rate per unit (₹)"
               }
               value={values.rate_per_unit}
               onChange={(e) => set({ rate_per_unit: e.target.value })}
               disabled={disabled}
-              helperText={vehicleRate ? "Default rate from equipment master" : undefined}
+              helperText={
+                vehicleRate
+                  ? `Default ₹${vehicleRate.default_rate} — edit if negotiated`
+                  : undefined
+              }
             />
           </Grid>
         )}
@@ -1103,11 +1214,14 @@ export function FieldServiceForm({
               fullWidth
               type="number"
               sx={TOUCH_FIELD_SX}
-              slotProps={{ htmlInput: { min: 0, step: 0.01 } }}
+              slotProps={{
+                htmlInput: { min: 0, step: 0.01, readOnly: autoBilling || undefined },
+              }}
               label="Total (₹)"
               value={values.total_amount}
               onChange={(e) => set({ total_amount: e.target.value })}
-              disabled={disabled}
+              disabled={disabled || autoBilling}
+              helperText={autoBilling ? "Calculated from rate × time (or trips/bales)" : undefined}
             />
           </Grid>
         )}
@@ -1118,11 +1232,14 @@ export function FieldServiceForm({
               fullWidth
               type="number"
               sx={TOUCH_FIELD_SX}
-              slotProps={{ htmlInput: { min: 0, step: 0.01 } }}
+              slotProps={{
+                htmlInput: { min: 0, step: 0.01, readOnly: autoBilling || undefined },
+              }}
               label="Pending (₹)"
               value={values.pending_amount}
               onChange={(e) => set({ pending_amount: e.target.value })}
-              disabled={disabled}
+              disabled={disabled || autoBilling}
+              helperText={autoBilling ? "Total minus advance" : undefined}
             />
           </Grid>
         )}

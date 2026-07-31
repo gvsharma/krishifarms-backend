@@ -37,6 +37,12 @@ export const metadata: Metadata = {
   description: "Farm operations CRM for procurement, ledger, workforce, and finance.",
 };
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>

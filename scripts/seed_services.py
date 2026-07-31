@@ -24,13 +24,13 @@ DEFAULT_VILLAGES = [
 ]
 
 DEFAULT_EXPENSE_CATEGORIES = [
-    {"name": "Fuel", "type": "expense"},
-    {"name": "Diesel", "type": "expense"},
-    {"name": "Labor", "type": "expense"},
-    {"name": "Maintenance", "type": "expense"},
-    {"name": "Vehicle Repairs", "type": "expense"},
-    {"name": "Godown Maintenance", "type": "expense"},
-    {"name": "Miscellaneous", "type": "expense"},
+    {"name": "Fuel", "name_te": "ఇంధనం", "type": "expense"},
+    {"name": "Diesel", "name_te": "డీజిల్", "type": "expense"},
+    {"name": "Labor", "name_te": "శ్రమ", "type": "expense"},
+    {"name": "Maintenance", "name_te": "నిర్వహణ", "type": "expense"},
+    {"name": "Vehicle Repairs", "name_te": "వాహన మరమ్మతు", "type": "expense"},
+    {"name": "Godown Maintenance", "name_te": "గోదాము నిర్వహణ", "type": "expense"},
+    {"name": "Miscellaneous", "name_te": "ఇతర", "type": "expense"},
 ]
 
 DEFAULT_PAYMENT_MODES = [

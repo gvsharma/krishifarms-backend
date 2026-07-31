@@ -44,8 +44,20 @@ def resolve_date_range(filters: AnalyticsFilter, *, today: date | None = None) -
     if filters.date_from and filters.date_to:
         return filters.date_from, filters.date_to
 
+    if preset == "day" and filters.date_from:
+        return filters.date_from, filters.date_from
+
     if preset == "today":
         return today, today
+    if preset == "yesterday":
+        y = today - timedelta(days=1)
+        return y, y
+    if preset == "this_week":
+        # ISO week: Monday start
+        start = today - timedelta(days=today.weekday())
+        return start, today
+    if preset == "this_month":
+        return date(today.year, today.month, 1), today
     if preset == "7d":
         return today - timedelta(days=6), today
     if preset == "season":

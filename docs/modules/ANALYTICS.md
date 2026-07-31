@@ -1,7 +1,7 @@
 # Analytics Hub
 
 **Phase:** 1 (Admin web)  
-**Permission:** `dashboard:read`  
+**Permission:** `analytics:admin` (OWNER only — profit, revenue, expenses)  
 **Data plane:** Postgres OLTP + `analytics_daily_org_facts` summary table + Redis/memory cache  
 **UI:** `/analytics` (MUI + `@mui/x-charts`)
 
@@ -33,7 +33,7 @@ Scaffold modules: farming, vehicle, village, farmer, buyer, employee, service, c
 | GET | `/analytics/{module}/tables` | Top/bottom tables |
 | POST | `/analytics/export` | CSV attachment (Excel/PDF Phase 2) |
 
-Org always from JWT. Filters: `preset` (`today`/`7d`/`30d`/`season`/`custom`), `date_from`, `date_to`, `village_id`, `crop_type_id`, `farmer_id`, `buyer_id`, `asset_id`, `season`.
+Org always from JWT. Filters: `preset` (`today`/`yesterday`/`this_week`/`this_month`/`7d`/`30d`/`season`/`day`/`custom`), `date_from`, `date_to`, `village_id`, `crop_type_id`, `farmer_id`, `buyer_id`, `asset_id`, `season`. Preset `day` uses a single date picker (`date_from` = `date_to`).
 
 Cache key: `analytics:{org}:{module}:{kind}:{filter_hash}` · TTL 60–300s · log `analytics.module.latency_ms` + `cache_hit`.
 
@@ -52,6 +52,8 @@ OpenAPI: `docs/api/paths/analytics.yaml`.
 | Period revenue | Confirmed procurements `net_amount` + field-service `total_amount` | Labeled estimate |
 | Period expenses | Posted `expenses` | Live |
 | Gross ops estimate | Revenue − expenses | Estimate (not GAAP) |
+| Profit by village / farmer / crop | Procurement + field-service revenue by dimension | Revenue-only margin (expenses not allocated) |
+| Daily profit / sales / expense series | `revenue_series_by_day`, `expense_series_by_day`, `profit_series_by_day` | Live |
 | Farmer outstanding | Sum latest `farmer_ledger_entries.balance_after` per farmer | Live |
 | Pending farmer payments | Confirmed/`paid_partial` ticket value | Live |
 | Active farmers / VIP | `farmers` | Live |
@@ -114,7 +116,7 @@ frontend/src/features/analytics/
   modules/{executive,operations,procurement,finance,_scaffold}.tsx
 ```
 
-Nav: Analytics under Overview for OWNER/MANAGER/ACCOUNTANT (`nav-config.ts`). Telugu chrome keys in `messages.ts`.
+Nav: Analytics under Overview for **OWNER only** (`nav-config.ts`, `analytics:admin`). Telugu chrome keys in `messages.ts`.
 
 ---
 

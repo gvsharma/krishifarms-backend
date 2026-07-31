@@ -18,6 +18,8 @@ from app.modules.financial.models import Collection, Expense
 from app.modules.master_data.models import CropType, Village
 from app.modules.procurements.models import FarmerLedgerEntry, Procurement
 
+_ZERO = Decimal("0.00")
+
 
 def sum_procurement_revenue(
     db: Session,
@@ -337,6 +339,7 @@ def top_villages_by_procurement(
             "name": r.name,
             "kg": kg(r.kg),
             "amount": money(r.amount),
+            "profit": money(r.amount),
             "tickets": int(r.tickets),
         }
         for r in rows
@@ -379,10 +382,107 @@ def top_crops_by_procurement(
             "name": r.name,
             "kg": kg(r.kg),
             "amount": money(r.amount),
+            "profit": money(r.amount),
             "tickets": int(r.tickets),
         }
         for r in rows
     ]
+
+
+def top_farmers_by_revenue(
+    db: Session,
+    org_id: UUID,
+    date_from: date,
+    date_to: date,
+    *,
+    limit: int = 10,
+) -> list[dict]:
+    proc_rows = (
+        db.query(
+            Farmer.id,
+            Farmer.full_name,
+            func.coalesce(func.sum(Procurement.net_amount), 0).label("proc_amount"),
+            func.coalesce(func.sum(Procurement.net_weight_kg), 0).label("kg"),
+            func.count(Procurement.id).label("tickets"),
+        )
+        .join(Procurement, and_(Procurement.farmer_id == Farmer.id, Procurement.org_id == org_id))
+        .filter(
+            Farmer.org_id == org_id,
+            Farmer.deleted_at.is_(None),
+            Procurement.deleted_at.is_(None),
+            Procurement.procurement_date >= date_from,
+            Procurement.procurement_date <= date_to,
+            Procurement.status.in_(CONFIRMED_PROCUREMENT_STATUSES),
+        )
+        .group_by(Farmer.id, Farmer.full_name)
+        .all()
+    )
+    fs_rows = (
+        db.query(
+            Farmer.id,
+            func.coalesce(func.sum(FieldServiceRecord.total_amount), 0).label("fs_amount"),
+        )
+        .join(
+            FieldServiceRecord,
+            and_(FieldServiceRecord.farmer_id == Farmer.id, FieldServiceRecord.org_id == org_id),
+        )
+        .filter(
+            Farmer.org_id == org_id,
+            Farmer.deleted_at.is_(None),
+            FieldServiceRecord.deleted_at.is_(None),
+            FieldServiceRecord.service_date >= date_from,
+            FieldServiceRecord.service_date <= date_to,
+            FieldServiceRecord.status != "cancelled",
+        )
+        .group_by(Farmer.id)
+        .all()
+    )
+    fs_map = {r.id: money(r.fs_amount) for r in fs_rows}
+    merged: dict[UUID, dict] = {}
+    for r in proc_rows:
+        proc_amt = money(r.proc_amount)
+        fs_amt = fs_map.get(r.id, _ZERO)
+        revenue = money(proc_amt + fs_amt)
+        merged[r.id] = {
+            "farmer_id": str(r.id),
+            "name": r.full_name,
+            "kg": kg(r.kg),
+            "revenue": revenue,
+            "profit": revenue,
+            "tickets": int(r.tickets),
+        }
+    for fid, fs_amt in fs_map.items():
+        if fid in merged:
+            continue
+        farmer = db.query(Farmer.full_name).filter(Farmer.id == fid, Farmer.org_id == org_id).first()
+        if not farmer:
+            continue
+        merged[fid] = {
+            "farmer_id": str(fid),
+            "name": farmer.full_name,
+            "kg": kg(0),
+            "revenue": fs_amt,
+            "profit": fs_amt,
+            "tickets": 0,
+        }
+    ranked = sorted(merged.values(), key=lambda x: x["revenue"], reverse=True)[:limit]
+    return ranked
+
+
+def profit_series_by_day(
+    db: Session,
+    org_id: UUID,
+    date_from: date,
+    date_to: date,
+    *,
+    village_id: UUID | None = None,
+) -> list[tuple[date, Decimal]]:
+    rev_by_day = {
+        d: amt for d, amt in revenue_series_by_day(db, org_id, date_from, date_to, village_id=village_id)
+    }
+    exp_by_day = {d: amt for d, amt in expense_series_by_day(db, org_id, date_from, date_to)}
+    days = sorted(set(rev_by_day) | set(exp_by_day))
+    return [(d, money(rev_by_day.get(d, _ZERO) - exp_by_day.get(d, _ZERO))) for d in days]
 
 
 def expense_by_category(

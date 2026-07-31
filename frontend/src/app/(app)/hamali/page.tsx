@@ -47,8 +47,18 @@ import {
 } from "@/features/hamali/api";
 import { formatInr } from "@/features/procurements/api";
 import { TOUCH_FIELD_SX } from "@/features/field-services/work-details";
+import {
+  isValidIndianMobile,
+  normalizeIndianMobile,
+  PHONE_REQUIRED_ERROR,
+  sanitizePhoneInput,
+} from "@/lib/validation/phone";
+import { useAutoTeluguName } from "@/hooks/use-auto-telugu-name";
+import { formatMasterOptionLabel } from "@/lib/bilingual";
+import { useLocale } from "@/i18n/use-translation";
 
 export default function HamaliPage() {
+  const locale = useLocale();
   const queryClient = useQueryClient();
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const [tab, setTab] = useState(0);
@@ -65,7 +75,14 @@ export default function HamaliPage() {
   const [tip, setTip] = useState("0");
   const [entryNotes, setEntryNotes] = useState("");
   const [newWorkerName, setNewWorkerName] = useState("");
+  const [newWorkerNameTe, setNewWorkerNameTe] = useState("");
   const [newWorkerPhone, setNewWorkerPhone] = useState("");
+
+  const { onTeluguChange: onWorkerTeluguChange } = useAutoTeluguName(
+    newWorkerName,
+    newWorkerNameTe,
+    setNewWorkerNameTe,
+  );
 
   const workersQuery = useQuery({
     queryKey: ["hamali-workers"],
@@ -119,16 +136,25 @@ export default function HamaliPage() {
   });
 
   const createWorkerMut = useMutation({
-    mutationFn: () =>
-      createHamaliWorker({
+    mutationFn: () => {
+      const phone = newWorkerPhone.trim()
+        ? normalizeIndianMobile(newWorkerPhone.trim())
+        : null;
+      if (newWorkerPhone.trim() && !phone) {
+        throw new Error(PHONE_REQUIRED_ERROR);
+      }
+      return createHamaliWorker({
         full_name: newWorkerName.trim(),
-        phone: newWorkerPhone.trim() || null,
-      }),
+        full_name_te: newWorkerNameTe.trim() || null,
+        phone,
+      });
+    },
     onSuccess: (worker: HamaliWorker) => {
       queryClient.invalidateQueries({ queryKey: ["hamali-workers"] });
       setEntryWorkerId(worker.id);
       setWorkerOpen(false);
       setNewWorkerName("");
+      setNewWorkerNameTe("");
       setNewWorkerPhone("");
     },
   });
@@ -233,7 +259,7 @@ export default function HamaliPage() {
           )}
 
           {entriesQuery.data && (
-            <TableContainer component={Card}>
+            <TableContainer component={Card} sx={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
               <Table size="small">
                 <TableHead>
                   <TableRow>
@@ -292,7 +318,7 @@ export default function HamaliPage() {
       )}
 
       {tab === 1 && (
-        <TableContainer component={Card}>
+        <TableContainer component={Card} sx={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
           <Table size="small">
             <TableHead>
               <TableRow>
@@ -387,7 +413,7 @@ export default function HamaliPage() {
             )}
           </Card>
 
-          <TableContainer component={Card}>
+          <TableContainer component={Card} sx={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
             <Table size="small">
               <TableHead>
                 <TableRow>
@@ -435,15 +461,47 @@ export default function HamaliPage() {
       <PremiumDialog open={entryOpen} onClose={() => setEntryOpen(false)} maxWidth="sm">
         <PremiumDialogTitle>Log daily hamali work</PremiumDialogTitle>
         <PremiumDialogContent>
-          <Stack spacing={2} sx={{ pt: 1 }}>
+          <Stack spacing={2} sx={{ pt: 1, position: "relative" }}>
+            {workersQuery.isLoading && (
+              <Box sx={{ display: "flex", justifyContent: "center", py: 2 }}>
+                <CircularProgress size={28} />
+              </Box>
+            )}
+            {!workersQuery.isLoading && workers.length === 0 && (
+              <Alert severity="warning">
+                No hamali workers yet. Add a worker first (Workers tab or button below), then log daily
+                work.
+                <Box sx={{ mt: 1 }}>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => {
+                      setEntryOpen(false);
+                      setWorkerOpen(true);
+                    }}
+                  >
+                    Add hamali worker
+                  </Button>
+                </Box>
+              </Alert>
+            )}
             <SearchableSelect
               options={workers}
-              getOptionLabel={(w) => `${w.full_name} (${w.worker_code})`}
+              getOptionLabel={(w) =>
+                `${formatMasterOptionLabel(locale, w.full_name, w.full_name_te)} (${w.worker_code})`
+              }
               isOptionEqualToValue={(a, b) => a.id === b.id}
               value={workers.find((w) => w.id === entryWorkerId) ?? null}
               onChange={(w) => setEntryWorkerId(w?.id ?? "")}
               label="Hamali worker"
               required
+              loading={workersQuery.isLoading}
+              disabled={createEntryMut.isPending || workers.length === 0}
+              helperText={
+                workers.length === 0 && !workersQuery.isLoading
+                  ? "Create a worker before logging bags"
+                  : undefined
+              }
               sx={TOUCH_FIELD_SX}
             />
             <TextField
@@ -454,6 +512,7 @@ export default function HamaliPage() {
               sx={TOUCH_FIELD_SX}
               value={entryDate}
               onChange={(e) => setEntryDate(e.target.value)}
+              disabled={createEntryMut.isPending}
             />
             <TextField
               label="Bags lifted"
@@ -463,6 +522,7 @@ export default function HamaliPage() {
               inputProps={{ min: 0 }}
               value={bagsLifted}
               onChange={(e) => setBagsLifted(e.target.value)}
+              disabled={createEntryMut.isPending}
             />
             <TextField
               label="Maintenance charges (₹)"
@@ -471,6 +531,7 @@ export default function HamaliPage() {
               inputProps={{ min: 0, step: 0.01 }}
               value={maintenance}
               onChange={(e) => setMaintenance(e.target.value)}
+              disabled={createEntryMut.isPending}
             />
             <TextField
               label="Tip (₹)"
@@ -479,6 +540,7 @@ export default function HamaliPage() {
               inputProps={{ min: 0, step: 0.01 }}
               value={tip}
               onChange={(e) => setTip(e.target.value)}
+              disabled={createEntryMut.isPending}
             />
             <TextField
               label="Notes"
@@ -487,6 +549,7 @@ export default function HamaliPage() {
               sx={TOUCH_FIELD_SX}
               value={entryNotes}
               onChange={(e) => setEntryNotes(e.target.value)}
+              disabled={createEntryMut.isPending}
             />
             <Alert severity="info" icon={false}>
               Labor: <strong>{formatInr(laborPreview)}</strong> ({bagsLifted || 0} bags × ₹
@@ -519,10 +582,33 @@ export default function HamaliPage() {
         <PremiumDialogContent>
           <Stack spacing={2} sx={{ pt: 1 }}>
             <Field label="Full name" required>
-              <Input value={newWorkerName} onChange={(e) => setNewWorkerName(e.target.value)} autoFocus />
+              <Input
+                value={newWorkerName}
+                onChange={(e) => setNewWorkerName(e.target.value)}
+                autoFocus
+                disabled={createWorkerMut.isPending}
+              />
+            </Field>
+            <Field label="Full name (Telugu)">
+              <Input
+                value={newWorkerNameTe}
+                onChange={(e) => onWorkerTeluguChange(e.target.value)}
+                disabled={createWorkerMut.isPending}
+                sx={{ fontFamily: "var(--font-noto-telugu), sans-serif" }}
+              />
             </Field>
             <Field label="Phone">
-              <Input value={newWorkerPhone} onChange={(e) => setNewWorkerPhone(e.target.value)} />
+              <Input
+                value={newWorkerPhone}
+                onChange={(e) => setNewWorkerPhone(sanitizePhoneInput(e.target.value))}
+                disabled={createWorkerMut.isPending}
+                inputMode="numeric"
+              />
+              {newWorkerPhone.trim() && !isValidIndianMobile(newWorkerPhone) ? (
+                <Typography variant="caption" color="error" sx={{ mt: 0.5, display: "block" }}>
+                  {PHONE_REQUIRED_ERROR}
+                </Typography>
+              ) : null}
             </Field>
             <Typography variant="caption" color="text.secondary">
               Default pay: ₹20 per bag lifted (editable per worker later).

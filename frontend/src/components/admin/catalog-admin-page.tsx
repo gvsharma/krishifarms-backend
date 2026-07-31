@@ -36,10 +36,20 @@ import {
   PremiumDialogTitle,
 } from "@/components/ui/premium-dialog";
 import { SoftAlert } from "@/components/ui/soft-alert";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { useAuth } from "@/hooks/use-auth";
+import { useAutoTeluguName } from "@/hooks/use-auto-telugu-name";
+import { useLocale } from "@/i18n/use-translation";
+import { formatMasterOptionLabel } from "@/lib/bilingual";
 import { cn } from "@/lib/utils";
+import {
+  isValidIndianMobile,
+  normalizeIndianMobile,
+  PHONE_REQUIRED_ERROR,
+  sanitizePhoneInput,
+} from "@/lib/validation/phone";
 
-export type CatalogFieldType = "text" | "number" | "boolean" | "select" | "date";
+export type CatalogFieldType = "text" | "number" | "boolean" | "select" | "date" | "phone";
 
 export interface CatalogField {
   key: string;
@@ -118,6 +128,8 @@ function defaultToPayload(
     }
     if (field.type === "number") {
       payload[field.key] = Number(trimmed);
+    } else if (field.type === "phone") {
+      payload[field.key] = normalizeIndianMobile(trimmed);
     } else {
       payload[field.key] = trimmed;
     }
@@ -147,12 +159,22 @@ export function CatalogAdminPage<T extends { id: string }>({
   toFormValues,
   toPayload,
 }: CatalogAdminPageProps<T>) {
+  const locale = useLocale();
   const queryClient = useQueryClient();
   const { canDelete } = useAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<T | null>(null);
   const [form, setForm] = useState<Record<string, string | boolean>>(() => defaultForm(fields));
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const englishName = typeof form.name === "string" ? form.name : "";
+  const teluguName = typeof form.name_te === "string" ? form.name_te : "";
+  const hasTeluguField = fields.some((f) => f.key === "name_te");
+  const { onTeluguChange, resetTeluguEditFlag } = useAutoTeluguName(
+    englishName,
+    teluguName,
+    (value) => setForm((prev) => ({ ...prev, name_te: value })),
+  );
 
   const tableFields = useMemo(() => fields.filter((f) => f.table !== false), [fields]);
   const dialogFields = useMemo(
@@ -209,6 +231,7 @@ export function CatalogAdminPage<T extends { id: string }>({
   const openCreate = () => {
     setEditing(null);
     setForm(defaultForm(fields));
+    resetTeluguEditFlag();
     saveMutation.reset();
     setDialogOpen(true);
   };
@@ -216,17 +239,37 @@ export function CatalogAdminPage<T extends { id: string }>({
   const openEdit = (row: T) => {
     setEditing(row);
     setForm(toFormValues ? toFormValues(row) : defaultToFormValues(row, fields));
+    resetTeluguEditFlag();
     saveMutation.reset();
     setDialogOpen(true);
   };
 
-  const canSave = dialogFields
-    .filter((f) => f.required)
-    .every((f) => {
-      const v = form[f.key];
-      if (f.type === "boolean") return true;
-      return typeof v === "string" && v.trim().length > 0;
-    });
+  const formatCell = (row: T, field: CatalogField): string => {
+    const record = row as unknown as Record<string, unknown>;
+    const raw = record[field.key];
+    if (field.type === "boolean") return raw ? "Active" : "Inactive";
+    if (raw == null || raw === "") return "—";
+    if (field.key === "name" && typeof record.name_te === "string" && record.name_te.trim()) {
+      return formatMasterOptionLabel(locale, String(raw), record.name_te);
+    }
+    return String(raw);
+  };
+
+  const canSave =
+    dialogFields
+      .filter((f) => f.required)
+      .every((f) => {
+        const v = form[f.key];
+        if (f.type === "boolean") return true;
+        if (f.type === "phone") return typeof v === "string" && isValidIndianMobile(v);
+        return typeof v === "string" && v.trim().length > 0;
+      }) &&
+    dialogFields
+      .filter((f) => f.type === "phone" && !f.required)
+      .every((f) => {
+        const v = form[f.key];
+        return typeof v !== "string" || !v.trim() || isValidIndianMobile(v);
+      });
 
   const firstFocusable = dialogFields.find((f) => f.type !== "boolean");
 
@@ -254,7 +297,7 @@ export function CatalogAdminPage<T extends { id: string }>({
         )}
 
         {!isLoading && data && (
-          <TableContainer>
+          <ResponsiveTable>
             <Table size="small">
               <TableHead>
                 <TableRow>
@@ -267,13 +310,9 @@ export function CatalogAdminPage<T extends { id: string }>({
               <TableBody>
                 {data.items.map((row) => (
                   <TableRow key={row.id} hover>
-                    {tableFields.map((f) => {
-                      const raw = (row as unknown as Record<string, unknown>)[f.key];
-                      let display = "—";
-                      if (f.type === "boolean") display = raw ? "Active" : "Inactive";
-                      else if (raw != null && raw !== "") display = String(raw);
-                      return <TableCell key={f.key}>{display}</TableCell>;
-                    })}
+                    {tableFields.map((f) => (
+                      <TableCell key={f.key}>{formatCell(row, f)}</TableCell>
+                    ))}
                     <TableCell align="right">
                       <IconButton size="small" aria-label="Edit" onClick={() => openEdit(row)}>
                         <EditOutlined fontSize="small" />
@@ -302,7 +341,7 @@ export function CatalogAdminPage<T extends { id: string }>({
                 )}
               </TableBody>
             </Table>
-          </TableContainer>
+          </ResponsiveTable>
         )}
       </Card>
 
@@ -381,6 +420,33 @@ export function CatalogAdminPage<T extends { id: string }>({
                 );
               }
 
+              if (field.type === "phone") {
+                const raw = String(form[field.key] ?? "");
+                const invalid = raw.trim().length > 0 && !isValidIndianMobile(raw);
+                return (
+                  <Field
+                    key={field.key}
+                    label={field.label}
+                    required={field.required}
+                    error={invalid ? PHONE_REQUIRED_ERROR : undefined}
+                  >
+                    <Input
+                      autoFocus={field === firstFocusable}
+                      required={field.required}
+                      inputMode="numeric"
+                      placeholder={field.placeholder ?? "10 digits"}
+                      value={raw}
+                      onChange={(e) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          [field.key]: sanitizePhoneInput(e.target.value),
+                        }))
+                      }
+                    />
+                  </Field>
+                );
+              }
+
               return (
                 <Field key={field.key} label={field.label} required={field.required}>
                   <Input
@@ -391,9 +457,11 @@ export function CatalogAdminPage<T extends { id: string }>({
                     }
                     placeholder={field.placeholder}
                     value={String(form[field.key] ?? "")}
-                    onChange={(e) =>
-                      setForm((prev) => ({ ...prev, [field.key]: e.target.value }))
-                    }
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      setForm((prev) => ({ ...prev, [field.key]: next }));
+                      if (field.key === "name_te" && hasTeluguField) onTeluguChange(next);
+                    }}
                   />
                 </Field>
               );

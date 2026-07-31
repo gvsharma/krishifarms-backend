@@ -16,6 +16,7 @@ export default function ExpenseCategoriesPage() {
       queryKey="expense-categories-admin"
       fields={[
         { key: "name", label: "Name", required: true },
+        { key: "name_te", label: "Name (Telugu)", table: false },
         {
           key: "type",
           label: "Type",

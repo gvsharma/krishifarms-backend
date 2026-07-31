@@ -27,6 +27,8 @@ from app.modules.master_data.router import router as master_data_router
 from app.modules.platform.router import router as platform_router
 from app.modules.legal.router import router as legal_router
 from app.modules.users.router import router as users_router
+from app.modules.utils.router import router as utils_router
+from app.modules.utils.router import router as utils_router
 
 
 @asynccontextmanager
@@ -72,6 +74,7 @@ api_v1.include_router(devices_router)
 api_v1.include_router(audit_router)
 api_v1.include_router(dashboard_router)
 api_v1.include_router(analytics_router)
+api_v1.include_router(utils_router)
 
 
 @api_v1.exception_handler(AppError)

@@ -108,7 +108,4 @@ export function mergeWorkDetailsIntoComments(
 }
 
 /** Touch-friendly MUI TextField defaults for field ops forms. */
-export const TOUCH_FIELD_SX = {
-  "& .MuiInputBase-root": { minHeight: 52 },
-  "& .MuiSelect-select": { py: 1.5 },
-} as const;
+export { TOUCH_FIELD_SX, TOUCH_BUTTON_SX } from "@/lib/ui/touch-targets";

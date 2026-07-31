@@ -3,17 +3,14 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-from app.modules.auth.phone import normalize_phone_for_lookup
 from app.shared.schemas.common import ORMModel, PaginatedResponse
+from app.shared.validation.phone import normalize_indian_mobile
 
 
 def _require_staff_phone(phone: str | None) -> str:
     if phone is None or not str(phone).strip():
-        raise ValueError("Phone is required (at least 10 digits)")
-    digits = normalize_phone_for_lookup(str(phone))
-    if len(digits) < 10:
-        raise ValueError("Phone must have at least 10 digits")
-    return digits
+        raise ValueError("Phone is required (exactly 10 digits)")
+    return normalize_indian_mobile(str(phone))
 
 
 class RoleResponse(ORMModel):
@@ -54,7 +51,7 @@ class UserCreateRequest(BaseModel):
     password: str | None = Field(default=None, min_length=8)
     full_name: str = Field(min_length=2, max_length=200)
     full_name_te: str | None = None
-    phone: str = Field(min_length=10, max_length=20)
+    phone: str = Field(min_length=10, max_length=10)
     role_id: UUID
     village_id: UUID | None = None
     farmer_id: UUID | None = None
