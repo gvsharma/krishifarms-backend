@@ -98,6 +98,7 @@ export interface ProcurementListData {
 export interface CropType {
   id: string;
   name: string;
+  name_te: string | null;
   code: string;
   is_active: boolean;
 }

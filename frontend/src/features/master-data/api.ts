@@ -29,6 +29,7 @@ export interface Village {
   id: string;
   org_id: string;
   name: string;
+  name_te: string | null;
   village_code?: string | null;
   mandal: string | null;
   district: string | null;
@@ -60,6 +61,7 @@ export interface CropType {
   id: string;
   org_id: string;
   name: string;
+  name_te: string | null;
   code: string;
   default_moisture_pct: number | null;
   is_active: boolean;

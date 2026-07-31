@@ -594,7 +594,7 @@ export default function HamaliPage() {
                 value={newWorkerNameTe}
                 onChange={(e) => onWorkerTeluguChange(e.target.value)}
                 disabled={createWorkerMut.isPending}
-                sx={{ fontFamily: "var(--font-noto-telugu), sans-serif" }}
+                className="font-telugu"
               />
             </Field>
             <Field label="Phone">
