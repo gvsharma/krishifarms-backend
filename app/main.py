@@ -28,7 +28,6 @@ from app.modules.platform.router import router as platform_router
 from app.modules.legal.router import router as legal_router
 from app.modules.users.router import router as users_router
 from app.modules.utils.router import router as utils_router
-from app.modules.utils.router import router as utils_router
 
 
 @asynccontextmanager

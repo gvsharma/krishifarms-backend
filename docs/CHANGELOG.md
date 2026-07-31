@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **CI (post #88 merge)** — remove duplicate `utils_router` import in `app/main.py` (Ruff F811); add `name_te` to frontend `CropType`/`Village` types for bilingual masters; replace invalid `sx` on Premium `Input` in hamali worker dialog with `font-telugu` class.
 - **Procurement spot payment 500 on field-entry / apply-price** — migration `042` updates `ck_procurements_net_amount` to `net_amount = gross_amount - deduction_amount - spot_deduction_amount` (migration `036` added spot columns but left the pre-spot check constraint). Pricing with `is_spot_payment=true` failed at commit with an integrity error; `POST /procurements/field-entry` and `POST /procurements/{id}/apply-price` returned 500. Tests in `tests/test_procurements.py`.
 - **EC2 deploy disk full** — `remote-deploy.sh` prunes Docker builder cache and unused images before `docker compose up --build` (avoids `[Errno 28] No space left on device` during pip install on small shared EC2 volumes). Ops: manual `docker builder prune -af && docker system prune -af` if deploy still fails.
 - **CI (post #81 merge)** — remove stale `HamaliWorkEntry`/`Worker` import from `app/models.py` (correct models already registered on line 20); remove duplicate `hamali_router` mount in `app/main.py`.
