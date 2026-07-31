@@ -55,7 +55,9 @@ alembic downgrade -1
 | `202506210031` | Village 360° | `village_code`, GPS, agent, status, population, cultivable area, notes; backfill codes |
 | `202506210033` | Analytics | `analytics_daily_org_facts` org-day summary table (Phase 1 live compute; rollups optional). Note: `032` reserved for farmer-relationship hub WIP |
 | `202506210034` | Platform RBAC | Repair MANAGER `users:create` + `farmer_payments:read|create` in `role_permissions` |
-| `202506210042` | Procurement | Fix `ck_procurements_net_amount` to subtract `spot_deduction_amount` (spot payment pricing) |
+| `202506210042` | Procurement | Buyer sale assignment: `sale_rate_per_quintal`, `sale_date` on procurements |
+| `202506210042b` | Procurement | Fix `ck_procurements_net_amount` to subtract `spot_deduction_amount` (spot payment pricing) |
+| `202506210043` | Analytics RBAC | `analytics:admin` permission (OWNER-only financial analytics hub) |
 
 ## Partition Maintenance
 

@@ -1,12 +1,13 @@
 """Seed analytics:admin permission — OWNER-only financial analytics."""
 
 from typing import Sequence, Union
+from uuid import uuid4
 
 import sqlalchemy as sa
 from alembic import op
 
 revision: str = "202506210043"
-down_revision: Union[str, None] = "202506210042"
+down_revision: Union[str, None] = "202506210042b"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -42,12 +43,13 @@ def upgrade() -> None:
     conn.execute(
         sa.text(
             """
-            INSERT INTO permissions (code, description, module)
-            VALUES (:code, :description, 'analytics')
-            ON CONFLICT (code) DO NOTHING
+            INSERT INTO permissions (id, code, description, module)
+            VALUES (:id, :code, :description, 'analytics')
+            ON CONFLICT (code) DO UPDATE
+            SET description = EXCLUDED.description, module = EXCLUDED.module
             """
         ),
-        {"code": PERM_CODE, "description": PERM_DESC},
+        {"id": str(uuid4()), "code": PERM_CODE, "description": PERM_DESC},
     )
     for org_row in conn.execute(sa.text("SELECT id FROM organizations")).fetchall():
         _grant_owner(conn, str(org_row.id))
