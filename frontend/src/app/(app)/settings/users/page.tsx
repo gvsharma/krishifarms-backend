@@ -82,6 +82,27 @@ export default function SettingsUsersPage() {
 
   const phoneValid = isValidIndianMobile(form.phone);
 
+  const saveBlockers = ((): string[] => {
+    const blockers: string[] = [];
+    if (form.full_name.trim().length < 2) blockers.push("Full name (min 2 characters)");
+    if (!form.role_id) {
+      blockers.push(
+        rolesQuery.isLoading
+          ? "Role (loading…)"
+          : (rolesQuery.data ?? []).length === 0
+            ? "Role (none available — check permissions)"
+            : "Role",
+      );
+    }
+    if (!phoneValid) blockers.push("Phone (exactly 10 digits)");
+    if (!editing && form.email.trim() && form.password.trim().length < 8) {
+      blockers.push("Password (min 8 characters when email is set)");
+    }
+    return blockers;
+  })();
+
+  const canSave = saveBlockers.length === 0;
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteUser(id),
     onSuccess: () => {
@@ -144,12 +165,6 @@ export default function SettingsUsersPage() {
     saveMutation.reset();
     setDialogOpen(true);
   };
-
-  const canSave =
-    form.full_name.trim().length >= 2 &&
-    form.role_id &&
-    phoneValid &&
-    (editing ? true : !form.email.trim() || form.password.trim().length >= 8);
 
   return (
     <MuiPageShell
@@ -280,7 +295,7 @@ export default function SettingsUsersPage() {
                 type="email"
                 value={form.email}
                 onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
-                helperText="Required with password for web login; leave empty for phone-only field staff"
+                helperText="Optional for phone-only field staff. If set, password is required (min 8 chars)."
               />
             )}
             <TextField
@@ -302,9 +317,16 @@ export default function SettingsUsersPage() {
               label={editing ? "New password (optional)" : "Password"}
               fullWidth
               type="password"
+              required={!editing && Boolean(form.email.trim())}
               value={form.password}
               onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
-              helperText={!editing ? "Required when email is set (min 8 chars)" : undefined}
+              helperText={
+                !editing
+                  ? form.email.trim()
+                    ? "Required — minimum 8 characters for email login"
+                    : "Optional when email is empty (phone-only login)"
+                  : undefined
+              }
             />
             <TextField
               select
@@ -313,6 +335,14 @@ export default function SettingsUsersPage() {
               required
               value={form.role_id}
               onChange={(e) => setForm((p) => ({ ...p, role_id: e.target.value }))}
+              disabled={rolesQuery.isLoading}
+              helperText={
+                rolesQuery.isError
+                  ? "Could not load roles"
+                  : (rolesQuery.data ?? []).length === 0 && !rolesQuery.isLoading
+                    ? "No roles available"
+                    : undefined
+              }
             >
               {(rolesQuery.data ?? []).map((role) => (
                 <MenuItem key={role.id} value={role.id}>
@@ -344,6 +374,11 @@ export default function SettingsUsersPage() {
             {saveMutation.isError && (
               <SoftAlert severity="error">
                 {saveMutation.error instanceof Error ? saveMutation.error.message : "Save failed"}
+              </SoftAlert>
+            )}
+            {!canSave && saveBlockers.length > 0 && (
+              <SoftAlert severity="info">
+                Complete required fields to save: {saveBlockers.join(" · ")}
               </SoftAlert>
             )}
           </Stack>
