@@ -73,7 +73,7 @@ jobs:
             echo "API not ready (attempt ${attempt}/36)…"
             sleep 10
           done
-          echo "::error::EC2 API unreachable at ${HEALTH_URL}. E2E login requires the shared dev instance — check wake-ec2 job and /api/v1/health on EC2."
+          echo "::error::EC2 API unreachable at ${HEALTH_URL}. Start EC2 manually (Actions → Wake shared EC2, or deploy/scripts/start-shared-ec2.sh) before running E2E."
           exit 1
 
       - name: Run smoke + functional E2E (PR gate)

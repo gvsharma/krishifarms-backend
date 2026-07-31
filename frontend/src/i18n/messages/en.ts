@@ -21,6 +21,9 @@ export const enMessages = {
   "common.user": "User",
   "common.sessionUnavailable": "Session unavailable",
   "common.signInAgain": "Could not load your session. Sign in again if pages look empty.",
+  "common.apiSleepingTitle": "Backend API is offline",
+  "common.apiSleepingDescription":
+    "The server may be stopped to save costs. Data will not load until it is started again (GitHub Actions → Wake shared EC2, or ask your admin). The banner clears automatically when the API responds.",
 
   // Nav sections
   "nav.overview": "Overview",

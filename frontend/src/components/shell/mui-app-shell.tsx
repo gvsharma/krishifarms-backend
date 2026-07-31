@@ -47,6 +47,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useTranslation } from "@/i18n/use-translation";
 import type { MessageKey } from "@/i18n/messages";
 import { GlobalLoadingBar } from "@/components/ui/global-loading-bar";
+import { ApiHealthBanner } from "@/components/ui/api-health-banner";
 import { DRAWER_WIDTH, DRAWER_WIDTH_COLLAPSED } from "@/theme/material-theme";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -315,6 +316,7 @@ export function MuiAppShell({ children }: MuiAppShellProps) {
           minHeight: "100vh",
         }}
       >
+        <ApiHealthBanner stickyTop={64} />
         {children}
       </Box>
     </Box>
