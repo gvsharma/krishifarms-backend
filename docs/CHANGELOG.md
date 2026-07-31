@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Procurement web per-bag weights + intake summary** — `/procurement/new` and `/procurement/{id}/edit` show a sticky side panel: scrollable Bag 1…N weight inputs (fill-all / copy-first), synced with mobile `bag_weights_kg`; live **Final summary** card with gross/net weight, kata deduction, gross/net amounts, and spot deduction. Field-entry and calculate APIs accept per-bag list when weights differ; edit saves via `recordWeighment` + `updateProcurement`.
 - **Mobile UX + phone validation + admin analytics** — Viewport meta for mobile browsers; shared `TOUCH_FIELD_SX` / `ResponsiveTable` for touch targets and horizontal table scroll on hamali, farmers, master-data, analytics, payments, procurement. Reusable phone helpers (`app/shared/validation/phone.py`, `frontend/src/lib/validation/phone.ts`): exactly 10 digits on farmer, hamali worker, user, agent, buyer, and login forms + matching Pydantic validators. Analytics Hub restricted to **OWNER** via new `analytics:admin` permission (API + nav + layout guard); date presets expanded (Today, Yesterday, This week, This month, pick-a-day, custom range); executive module adds profit/sales/expense daily series and profit-by-village/farmer/crop tables; CSV export unchanged. OpenAPI `analytics.yaml` updated for `analytics:admin` and preset enum.
 - **Hamali UX + bilingual masters + global loading** — Hamali “Log daily work” worker dropdown works inside dialogs (z-index fix); empty-worker warning + disabled select until roster exists; master-data dropdowns (locations, crops, vehicles, activities, payment modes, farmers) respect Settings → Preferences locale via `formatMasterOptionLabel`; catalog admin shows bilingual name rows and auto-suggests Telugu from English (`GET /utils/transliterate`, `useAutoTeluguName`); top-of-app loading bar during any TanStack Query fetch/mutation.
 - **`scripts/seed_masters.py`** — idempotent repopulation of Rangareddy districts/mandals/villages (Keshampeta, Kothur, etc.), crop types, expense categories, payment modes, vehicle/activity types; runs on deploy after migrations and after full DB purge. — migration `042` adds `procurements.sale_rate_per_quintal` + `sale_date`. New `POST /procurements/assign-buyer` bulk-assigns one buyer (+ optional sale rate, dispatch date, payment terms) to many procurements (identified by `{procurement_id, procurement_date}` since the table is date-partitioned). `PATCH /procurements/{id}` also accepts `sale_rate_per_quintal` / `sale_date`. Staff `profit_summary` now includes `sale_rate_per_quintal`, `sale_amount`, and `sale_margin_amount` (= `(sale_rate − farmer_rate) × net_quintals`) folded into `total_profit_amount`. Web: new **Sales → assign buyer** screen (`/procurement/sales`, multi-select + dialog) and buyer/sale-rate/margin shown on the ticket detail.
@@ -22,15 +23,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-=======
+- **Executive analytics profit display** — village/farmer/crop tables and KPIs now show buyer procurement margin (kata + spot + sale-rate spread) distinct from farmer net; gross/net/margin columns with INR formatting; margin trend chart and village heatmap use profit not net payable.
+- **Global mutation loading UX** — app shell shows MUI `Backdrop` + `CircularProgress` during any TanStack Query mutation (save/upload/workflow); linear progress bar remains for fetches only. Procurement create/edit forms disable all inputs and side panel while saving.
+- **Procurement document upload 403** — API `require_permission` now merges `ROLE_PERMISSIONS` catalog with DB `role_permissions` (same gap as mobile RBAC: UI showed upload for MANAGER/SUPERVISOR but backend denied when DB rows were sparse).
+- **Procurement workflow UI** — removed **Reverse** action from detail page workflow card (confirmed tickets no longer show an empty workflow section).
+
 - **Alembic migration chain (042/043)** — resolve duplicate revision `202506210042` by chaining spot net_amount fix as `202506210042b`; migration `043` inserts `analytics:admin` with explicit `permissions.id` (UUID) so `alembic upgrade head` succeeds on deploy.
 - **Settings → Users add dialog** — Save stayed disabled without explaining why; form now lists missing requirements (name, role, 10-digit phone, password when email is set).
->>>>>>> Stashed changes
-=======
-- **Settings → Users add dialog** — Save stayed disabled without explaining why; form now lists missing requirements (name, role, 10-digit phone, password when email is set).
->>>>>>> origin/main
 - **CI (post #88 merge)** — remove duplicate `utils_router` import in `app/main.py` (Ruff F811); add `name_te` to frontend `CropType`/`Village` types for bilingual masters; replace invalid `sx` on Premium `Input` in hamali worker dialog with `font-telugu` class.
 - **Procurement spot payment 500 on field-entry / apply-price** — migration `042` updates `ck_procurements_net_amount` to `net_amount = gross_amount - deduction_amount - spot_deduction_amount` (migration `036` added spot columns but left the pre-spot check constraint). Pricing with `is_spot_payment=true` failed at commit with an integrity error; `POST /procurements/field-entry` and `POST /procurements/{id}/apply-price` returned 500. Tests in `tests/test_procurements.py`.
 - **EC2 deploy disk full** — `remote-deploy.sh` prunes Docker builder cache and unused images before `docker compose up --build` (avoids `[Errno 28] No space left on device` during pip install on small shared EC2 volumes). Ops: manual `docker builder prune -af && docker system prune -af` if deploy still fails.

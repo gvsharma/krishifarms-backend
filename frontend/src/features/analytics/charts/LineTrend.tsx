@@ -8,12 +8,18 @@ export function LineTrend({
   title,
   points,
   seriesKey,
+  seriesKeys,
 }: {
   title: string;
   points: SeriesPoint[];
   seriesKey?: string;
+  /** When set, render one line per series name (overrides seriesKey). */
+  seriesKeys?: string[];
 }) {
-  const filtered = seriesKey ? points.filter((p) => (p.series ?? "primary") === seriesKey) : points;
+  const keys =
+    seriesKeys ??
+    (seriesKey ? [seriesKey] : [...new Set(points.map((p) => p.series ?? "primary"))]);
+  const filtered = points.filter((p) => keys.includes(p.series ?? "primary"));
   if (!filtered.length) {
     return (
       <Box sx={{ p: 2, border: "1px dashed", borderColor: "divider", borderRadius: 2 }}>
@@ -24,6 +30,17 @@ export function LineTrend({
       </Box>
     );
   }
+  const xLabels = [...new Set(filtered.map((p) => p.x))];
+  const palette = ["#2E7D32", "#1565C0", "#EF6C00", "#6A1B9A"];
+  const series = keys.map((key, idx) => ({
+    data: xLabels.map((x) => {
+      const pt = filtered.find((p) => p.x === x && (p.series ?? "primary") === key);
+      return pt ? Number(pt.y) : null;
+    }),
+    label: key.replace(/_/g, " "),
+    color: palette[idx % palette.length],
+    connectNulls: true,
+  }));
   return (
     <Box sx={{ p: 1, border: "1px solid", borderColor: "divider", borderRadius: 2, bgcolor: "background.paper" }}>
       <Typography variant="subtitle2" sx={{ px: 1, pt: 1 }}>
@@ -31,14 +48,8 @@ export function LineTrend({
       </Typography>
       <LineChart
         height={260}
-        series={[
-          {
-            data: filtered.map((p) => Number(p.y)),
-            label: seriesKey ?? "trend",
-            color: "#2E7D32",
-          },
-        ]}
-        xAxis={[{ data: filtered.map((p) => p.x), scaleType: "point" }]}
+        series={series}
+        xAxis={[{ data: xLabels, scaleType: "point" }]}
         margin={{ left: 60, right: 20, top: 20, bottom: 40 }}
       />
     </Box>

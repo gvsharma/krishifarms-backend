@@ -47,6 +47,26 @@ def build_executive_summary(
         farmer_id=farmer_id,
         buyer_id=buyer_id,
     )
+    proc_gross = q.sum_procurement_gross(
+        db,
+        org_id,
+        date_from,
+        date_to,
+        village_id=village_id,
+        crop_type_id=crop_type_id,
+        farmer_id=farmer_id,
+        buyer_id=buyer_id,
+    )
+    proc_margin = q.sum_procurement_margin(
+        db,
+        org_id,
+        date_from,
+        date_to,
+        village_id=village_id,
+        crop_type_id=crop_type_id,
+        farmer_id=farmer_id,
+        buyer_id=buyer_id,
+    )
     fs_revenue = q.sum_field_service_amount(db, org_id, date_from, date_to, farmer_id=farmer_id)
     revenue = money(proc_revenue + fs_revenue)
     expenses = q.sum_expenses(db, org_id, date_from, date_to)
@@ -84,13 +104,35 @@ def build_executive_summary(
     kpis = [
         KpiCard(
             id="revenue",
-            label="Period revenue",
-            label_te="కాల వ్యవధి ఆదాయం",
-            value=revenue,
+            label="Farmer net (procurement)",
+            label_te="రైతుకు చెల్లింపు",
+            value=proc_revenue,
             unit="INR",
             format="money",
-            status="estimate",
-            note="Confirmed procurements net_amount + field-service total_amount (gross ops estimate).",
+            status="live",
+            note="Sum of confirmed procurement net_amount (payable to farmers).",
+            drill=DrillLink(href=drill_proc, label="View procurements"),
+        ),
+        KpiCard(
+            id="procurement_gross",
+            label="Procurement gross",
+            label_te="స్థూల కొనుగోలు",
+            value=proc_gross,
+            unit="INR",
+            format="money",
+            status="live",
+            note="Sum of gross_amount before line/spot deductions.",
+            drill=DrillLink(href=drill_proc, label="View procurements"),
+        ),
+        KpiCard(
+            id="procurement_margin",
+            label="Procurement margin",
+            label_te="కొనుగోలు మార్జిన్",
+            value=proc_margin,
+            unit="INR",
+            format="money",
+            status="live",
+            note="Buyer margin: kata weight profit + spot retention + sale-rate spread.",
             drill=DrillLink(href=drill_proc, label="View procurements"),
         ),
         KpiCard(
@@ -111,7 +153,7 @@ def build_executive_summary(
             unit="INR",
             format="money",
             status="estimate",
-            note="Revenue − expenses. Not GAAP P&L; no COGS/labor allocation.",
+            note="Farmer net + field services − expenses. Not GAAP P&L.",
         ),
         KpiCard(
             id="outstanding",
@@ -200,6 +242,12 @@ def build_executive_summary(
         for d, amt in q.revenue_series_by_day(db, org_id, date_from, date_to, village_id=village_id)
     ]
     series.extend(
+        SeriesPoint(x=d.isoformat(), y=amt, series="procurement_margin")
+        for d, amt in q.procurement_margin_series_by_day(
+            db, org_id, date_from, date_to, village_id=village_id
+        )
+    )
+    series.extend(
         SeriesPoint(x=d.isoformat(), y=amt, series="profit")
         for d, amt in q.profit_series_by_day(db, org_id, date_from, date_to, village_id=village_id)
     )
@@ -214,12 +262,13 @@ def build_executive_summary(
     tables = [
         TablePage(
             id="top_villages",
-            title="Profit by village (revenue; expenses org-level)",
+            title="Profit by village",
             columns=[
                 TableColumn(key="name", label="Village"),
                 TableColumn(key="kg", label="Net kg", format="number"),
-                TableColumn(key="amount", label="Revenue", format="money"),
-                TableColumn(key="profit", label="Gross margin", format="money"),
+                TableColumn(key="gross", label="Gross", format="money"),
+                TableColumn(key="net", label="Net to farmer", format="money"),
+                TableColumn(key="profit", label="Margin", format="money"),
                 TableColumn(key="tickets", label="Tickets", format="number"),
             ],
             rows=[
@@ -227,7 +276,8 @@ def build_executive_summary(
                     cells={
                         "name": v["name"],
                         "kg": v["kg"],
-                        "amount": v["amount"],
+                        "gross": v["gross"],
+                        "net": v["net"],
                         "profit": v["profit"],
                         "tickets": v["tickets"],
                     }
@@ -238,18 +288,20 @@ def build_executive_summary(
         ),
         TablePage(
             id="top_farmers",
-            title="Profit by farmer (revenue)",
+            title="Profit by farmer",
             columns=[
                 TableColumn(key="name", label="Farmer"),
-                TableColumn(key="revenue", label="Revenue", format="money"),
-                TableColumn(key="profit", label="Gross margin", format="money"),
+                TableColumn(key="gross", label="Gross", format="money"),
+                TableColumn(key="net", label="Net to farmer", format="money"),
+                TableColumn(key="profit", label="Margin", format="money"),
                 TableColumn(key="tickets", label="Tickets", format="number"),
             ],
             rows=[
                 TableRow(
                     cells={
                         "name": f["name"],
-                        "revenue": f["revenue"],
+                        "gross": f["gross"],
+                        "net": f["net"],
                         "profit": f["profit"],
                         "tickets": f["tickets"],
                     }
@@ -260,18 +312,20 @@ def build_executive_summary(
         ),
         TablePage(
             id="top_crops",
-            title="Profit by crop (revenue)",
+            title="Profit by crop",
             columns=[
                 TableColumn(key="name", label="Crop"),
-                TableColumn(key="amount", label="Revenue", format="money"),
-                TableColumn(key="profit", label="Gross margin", format="money"),
+                TableColumn(key="gross", label="Gross", format="money"),
+                TableColumn(key="net", label="Net to farmer", format="money"),
+                TableColumn(key="profit", label="Margin", format="money"),
                 TableColumn(key="tickets", label="Tickets", format="number"),
             ],
             rows=[
                 TableRow(
                     cells={
                         "name": c["name"],
-                        "amount": c["amount"],
+                        "gross": c["gross"],
+                        "net": c["net"],
                         "profit": c["profit"],
                         "tickets": c["tickets"],
                     }

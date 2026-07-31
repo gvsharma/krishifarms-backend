@@ -49,11 +49,12 @@ OpenAPI: `docs/api/paths/analytics.yaml`.
 
 | KPI | Source | Honesty |
 |-----|--------|---------|
-| Period revenue | Confirmed procurements `net_amount` + field-service `total_amount` | Labeled estimate |
-| Period expenses | Posted `expenses` | Live |
-| Gross ops estimate | Revenue − expenses | Estimate (not GAAP) |
-| Profit by village / farmer / crop | Procurement + field-service revenue by dimension | Revenue-only margin (expenses not allocated) |
-| Daily profit / sales / expense series | `revenue_series_by_day`, `expense_series_by_day`, `profit_series_by_day` | Live |
+| Farmer net (procurement) | Confirmed procurements `net_amount` | Live |
+| Procurement gross | Sum of `gross_amount` | Live |
+| Procurement margin | Kata weight profit + spot + sale-rate spread per ticket | Live (matches `profit_summary`) |
+| Gross ops estimate | Farmer net + field services − expenses | Estimate (not GAAP) |
+| Profit by village / farmer / crop | Aggregated procurement margin by dimension | Live |
+| Daily margin / farmer net / expense series | `procurement_margin_series_by_day`, `revenue_series_by_day`, `expense_series_by_day` | Live |
 | Farmer outstanding | Sum latest `farmer_ledger_entries.balance_after` per farmer | Live |
 | Pending farmer payments | Confirmed/`paid_partial` ticket value | Live |
 | Active farmers / VIP | `farmers` | Live |

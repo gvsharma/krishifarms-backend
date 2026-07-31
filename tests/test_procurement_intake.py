@@ -4,7 +4,7 @@ from decimal import Decimal
 
 import pytest
 
-from app.modules.procurements.schemas import WeighmentRequest
+from app.modules.procurements.schemas import ProcurementCalculateRequest, WeighmentRequest
 from app.modules.procurements.service import compute_net_weight
 from app.shared.procurement_notes import rate_per_quintal_from_notes
 
@@ -19,6 +19,25 @@ class TestWeighmentRequest:
     def test_requires_gross_or_bags(self):
         with pytest.raises(ValueError):
             WeighmentRequest()
+
+
+class TestProcurementCalculateRequest:
+    def test_resolved_gross_from_variable_bags(self):
+        payload = ProcurementCalculateRequest(
+            bag_count=3,
+            bag_weights_kg=[Decimal("48"), Decimal("52"), Decimal("50")],
+            per_bag_deduction_kg=Decimal("2"),
+            rate_per_quintal=Decimal("2100"),
+        )
+        assert payload.resolved_gross_weight_kg() == Decimal("150")
+
+    def test_bag_count_must_match_list(self):
+        with pytest.raises(ValueError):
+            ProcurementCalculateRequest(
+                bag_count=2,
+                bag_weights_kg=[Decimal("50")],
+                rate_per_quintal=Decimal("2100"),
+            )
 
 
 class TestProcurementNotesParser:
