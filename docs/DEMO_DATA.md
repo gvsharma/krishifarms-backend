@@ -54,6 +54,27 @@ Default OWNER (from settings): `owner@krishifarms.local` / `ChangeMe123!`
 
 ---
 
+## Fresh start (purge all data)
+
+Use when you want an empty org to rebuild farmers, procurements, and masters from scratch (e.g. UAT / functionality testing). **Destructive** — not for production with real records.
+
+Keeps: schema, permissions, roles, organization, OWNER login (`owner@krishifarms.local` by default).
+
+```bash
+# EC2 (inside API container)
+docker compose -f /opt/krishifarms/repo/infra/docker-compose.prod.yml exec -T api \
+  python scripts/purge_all_org_data.py --dry-run
+docker compose -f /opt/krishifarms/repo/infra/docker-compose.prod.yml exec -T api \
+  python scripts/purge_all_org_data.py --confirm PURGE-ALL-DATA
+
+# Keep seeded villages/crops/districts if you only want transactional data cleared:
+#   ... --confirm PURGE-ALL-DATA --keep-master-data
+```
+
+After purge: log in as OWNER and create villages, farmers, procurements via web/mobile. Optionally run `python scripts/seed_locations.py` / `seed_services.py` for location and fleet masters.
+
+---
+
 ## Load / purge runbook
 
 Requires `DATABASE_URL` (Supabase pooler) and `SECRET_KEY` (bank encryption). Prefer running **inside the API container** on EC2 so deps match production.
