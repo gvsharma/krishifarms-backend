@@ -14,6 +14,7 @@ from app.core.database import SessionLocal
 from app.core.exceptions import ForbiddenError, UnauthorizedError
 from app.core.security import TokenValidationError, get_token_subject
 from app.modules.users.models import Role, User
+from app.shared.permissions import ROLE_PERMISSIONS
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
@@ -46,22 +47,30 @@ class CurrentUserContext:
             raise ForbiddenError(f"Missing permission: {permission}")
 
 
+def _role_catalog_permissions(role_code: str) -> set[str]:
+    return set(ROLE_PERMISSIONS.get(role_code.upper(), []))
+
+
 def _load_user_permissions(
     user: User,
     cache: CacheProvider,
 ) -> set[str]:
+    role_code = (user.role.code if user.role else "WORKER").upper()
+    catalog = _role_catalog_permissions(role_code)
+
     cache_key = user_permissions_key(user.id)
     cached_permissions = cache.get(cache_key)
     if cached_permissions is not None:
-        return set(json.loads(cached_permissions))
+        db_permissions = set(json.loads(cached_permissions))
+        return db_permissions | catalog
 
-    permissions = {perm.code for perm in user.role.permissions}
+    db_permissions = {perm.code for perm in user.role.permissions}
     cache.set(
         cache_key,
-        json.dumps(sorted(permissions)),
+        json.dumps(sorted(db_permissions)),
         ttl_seconds=settings.cache_ttl_seconds,
     )
-    return permissions
+    return db_permissions | catalog
 
 
 def get_current_user_context(

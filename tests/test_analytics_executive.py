@@ -82,8 +82,41 @@ def test_executive_marks_cash_and_weather_unavailable():
     assert by_id["weather"].status == "unavailable"
     assert by_id["revenue"].format == "money"
     assert isinstance(by_id["revenue"].value, Decimal)
+    assert by_id["procurement_margin"].format == "money"
+    assert isinstance(by_id["procurement_margin"].value, Decimal)
     assert summary.health_score_method == "rules_v1"
     assert any(d.status == "missing" and d.source == "cash_book" for d in summary.data_availability)
+    villages = next(t for t in summary.tables_preview if t.id == "top_villages")
+    col_keys = {c.key for c in villages.columns}
+    assert {"gross", "net", "profit"}.issubset(col_keys)
+
+
+def test_procurement_margin_matches_profit_summary():
+    from app.modules.procurements.service import compute_procurement_margin_amount, compute_profit_summary
+    from app.modules.procurements.models import Procurement
+    from app.modules.procurements.schemas import DEFAULT_SPOT_DEDUCTION_PER_QUINTAL
+
+    row = Procurement(
+        bag_count=50,
+        per_bag_deduction_kg=Decimal("2.000"),
+        gross_weight_kg=Decimal("2500"),
+        net_weight_kg=Decimal("2400"),
+        rate_per_quintal=Decimal("2100"),
+        is_spot_payment=True,
+        spot_deduction_per_quintal=DEFAULT_SPOT_DEDUCTION_PER_QUINTAL,
+        spot_deduction_amount=Decimal("2400.00"),
+    )
+    margin = compute_procurement_margin_amount(
+        bag_count=row.bag_count,
+        per_bag_deduction_kg=row.per_bag_deduction_kg,
+        rate_per_quintal=row.rate_per_quintal,
+        spot_deduction_amount=row.spot_deduction_amount,
+        gross_weight_kg=row.gross_weight_kg,
+        net_weight_kg=row.net_weight_kg,
+    )
+    summary = compute_profit_summary(row)
+    assert summary is not None
+    assert margin == summary.total_profit_amount == Decimal("4500.00")
 
 
 def test_procurement_summary_money_is_decimal():

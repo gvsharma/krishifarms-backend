@@ -135,7 +135,8 @@ class ProcurementCalculateRequest(BaseModel):
     """Live preview of gross/net weight and amounts (no persistence)."""
 
     bag_count: int = Field(ge=0)
-    weight_per_bag_kg: Decimal = Field(gt=0)
+    weight_per_bag_kg: Decimal | None = Field(default=None, gt=0)
+    bag_weights_kg: list[Decimal] | None = Field(default=None, min_length=1)
     per_bag_deduction_kg: Decimal | None = Field(default=None, ge=0)
     tare_weight_kg: Decimal = Field(default=Decimal("0"), ge=0)
     moisture_pct: Decimal | None = Field(default=None, ge=0, le=100)
@@ -143,6 +144,22 @@ class ProcurementCalculateRequest(BaseModel):
     is_spot_payment: bool = False
     spot_deduction_per_quintal: Decimal | None = Field(default=None, ge=0)
     line_deduction_amount: Decimal = Field(default=Decimal("0"), ge=0)
+
+    @model_validator(mode="after")
+    def _weight_source(self) -> "ProcurementCalculateRequest":
+        if self.bag_weights_kg:
+            if self.bag_count > 0 and len(self.bag_weights_kg) != self.bag_count:
+                raise ValueError("bag_weights_kg length must match bag_count")
+            return self
+        if self.weight_per_bag_kg is None:
+            raise ValueError("weight_per_bag_kg or bag_weights_kg is required")
+        return self
+
+    def resolved_gross_weight_kg(self) -> Decimal:
+        if self.bag_weights_kg:
+            return sum(self.bag_weights_kg, Decimal("0"))
+        assert self.weight_per_bag_kg is not None
+        return Decimal(self.bag_count) * self.weight_per_bag_kg
 
 
 class ProcurementCalculateResponse(BaseModel):
@@ -165,7 +182,8 @@ class ProcurementFieldEntryRequest(BaseModel):
     village_id: UUID
     procurement_date: date
     bag_count: int = Field(gt=0)
-    weight_per_bag_kg: Decimal = Field(gt=0)
+    weight_per_bag_kg: Decimal | None = Field(default=None, gt=0)
+    bag_weights_kg: list[Decimal] | None = Field(default=None, min_length=1)
     per_bag_deduction_kg: Decimal | None = Field(default=None, ge=0)
     tare_weight_kg: Decimal = Field(default=Decimal("0"), ge=0)
     moisture_pct: Decimal | None = Field(default=None, ge=0, le=100)
@@ -180,6 +198,16 @@ class ProcurementFieldEntryRequest(BaseModel):
     auto_confirm: bool = True
     notify_farmer: bool = True
     line_deductions: list[ProcurementDeductionInput] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def _weight_source(self) -> "ProcurementFieldEntryRequest":
+        if self.bag_weights_kg:
+            if len(self.bag_weights_kg) != self.bag_count:
+                raise ValueError("bag_weights_kg length must match bag_count")
+            return self
+        if self.weight_per_bag_kg is None:
+            raise ValueError("weight_per_bag_kg or bag_weights_kg is required")
+        return self
 
 
 class AssignBuyerItem(BaseModel):

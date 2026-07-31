@@ -1,6 +1,7 @@
 "use client";
 
 import { Box, Typography } from "@mui/material";
+import { formatInr } from "@/features/procurements/api";
 
 /** Simple CSS heatmap (Phase 1) — no map layers. */
 export function HeatmapSimple({
@@ -43,7 +44,7 @@ export function HeatmapSimple({
                 {c.label}
               </Typography>
               <Typography variant="body2" fontWeight={600}>
-                {c.value.toLocaleString("en-IN")}
+                {formatInr(c.value)}
               </Typography>
             </Box>
           );

@@ -209,7 +209,7 @@ export function recordWeighment(
   id: string,
   procurementDate: string,
   payload: {
-    gross_weight_kg: string;
+    gross_weight_kg?: string;
     tare_weight_kg?: string;
     moisture_pct?: string | null;
     bag_count?: number | null;
@@ -314,7 +314,8 @@ export function fetchCropTypes(): Promise<CropTypeListData> {
 
 export interface ProcurementCalculatePayload {
   bag_count: number;
-  weight_per_bag_kg: string;
+  weight_per_bag_kg?: string;
+  bag_weights_kg?: string[];
   per_bag_deduction_kg?: string | null;
   tare_weight_kg?: string;
   moisture_pct?: string | null;
@@ -352,7 +353,8 @@ export function createFieldEntry(payload: {
   village_id: string;
   procurement_date: string;
   bag_count: number;
-  weight_per_bag_kg: string;
+  weight_per_bag_kg?: string;
+  bag_weights_kg?: string[];
   per_bag_deduction_kg?: string | null;
   tare_weight_kg?: string;
   moisture_pct?: string | null;

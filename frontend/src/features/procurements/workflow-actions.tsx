@@ -18,13 +18,11 @@ import {
   PremiumDialogTitle,
 } from "@/components/ui/premium-dialog";
 import { Button as PremiumButton, PREMIUM_SCOPE } from "@/components/ui/premium";
-import { useAuth } from "@/hooks/use-auth";
 import {
   applyPrice,
   cancelProcurement,
   confirmProcurement,
   recordWeighment,
-  reverseProcurement,
   submitProcurement,
   type ProcurementDetail,
   type ProcurementStatus,
@@ -45,19 +43,15 @@ export function ProcurementWorkflowActions({
   plannedMoisturePct,
 }: Props) {
   const queryClient = useQueryClient();
-  const { roles } = useAuth();
-  const isOwner = roles.includes("OWNER");
   const status = procurement.status;
   const [weighOpen, setWeighOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
-  const [reverseOpen, setReverseOpen] = useState(false);
   const [gross, setGross] = useState("");
   const [tare, setTare] = useState("0");
   const [moisture, setMoisture] = useState(plannedMoisturePct ?? "");
   const [bagCount, setBagCount] = useState(String(procurement.bag_count || ""));
   const [perBag, setPerBag] = useState(procurement.per_bag_deduction_kg ?? "2");
   const [cancelReason, setCancelReason] = useState("");
-  const [reverseReason, setReverseReason] = useState("");
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["procurement", procurement.id, procurementDate] });
@@ -98,22 +92,12 @@ export function ProcurementWorkflowActions({
       invalidate();
     },
   });
-  const reverseMut = useMutation({
-    mutationFn: () => reverseProcurement(procurement.id, procurementDate, reverseReason.trim()),
-    onSuccess: () => {
-      setReverseOpen(false);
-      setReverseReason("");
-      invalidate();
-    },
-  });
-
   const actionError =
     submitMut.error ??
     weighMut.error ??
     priceMut.error ??
     confirmMut.error ??
-    cancelMut.error ??
-    reverseMut.error;
+    cancelMut.error;
 
   const openWeigh = () => {
     setGross("");
@@ -133,7 +117,7 @@ export function ProcurementWorkflowActions({
     status,
   );
 
-  if (isTerminal && status !== "confirmed") {
+  if (isTerminal) {
     return null;
   }
 
@@ -191,23 +175,6 @@ export function ProcurementWorkflowActions({
               onClick={() => confirmMut.mutate()}
             >
               {confirmMut.isPending ? "Confirming…" : "Confirm (post ledger)"}
-            </Button>
-          </PermissionGuard>
-        )}
-
-        {status === "confirmed" && isOwner && (
-          <PermissionGuard permission="procurements:confirm">
-            <Button
-              variant="outlined"
-              color="error"
-              size="large"
-              sx={{ minHeight: 48 }}
-              onClick={() => {
-                reverseMut.reset();
-                setReverseOpen(true);
-              }}
-            >
-              Reverse
             </Button>
           </PermissionGuard>
         )}
@@ -358,42 +325,6 @@ export function ProcurementWorkflowActions({
         </PremiumDialogActions>
       </PremiumDialog>
 
-      <PremiumDialog open={reverseOpen} onClose={() => setReverseOpen(false)} maxWidth="xs">
-        <PremiumDialogTitle>Reverse confirmation?</PremiumDialogTitle>
-        <PremiumDialogContent>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-            Reverses the ledger debit. OWNER + confirm permission required.
-          </Typography>
-          <TextField
-            fullWidth
-            required
-            multiline
-            minRows={2}
-            label="Reason"
-            sx={TOUCH_FIELD_SX}
-            value={reverseReason}
-            onChange={(e) => setReverseReason(e.target.value)}
-          />
-          {reverseMut.isError && (
-            <Alert severity="error" sx={{ mt: 1.5 }}>
-              {reverseMut.error instanceof Error ? reverseMut.error.message : "Reverse failed"}
-            </Alert>
-          )}
-        </PremiumDialogContent>
-        <PremiumDialogActions className={PREMIUM_SCOPE}>
-          <PremiumButton variant="secondary" size="sm" onClick={() => setReverseOpen(false)}>
-            Keep confirmed
-          </PremiumButton>
-          <PremiumButton
-            variant="danger"
-            size="sm"
-            disabled={reverseReason.trim().length < 3 || reverseMut.isPending}
-            onClick={() => reverseMut.mutate()}
-          >
-            {reverseMut.isPending ? "Reversing…" : "Reverse"}
-          </PremiumButton>
-        </PremiumDialogActions>
-      </PremiumDialog>
     </Card>
   );
 }

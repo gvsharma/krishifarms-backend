@@ -6,8 +6,9 @@ from datetime import date
 from decimal import Decimal
 from uuid import UUID
 
-from sqlalchemy import and_, func, select
+from sqlalchemy import and_, case, func, select
 from sqlalchemy.orm import Session
+from sqlalchemy.sql.elements import ColumnElement
 
 from app.modules.analytics.filters import CONFIRMED_PROCUREMENT_STATUSES, kg, money
 from app.modules.assets.models import Asset
@@ -19,6 +20,67 @@ from app.modules.master_data.models import CropType, Village
 from app.modules.procurements.models import FarmerLedgerEntry, Procurement
 
 _ZERO = Decimal("0.00")
+_QUINTAL_KG = Decimal("100")
+
+
+def procurement_margin_expr() -> ColumnElement:
+    """Per-row buyer margin SQL — mirrors ``compute_procurement_margin_amount``."""
+    weight_profit = (
+        Procurement.bag_count
+        * Procurement.per_bag_deduction_kg
+        / _QUINTAL_KG
+        * Procurement.rate_per_quintal
+    )
+    spot = func.coalesce(Procurement.spot_deduction_amount, 0)
+    sale_margin = case(
+        (
+            and_(
+                Procurement.sale_rate_per_quintal.isnot(None),
+                Procurement.sale_rate_per_quintal > 0,
+            ),
+            Procurement.net_weight_kg
+            / _QUINTAL_KG
+            * (Procurement.sale_rate_per_quintal - Procurement.rate_per_quintal),
+        ),
+        else_=0,
+    )
+    margin = weight_profit + spot + sale_margin
+    return case(
+        (
+            and_(Procurement.rate_per_quintal > 0, Procurement.gross_weight_kg > 0),
+            margin,
+        ),
+        else_=0,
+    )
+
+
+def _confirmed_procurement_filters(
+    q,
+    org_id: UUID,
+    date_from: date,
+    date_to: date,
+    *,
+    village_id: UUID | None = None,
+    crop_type_id: UUID | None = None,
+    farmer_id: UUID | None = None,
+    buyer_id: UUID | None = None,
+):
+    q = q.filter(
+        Procurement.org_id == org_id,
+        Procurement.deleted_at.is_(None),
+        Procurement.procurement_date >= date_from,
+        Procurement.procurement_date <= date_to,
+        Procurement.status.in_(CONFIRMED_PROCUREMENT_STATUSES),
+    )
+    if village_id:
+        q = q.filter(Procurement.village_id == village_id)
+    if crop_type_id:
+        q = q.filter(Procurement.crop_type_id == crop_type_id)
+    if farmer_id:
+        q = q.filter(Procurement.farmer_id == farmer_id)
+    if buyer_id:
+        q = q.filter(Procurement.buyer_id == buyer_id)
+    return q
 
 
 def sum_procurement_revenue(
@@ -47,6 +109,57 @@ def sum_procurement_revenue(
         q = q.filter(Procurement.farmer_id == farmer_id)
     if buyer_id:
         q = q.filter(Procurement.buyer_id == buyer_id)
+    return money(q.scalar())
+
+
+def sum_procurement_gross(
+    db: Session,
+    org_id: UUID,
+    date_from: date,
+    date_to: date,
+    *,
+    village_id: UUID | None = None,
+    crop_type_id: UUID | None = None,
+    farmer_id: UUID | None = None,
+    buyer_id: UUID | None = None,
+) -> Decimal:
+    q = db.query(func.coalesce(func.sum(Procurement.gross_amount), 0))
+    q = _confirmed_procurement_filters(
+        q,
+        org_id,
+        date_from,
+        date_to,
+        village_id=village_id,
+        crop_type_id=crop_type_id,
+        farmer_id=farmer_id,
+        buyer_id=buyer_id,
+    )
+    return money(q.scalar())
+
+
+def sum_procurement_margin(
+    db: Session,
+    org_id: UUID,
+    date_from: date,
+    date_to: date,
+    *,
+    village_id: UUID | None = None,
+    crop_type_id: UUID | None = None,
+    farmer_id: UUID | None = None,
+    buyer_id: UUID | None = None,
+) -> Decimal:
+    margin = procurement_margin_expr()
+    q = db.query(func.coalesce(func.sum(margin), 0))
+    q = _confirmed_procurement_filters(
+        q,
+        org_id,
+        date_from,
+        date_to,
+        village_id=village_id,
+        crop_type_id=crop_type_id,
+        farmer_id=farmer_id,
+        buyer_id=buyer_id,
+    )
     return money(q.scalar())
 
 
@@ -303,6 +416,28 @@ def expense_series_by_day(
     return [(row[0], money(row[1])) for row in q.all()]
 
 
+def procurement_margin_series_by_day(
+    db: Session,
+    org_id: UUID,
+    date_from: date,
+    date_to: date,
+    *,
+    village_id: UUID | None = None,
+) -> list[tuple[date, Decimal]]:
+    margin = procurement_margin_expr()
+    q = db.query(Procurement.procurement_date, func.coalesce(func.sum(margin), 0)).filter(
+        Procurement.org_id == org_id,
+        Procurement.deleted_at.is_(None),
+        Procurement.procurement_date >= date_from,
+        Procurement.procurement_date <= date_to,
+        Procurement.status.in_(CONFIRMED_PROCUREMENT_STATUSES),
+    )
+    if village_id:
+        q = q.filter(Procurement.village_id == village_id)
+    q = q.group_by(Procurement.procurement_date).order_by(Procurement.procurement_date)
+    return [(row[0], money(row[1])) for row in q.all()]
+
+
 def top_villages_by_procurement(
     db: Session,
     org_id: UUID,
@@ -311,12 +446,15 @@ def top_villages_by_procurement(
     *,
     limit: int = 10,
 ) -> list[dict]:
+    margin = procurement_margin_expr()
     rows = (
         db.query(
             Village.id,
             Village.name,
             func.coalesce(func.sum(Procurement.net_weight_kg), 0).label("kg"),
-            func.coalesce(func.sum(Procurement.net_amount), 0).label("amount"),
+            func.coalesce(func.sum(Procurement.gross_amount), 0).label("gross"),
+            func.coalesce(func.sum(Procurement.net_amount), 0).label("net"),
+            func.coalesce(func.sum(margin), 0).label("profit"),
             func.count(Procurement.id).label("tickets"),
         )
         .join(Procurement, and_(Procurement.village_id == Village.id, Procurement.org_id == org_id))
@@ -329,7 +467,7 @@ def top_villages_by_procurement(
             Procurement.status.in_(CONFIRMED_PROCUREMENT_STATUSES),
         )
         .group_by(Village.id, Village.name)
-        .order_by(func.sum(Procurement.net_amount).desc())
+        .order_by(func.sum(margin).desc())
         .limit(limit)
         .all()
     )
@@ -338,8 +476,9 @@ def top_villages_by_procurement(
             "village_id": str(r.id),
             "name": r.name,
             "kg": kg(r.kg),
-            "amount": money(r.amount),
-            "profit": money(r.amount),
+            "gross": money(r.gross),
+            "net": money(r.net),
+            "profit": money(r.profit),
             "tickets": int(r.tickets),
         }
         for r in rows
@@ -354,12 +493,15 @@ def top_crops_by_procurement(
     *,
     limit: int = 10,
 ) -> list[dict]:
+    margin = procurement_margin_expr()
     rows = (
         db.query(
             CropType.id,
             CropType.name,
             func.coalesce(func.sum(Procurement.net_weight_kg), 0).label("kg"),
-            func.coalesce(func.sum(Procurement.net_amount), 0).label("amount"),
+            func.coalesce(func.sum(Procurement.gross_amount), 0).label("gross"),
+            func.coalesce(func.sum(Procurement.net_amount), 0).label("net"),
+            func.coalesce(func.sum(margin), 0).label("profit"),
             func.count(Procurement.id).label("tickets"),
         )
         .join(Procurement, and_(Procurement.crop_type_id == CropType.id, Procurement.org_id == org_id))
@@ -372,7 +514,7 @@ def top_crops_by_procurement(
             Procurement.status.in_(CONFIRMED_PROCUREMENT_STATUSES),
         )
         .group_by(CropType.id, CropType.name)
-        .order_by(func.sum(Procurement.net_amount).desc())
+        .order_by(func.sum(margin).desc())
         .limit(limit)
         .all()
     )
@@ -381,8 +523,9 @@ def top_crops_by_procurement(
             "crop_type_id": str(r.id),
             "name": r.name,
             "kg": kg(r.kg),
-            "amount": money(r.amount),
-            "profit": money(r.amount),
+            "gross": money(r.gross),
+            "net": money(r.net),
+            "profit": money(r.profit),
             "tickets": int(r.tickets),
         }
         for r in rows
@@ -397,11 +540,14 @@ def top_farmers_by_revenue(
     *,
     limit: int = 10,
 ) -> list[dict]:
+    margin = procurement_margin_expr()
     proc_rows = (
         db.query(
             Farmer.id,
             Farmer.full_name,
+            func.coalesce(func.sum(Procurement.gross_amount), 0).label("proc_gross"),
             func.coalesce(func.sum(Procurement.net_amount), 0).label("proc_amount"),
+            func.coalesce(func.sum(margin), 0).label("proc_profit"),
             func.coalesce(func.sum(Procurement.net_weight_kg), 0).label("kg"),
             func.count(Procurement.id).label("tickets"),
         )
@@ -447,8 +593,10 @@ def top_farmers_by_revenue(
             "farmer_id": str(r.id),
             "name": r.full_name,
             "kg": kg(r.kg),
+            "gross": money(r.proc_gross),
+            "net": proc_amt,
             "revenue": revenue,
-            "profit": revenue,
+            "profit": money(r.proc_profit),
             "tickets": int(r.tickets),
         }
     for fid, fs_amt in fs_map.items():
@@ -461,11 +609,13 @@ def top_farmers_by_revenue(
             "farmer_id": str(fid),
             "name": farmer.full_name,
             "kg": kg(0),
+            "gross": _ZERO,
+            "net": fs_amt,
             "revenue": fs_amt,
-            "profit": fs_amt,
+            "profit": _ZERO,
             "tickets": 0,
         }
-    ranked = sorted(merged.values(), key=lambda x: x["revenue"], reverse=True)[:limit]
+    ranked = sorted(merged.values(), key=lambda x: x["profit"], reverse=True)[:limit]
     return ranked
 
 

@@ -86,9 +86,10 @@ def calculate_procurement_preview(payload: ProcurementCalculateRequest) -> Procu
         if payload.spot_deduction_per_quintal is not None
         else DEFAULT_SPOT_DEDUCTION_PER_QUINTAL
     )
-    gross_weight = _weight(Decimal(payload.bag_count) * payload.weight_per_bag_kg)
+    gross_weight = _weight(payload.resolved_gross_weight_kg())
+    effective_bag_count = len(payload.bag_weights_kg) if payload.bag_weights_kg else payload.bag_count
     bag_deduction, net_weight = compute_net_weight(
-        gross_weight, payload.tare_weight_kg, payload.bag_count, per_bag
+        gross_weight, payload.tare_weight_kg, effective_bag_count, per_bag
     )
     gross_amount, line_deduction, spot_deduction, net_amount = compute_amounts(
         net_weight,
@@ -382,6 +383,29 @@ def compute_amounts(
     return gross_amount, line_deduction_amount, spot_deduction_amount, net_amount
 
 
+def compute_procurement_margin_amount(
+    *,
+    bag_count: int,
+    per_bag_deduction_kg: Decimal,
+    rate_per_quintal: Decimal,
+    spot_deduction_amount: Decimal,
+    gross_weight_kg: Decimal,
+    net_weight_kg: Decimal,
+    sale_rate_per_quintal: Decimal | None = None,
+) -> Decimal:
+    """Buyer margin per ticket (kata + spot + sale rate spread). Used by analytics rollups."""
+    if rate_per_quintal <= _ZERO or gross_weight_kg <= _ZERO:
+        return _ZERO
+    weight_deduction_kg = compute_bag_weight_deduction(bag_count, per_bag_deduction_kg)
+    weight_profit = _money((weight_deduction_kg / _QUINTAL_KG) * rate_per_quintal)
+    spot_amount = _money(spot_deduction_amount)
+    sale_margin = _ZERO
+    if sale_rate_per_quintal is not None and sale_rate_per_quintal > _ZERO:
+        net_q = net_weight_kg / _QUINTAL_KG
+        sale_margin = _money(net_q * (sale_rate_per_quintal - rate_per_quintal))
+    return _money(weight_profit + spot_amount + sale_margin)
+
+
 def compute_profit_summary(procurement: Procurement) -> ProcurementProfitSummary | None:
     """Buyer margin from weight kata + spot discount. Requires priced weights/rate."""
     if procurement.rate_per_quintal <= _ZERO or procurement.gross_weight_kg <= _ZERO:
@@ -405,7 +429,15 @@ def compute_profit_summary(procurement: Procurement) -> ProcurementProfitSummary
         # Buyer margin = (sale rate − farmer rate) × net quintals.
         sale_margin = _money(net_q * (sale_rate - rate))
 
-    total_profit = weight_profit + spot_amount + (sale_margin or _ZERO)
+    total_profit = compute_procurement_margin_amount(
+        bag_count=procurement.bag_count,
+        per_bag_deduction_kg=procurement.per_bag_deduction_kg,
+        rate_per_quintal=procurement.rate_per_quintal,
+        spot_deduction_amount=procurement.spot_deduction_amount,
+        gross_weight_kg=procurement.gross_weight_kg,
+        net_weight_kg=procurement.net_weight_kg,
+        sale_rate_per_quintal=procurement.sale_rate_per_quintal,
+    )
     return ProcurementProfitSummary(
         gross_quintals=gross_quintals,
         net_quintals=net_quintals,
@@ -706,7 +738,17 @@ def create_field_entry(
         payment_terms_custom=payload.payment_terms_custom,
         expected_payment_date=payload.expected_payment_date,
         notes=payload.notes,
-        weight_per_bag_kg=payload.weight_per_bag_kg,
+        weight_per_bag_kg=(
+            payload.weight_per_bag_kg
+            if payload.weight_per_bag_kg is not None
+            else (
+                _weight(sum(payload.bag_weights_kg, Decimal("0")) / Decimal(payload.bag_count))
+                if payload.bag_weights_kg
+                else None
+            )
+        ),
+        bag_weights_kg=payload.bag_weights_kg,
+        moisture_pct=payload.moisture_pct,
     )
     row = create_procurement(
         db, org_id, create_payload, actor_user_id, client, idempotency_key=idempotency_key
@@ -714,14 +756,23 @@ def create_field_entry(
 
     submit_procurement(db, org_id, row.id, row.procurement_date, actor_user_id, client)
 
-    gross_weight = _weight(Decimal(payload.bag_count) * payload.weight_per_bag_kg)
-    weigh_payload = WeighmentRequest(
-        gross_weight_kg=gross_weight,
-        tare_weight_kg=payload.tare_weight_kg,
-        moisture_pct=payload.moisture_pct,
-        bag_count=payload.bag_count,
-        per_bag_deduction_kg=payload.per_bag_deduction_kg,
-    )
+    if payload.bag_weights_kg:
+        weigh_payload = WeighmentRequest(
+            bag_weights_kg=payload.bag_weights_kg,
+            tare_weight_kg=payload.tare_weight_kg,
+            moisture_pct=payload.moisture_pct,
+            bag_count=payload.bag_count,
+            per_bag_deduction_kg=payload.per_bag_deduction_kg,
+        )
+    else:
+        gross_weight = _weight(Decimal(payload.bag_count) * payload.weight_per_bag_kg)
+        weigh_payload = WeighmentRequest(
+            gross_weight_kg=gross_weight,
+            tare_weight_kg=payload.tare_weight_kg,
+            moisture_pct=payload.moisture_pct,
+            bag_count=payload.bag_count,
+            per_bag_deduction_kg=payload.per_bag_deduction_kg,
+        )
     record_weighment(
         db, org_id, row.id, row.procurement_date, weigh_payload, actor_user_id, client
     )
