@@ -70,6 +70,47 @@ class TestProcurementCalculate:
         assert result.spot_deduction_amount == Decimal("2400.00")
 
 
+class TestFieldEntrySpotPayment:
+    """Field-entry / apply-price persists amounts that must satisfy ck_procurements_net_amount."""
+
+    def test_spot_payment_net_amount_matches_db_constraint(self):
+        """Regression: spot deduct breaks old net = gross - line only constraint (migration 042)."""
+        per_bag = Decimal("2")
+        gross_weight = Decimal("500")
+        bag_count = 10
+        _, net_weight = compute_net_weight(gross_weight, Decimal("0"), bag_count, per_bag)
+        line_deduction = Decimal("0")
+        gross, line, spot, net = compute_amounts(
+            net_weight,
+            Decimal("2500"),
+            line_deduction,
+            is_spot_payment=True,
+            spot_deduction_per_quintal=DEFAULT_SPOT_DEDUCTION_PER_QUINTAL,
+        )
+        assert gross == Decimal("12000.00")
+        assert line == Decimal("0.00")
+        assert spot == Decimal("480.00")
+        assert net == Decimal("11520.00")
+        assert net == gross - line - spot
+
+    def test_field_entry_preview_matches_spot_workflow(self):
+        from app.modules.procurements.schemas import ProcurementCalculateRequest
+        from app.modules.procurements.service import calculate_procurement_preview
+
+        preview = calculate_procurement_preview(
+            ProcurementCalculateRequest(
+                bag_count=10,
+                weight_per_bag_kg=Decimal("50"),
+                per_bag_deduction_kg=Decimal("2"),
+                rate_per_quintal=Decimal("2500"),
+                is_spot_payment=True,
+            )
+        )
+        assert preview.net_amount == Decimal("11520.00")
+        assert preview.spot_deduction_amount == Decimal("480.00")
+        assert preview.net_amount == preview.gross_amount - preview.line_deduction_amount - preview.spot_deduction_amount
+
+
 class TestProcurementPricing:
     def test_compute_amounts_uses_decimal(self):
         gross, line_deduction, spot_deduction, net = compute_amounts(

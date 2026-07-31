@@ -55,6 +55,7 @@ net_amount = gross_amount − line_deduction_amount − spot_deduction_amount
 ```
 
 - Columns (migration `036`): `is_spot_payment` BOOLEAN DEFAULT false, `spot_deduction_per_quintal` NUMERIC(14,2) DEFAULT `100.00`, `spot_deduction_amount` (computed at apply-price).
+- DB check (migration `042`): `net_amount = gross_amount - deduction_amount - spot_deduction_amount` (replaces pre-spot formula that omitted spot).
 - Worked example (continuing weighment example): 2400 kg net = 24 qtl @ ₹2100 → gross ₹50,400; spot deduction 24 × ₹100 = **₹2,400** → **net payment ₹48,000**.
 - Helpers: `compute_spot_deduction_amount`, `compute_amounts` (4-tuple), `compute_profit_summary`.
 
