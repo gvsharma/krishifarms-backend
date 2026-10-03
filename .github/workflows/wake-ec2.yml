@@ -2,7 +2,8 @@ name: Wake shared EC2
 
 # Manual-only: start shared EC2 when stopped (pre-production cost control).
 # Scheduled auto-wake disabled — use workflow_dispatch or deploy/scripts/start-shared-ec2.sh.
-# Vercel proxies to http://13.232.200.243:8082 — API is unreachable while EC2 is stopped.
+# The public IP is dynamic (no Elastic IP) — this workflow resolves it live
+# via describe-instances. See docs/deploy/DYNAMIC_IP.md.
 
 on:
   workflow_dispatch:
@@ -58,8 +59,14 @@ jobs:
       - name: Verify API health
         run: |
           set -euo pipefail
+          EC2_HOST="$(aws ec2 describe-instances \
+            --region "${AWS_REGION}" \
+            --instance-ids "${EC2_INSTANCE_ID}" \
+            --query 'Reservations[0].Instances[0].PublicIpAddress' \
+            --output text)"
+          echo "Current public IP: ${EC2_HOST}"
           for attempt in $(seq 1 24); do
-            if curl -sf --max-time 10 "http://13.232.200.243:8082/api/v1/health" >/dev/null; then
+            if curl -sf --max-time 10 "http://${EC2_HOST}:8082/api/v1/health" >/dev/null; then
               echo "Health check passed (attempt ${attempt})"
               exit 0
             fi

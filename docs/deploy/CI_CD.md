@@ -129,7 +129,7 @@ Configure in **Settings → Secrets and variables → Actions** for `gvsharma/kr
 |------|---------|-------------|
 | `DEPLOY_BUCKET` | `krishifarms-dev-backend-deploy` | S3 bucket for deploy artifacts. Gamyaboutique uses `gamya-couture-dev-backend-deploy`. |
 | `EC2_INSTANCE_ID` | `i-0426cdc00ff15bfe9` | **Required for shared Gamya EC2.** Target instance ID; when set, name-tag lookup is skipped. |
-| `EC2_HOST` | `13.232.200.243` | **Required for shared Gamya EC2.** Public IP for health checks and smoke tests. |
+| `EC2_HOST` | _(unset)_ | **Optional.** Pinned public IP override for health checks and smoke tests. Leave **unset** — deploy resolves the live dynamic IP via `describe-instances` (see [DYNAMIC_IP.md](./DYNAMIC_IP.md)). |
 
 ### Optional (auto-resolved if omitted)
 
@@ -139,7 +139,7 @@ Configure in **Settings → Secrets and variables → Actions** for `gvsharma/kr
 | `RDS_INSTANCE_ID` | — | Not used by default. KrishiFarms uses local PostgreSQL in Docker Compose. Set only if you migrate to RDS. |
 | `AWS_REGION` | `ap-south-1` | Default `ap-south-1` in workflow. |
 | `NGINX_LOCAL_PORT` | `8082` | Default `8082` on shared dev EC2. |
-| `PUBLIC_HEALTH_CHECK_URL` | `http://13.232.200.243:8082/api/v1/health` | Default built from EC2 host + port. |
+| `PUBLIC_HEALTH_CHECK_URL` | `http://<EC2_PUBLIC_IP>:8082/api/v1/health` | Default built from the live EC2 IP + port (see [DYNAMIC_IP.md](./DYNAMIC_IP.md)). |
 
 ### Optional smoke test secrets
 
@@ -156,9 +156,9 @@ On **`gvsharma/krishifarms-backend`** (not `krishifarms-crm`) → **Settings →
 
 1. **Secrets → New repository secret:** `AWS_BACKEND_DEPLOY_ROLE_ARN` = IAM role ARN from infra (see below).
 2. **Variables → New repository variable:** `DEPLOY_BUCKET` = S3 deploy bucket name (e.g. `krishifarms-dev-backend-deploy`).
-3. **Variables (shared Gamya EC2 — required):** `EC2_INSTANCE_ID` = `i-0426cdc00ff15bfe9`, `EC2_HOST` = `13.232.200.243`.
+3. **Variables (shared Gamya EC2):** `EC2_INSTANCE_ID` = `i-0426cdc00ff15bfe9`. Leave `EC2_HOST` **unset** so deploy resolves the live dynamic IP; only set it to pin a specific IP (see [DYNAMIC_IP.md](./DYNAMIC_IP.md)).
 
-Optional variables: `EC2_NAME_TAG` (`gamya-couture-dev-api`), `AWS_REGION`, `NGINX_LOCAL_PORT`, `PUBLIC_HEALTH_CHECK_URL`. Optional secrets: `SMOKE_TEST_EMAIL`, `SMOKE_TEST_PASSWORD`.
+Optional variables: `EC2_NAME_TAG` (`gamya-couture-dev-api`), `AWS_REGION`, `NGINX_LOCAL_PORT`, `PUBLIC_HEALTH_CHECK_URL`, `E2E_API_PROXY_TARGET` (Playwright proxy target override). Optional secrets: `SMOKE_TEST_EMAIL`, `SMOKE_TEST_PASSWORD`.
 
 ### Shared Gamya EC2 (dev)
 
@@ -168,11 +168,11 @@ KrishiFarms dev deploys to the **same EC2** as Gamya Couture — not a separate 
 |------|-------|
 | EC2 Name tag | `gamya-couture-dev-api` |
 | Instance ID | `i-0426cdc00ff15bfe9` |
-| Public IP | `13.232.200.243` |
+| Public IP | **Dynamic** — resolved live on every deploy/wake (`bash deploy/scripts/resolve-ec2-ip.sh`); see [DYNAMIC_IP.md](./DYNAMIC_IP.md) |
 | KrishiFarms nginx port | **8082** (Gamya uses **8080**) |
 | App path on host | `/opt/krishifarms` |
 
-**You must set GitHub Variables `EC2_INSTANCE_ID` and `EC2_HOST`** (see [`.github/DEPLOY_CONFIG.md`](../../.github/DEPLOY_CONFIG.md)). Without them, deploy used to derive tag `krishifarms-dev-api` from `DEPLOY_BUCKET` and fail.
+**Set GitHub Variable `EC2_INSTANCE_ID`** (see [`.github/DEPLOY_CONFIG.md`](../../.github/DEPLOY_CONFIG.md)). Without it, deploy used to derive tag `krishifarms-dev-api` from `DEPLOY_BUCKET` and fail. `EC2_HOST` is optional (live IP auto-resolution).
 
 If `EC2_INSTANCE_ID` is omitted, set `EC2_NAME_TAG=gamya-couture-dev-api` or rely on workflow auto-default when `DEPLOY_BUCKET` contains `krishifarms`.
 
@@ -215,7 +215,7 @@ Locally generated copy: [`.github/DEPLOY_CONFIG.md`](../../.github/DEPLOY_CONFIG
 | `Missing deploy config::Set AWS_BACKEND_DEPLOY_ROLE_ARN and DEPLOY_BUCKET` | Required secret/variable not set on backend repo | Add both on `gvsharma/krishifarms-backend`; re-run failed job |
 | **Create deploy bundle** succeeds, **Resolve deploy configuration** fails | Same — tar/bundle step is fine; config check runs next | Configure secrets (above); no code change needed |
 | OIDC `configure-aws-credentials` fails | Wrong/missing role ARN or trust policy repo mismatch | Role trust must include `repo:gvsharma/krishifarms-backend:*` |
-| `No EC2 instance found with tag Name=…-api` | Shared Gamya EC2: tag is `gamya-couture-dev-api`, not `krishifarms-dev-api` | Set `EC2_INSTANCE_ID=i-0426cdc00ff15bfe9` and `EC2_HOST=13.232.200.243`, or `EC2_NAME_TAG=gamya-couture-dev-api` |
+| `No EC2 instance found with tag Name=…-api` | Shared Gamya EC2: tag is `gamya-couture-dev-api`, not `krishifarms-dev-api` | Set `EC2_INSTANCE_ID=i-0426cdc00ff15bfe9` or `EC2_NAME_TAG=gamya-couture-dev-api` |
 | SSM PingStatus ≠ Online | Instance stopped, SSM agent down, or missing IAM | Start EC2; verify `AmazonSSMManagedInstanceCore` on instance role |
 | **Deploy on EC2 via SSM** times out; `deploy.status=running` | EC2 not bootstrapped: missing `/opt/krishifarms/config/application.env`; kickoff died before marking `failed` | See [EC2 bootstrap](#ec2-one-time-bootstrap). Reset zombie: `echo failed > /opt/krishifarms/logs/deploy.status`. Re-run workflow after bootstrap or SSM secrets are set |
 | `application.env not found. Run ec2-bootstrap.sh first` in `deploy.latest.log` | Bootstrap never run; workflow only created empty dirs | Run `ec2-bootstrap.sh` once, or let deploy auto-create env from S3 template (needs real `SECRET_KEY` / `POSTGRES_PASSWORD` via SSM or manual edit) |
@@ -230,7 +230,7 @@ Locally generated copy: [`.github/DEPLOY_CONFIG.md`](../../.github/DEPLOY_CONFIG
 | `AWS_BACKEND_DEPLOY_ROLE_ARN` | **Yes** | Secret | GitHub OIDC → S3 + SSM deploy role |
 | `DEPLOY_BUCKET` | **Yes** | Variable (or secret) | e.g. `krishifarms-dev-backend-deploy` |
 | `EC2_INSTANCE_ID` | **Yes** (shared EC2) | Variable/secret | `i-0426cdc00ff15bfe9` — skips name-tag lookup |
-| `EC2_HOST` | **Yes** (shared EC2) | Variable/secret | `13.232.200.243` — health/smoke target |
+| `EC2_HOST` | No | Variable/secret | Pinned IP override only — leave unset for live dynamic-IP resolution ([DYNAMIC_IP.md](./DYNAMIC_IP.md)) |
 | `EC2_NAME_TAG` | No | Variable/secret | `gamya-couture-dev-api` if instance ID omitted |
 | `RDS_INSTANCE_ID` | No | Variable/secret | Skipped by default (local Postgres in Docker) |
 | `AWS_REGION` | No | Variable | Default `ap-south-1` in workflow |
@@ -316,7 +316,7 @@ Same account/config pattern as Gamyaboutique:
 | Variable | Value |
 |----------|-------|
 | `NEXT_PUBLIC_API_BASE_URL` | `/api/v1` |
-| `API_PROXY_TARGET` | `http://<EC2_PUBLIC_IP>:8082` |
+| `API_PROXY_TARGET` | `http://<EC2_PUBLIC_IP>:8082` — live IP from `bash deploy/scripts/resolve-ec2-ip.sh`; **update + redeploy on every EC2 restart** (see [DYNAMIC_IP.md](./DYNAMIC_IP.md)) |
 | `NEXT_PUBLIC_SITE_URL` | `https://krishifarms-backend.vercel.app` |
 
 - [ ] Update EC2 `CORS_ORIGINS` to include `NEXT_PUBLIC_SITE_URL`
@@ -368,5 +368,6 @@ Same account/config pattern as Gamyaboutique:
 ## Related docs
 
 - [deploy/README.md](../../deploy/README.md) — EC2 bootstrap and rollback
+- [DYNAMIC_IP.md](./DYNAMIC_IP.md) — drop the Elastic IP; dynamic-IP runbook + per-boot checklist
 - [README.md](../../README.md) — local development
 - Gamyaboutique reference: `~/Desktop/gamya-boutique/docs/DEPLOYMENT.md`

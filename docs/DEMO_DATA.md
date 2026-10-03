@@ -103,7 +103,8 @@ Do **not** commit real URLs/passwords.
 CRM and Android share `/api/v1` + the same Supabase DB. `org_id` comes from JWT only.
 
 ```bash
-BASE=http://13.232.200.243:8082/api/v1
+# Live EC2 IP is dynamic — resolve it (see docs/deploy/DYNAMIC_IP.md):
+BASE=http://$(bash deploy/scripts/resolve-ec2-ip.sh):8082/api/v1
 TOKEN=$(curl -sf -X POST "$BASE/auth/login" \
   -H 'Content-Type: application/json' \
   -d '{"email":"owner@krishifarms.local","password":"ChangeMe123!"}' \

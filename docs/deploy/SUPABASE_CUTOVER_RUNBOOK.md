@@ -55,7 +55,7 @@ After steps 1–2:
 1. `github-predeploy.sh` writes `/krishifarms/dev/db/database_url` (Supabase + `sslmode=require`)
 2. EC2 kickoff runs `sync-env-from-ssm.sh` → updates `application.env`
 3. `alembic upgrade head` + `seed.py` against Supabase
-4. Health check `http://13.232.200.243:8082/api/v1/health`
+4. Health check `http://<EC2_PUBLIC_IP>:8082/api/v1/health` (live IP via `bash deploy/scripts/resolve-ec2-ip.sh` — see [DYNAMIC_IP.md](./DYNAMIC_IP.md))
 
 ## Verify cutover
 

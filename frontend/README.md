@@ -46,7 +46,7 @@ Set in the Vercel dashboard (**Settings → Environment Variables**) or rely on 
 | Variable | Value |
 |----------|-------|
 | `NEXT_PUBLIC_API_BASE_URL` | `/api/v1` |
-| `API_PROXY_TARGET` | `http://13.232.200.243:8082` |
+| `API_PROXY_TARGET` | `http://<EC2_PUBLIC_IP>:8082` (live IP — update dashboard env + redeploy on every EC2 restart; see [DYNAMIC_IP.md](../docs/deploy/DYNAMIC_IP.md)) |
 | `NEXT_PUBLIC_SITE_URL` | `https://krishifarms-backend.vercel.app` |
 
 Browser calls same-origin `/api/v1`; Next.js rewrites proxy to EC2 nginx on port **8082** (avoids mixed content). Update EC2 `CORS_ORIGINS` to include `NEXT_PUBLIC_SITE_URL`.
