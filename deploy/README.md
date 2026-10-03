@@ -68,7 +68,7 @@ Use the **same secret names** as Gamyaboutique where applicable.
 |----------|----------|-------------|
 | `DEPLOY_BUCKET` | Yes | S3 bucket for deploy artifacts (e.g. `krishifarms-dev-backend-deploy`) |
 | `EC2_INSTANCE_ID` | **Yes** (shared Gamya EC2) | `i-0426cdc00ff15bfe9` — skips name-tag lookup |
-| `EC2_HOST` | **Yes** (shared Gamya EC2) | `13.232.200.243` — health checks and smoke tests |
+| `EC2_HOST` | No | Pinned IP override only — leave unset; deploy resolves the live dynamic IP (see [DYNAMIC_IP.md](../docs/deploy/DYNAMIC_IP.md)) |
 | `EC2_NAME_TAG` | No | `gamya-couture-dev-api` if instance ID omitted (auto-default when bucket name contains `krishifarms`) |
 | `NGINX_LOCAL_PORT` | No | Default `8082` on shared dev host |
 | `PUBLIC_HEALTH_CHECK_URL` | No | Default `http://<EC2_HOST>:8082/api/v1/health` |
@@ -141,7 +141,7 @@ PR merged → push to main
 | Vercel | EC2 `application.env` |
 |--------|----------------------|
 | `NEXT_PUBLIC_API_BASE_URL=/api/v1` | — |
-| `API_PROXY_TARGET=http://<EC2_IP>` | — |
+| `API_PROXY_TARGET=http://<EC2_PUBLIC_IP>:8082` (live IP; update + redeploy Vercel on every EC2 restart — see [DYNAMIC_IP.md](../docs/deploy/DYNAMIC_IP.md)) | — |
 | `NEXT_PUBLIC_SITE_URL=https://krishifarms.vercel.app` | `CORS_ORIGINS` must include this origin |
 
 See `frontend/.env.example` and [docs/deploy/CI_CD.md](../docs/deploy/CI_CD.md).

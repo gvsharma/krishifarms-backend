@@ -10,6 +10,7 @@ set -euo pipefail
 
 REGION="${AWS_REGION:-ap-south-1}"
 INSTANCE_ID="${EC2_INSTANCE_ID:-i-0426cdc00ff15bfe9}"
+NGINX_PORT="${NGINX_LOCAL_PORT:-8082}"
 WAIT=false
 
 if [[ "${1:-}" == "--wait" ]]; then
@@ -26,12 +27,22 @@ state() {
     --output text 2>/dev/null || echo "missing"
 }
 
+# Dynamic IP: the public address changes on every stop/start once the
+# Elastic IP is released — never hardcode it. See docs/deploy/DYNAMIC_IP.md.
+current_ip() {
+  aws ec2 describe-instances \
+    --region "$REGION" \
+    --instance-ids "$INSTANCE_ID" \
+    --query 'Reservations[0].Instances[0].PublicIpAddress' \
+    --output text 2>/dev/null || echo "None"
+}
+
 STATUS="$(state)"
 log "EC2 ${INSTANCE_ID} state=${STATUS}"
 
 case "${STATUS}" in
   running)
-    log "Already running — API should be reachable at http://13.232.200.243:8082"
+    log "Already running — API should be reachable at http://$(current_ip):${NGINX_PORT}"
     exit 0
     ;;
   pending)
@@ -54,7 +65,7 @@ if [[ "$WAIT" == true ]]; then
   log "Waiting for running + status checks…"
   aws ec2 wait instance-running --region "$REGION" --instance-ids "$INSTANCE_ID"
   aws ec2 wait instance-status-ok --region "$REGION" --instance-ids "$INSTANCE_ID"
-  log "EC2 ready. Health: curl -sf http://13.232.200.243:8082/api/v1/health"
+  log "EC2 ready. Health: curl -sf http://$(current_ip):${NGINX_PORT}/api/v1/health"
 fi
 
 log "Done."

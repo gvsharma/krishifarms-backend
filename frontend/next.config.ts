@@ -20,16 +20,17 @@ const publicApiBase = (() => {
 
 const apiProxyTarget = (() => {
   const raw = process.env.API_PROXY_TARGET?.replace(/\/$/, "");
-  if (isVercel) {
-    return raw || "http://13.232.200.243:8082";
-  }
+  // No hardcoded fallback: the EC2 public IP is dynamic (no Elastic IP).
+  // Set API_PROXY_TARGET (Vercel dashboard or build env) — see
+  // docs/deploy/DYNAMIC_IP.md. Without it, /api/v1 rewrites are disabled.
   return raw ?? "";
 })();
 
 if (isVercel && publicApiBase.startsWith("http://")) {
   throw new Error(
     "NEXT_PUBLIC_API_BASE_URL must not be plain HTTP on Vercel. " +
-      "Use NEXT_PUBLIC_API_BASE_URL=/api/v1 and API_PROXY_TARGET=http://<ec2-ip>.",
+      "Use NEXT_PUBLIC_API_BASE_URL=/api/v1 and API_PROXY_TARGET=http://<ec2-public-ip>:8082 " +
+      "(current IP: bash deploy/scripts/resolve-ec2-ip.sh — see docs/deploy/DYNAMIC_IP.md).",
   );
 }
 

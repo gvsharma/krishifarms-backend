@@ -5,7 +5,9 @@ on:
 
 env:
   NODE_VERSION: "22"
-  API_PROXY_TARGET: "http://13.232.200.243:8082"
+  # Dynamic-IP safe: override per-run via repo variable E2E_API_PROXY_TARGET
+  # after the Elastic IP is released (see docs/deploy/DYNAMIC_IP.md).
+  API_PROXY_TARGET: ${{ vars.E2E_API_PROXY_TARGET || 'http://13.232.200.243:8082' }}
   E2E_EMAIL: owner@krishifarms.local
   E2E_PASSWORD: ChangeMe123!
 
